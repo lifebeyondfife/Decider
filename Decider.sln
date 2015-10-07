@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Decider.Example.PhaseLocked
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Decider.Example.SendMoreMoney", "SendMoreMoney\Decider.Example.SendMoreMoney.csproj", "{A9EA76A5-4F36-49E5-B635-C396AA3C9D8D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Decider.Example.LeagueGeneration", "Decider.Example.LeagueGeneration\Decider.Example.LeagueGeneration.csproj", "{A5013A66-DD21-4834-A9A7-002A7DB960B4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Decider.Example.LeagueGeneration", "LeagueGeneration\Decider.Example.LeagueGeneration.csproj", "{A5013A66-DD21-4834-A9A7-002A7DB960B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

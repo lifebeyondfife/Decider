@@ -45,9 +45,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Csp\AllDifferentInteger\Decider.Csp.Global.AllDifferentInteger.csproj">
       <Project>{972097bd-5f21-44e4-8fc5-79bb9f22cde3}</Project>
       <Name>Decider.Csp.Global.AllDifferentInteger</Name>
