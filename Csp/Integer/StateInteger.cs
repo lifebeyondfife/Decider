@@ -26,7 +26,7 @@ namespace Decider.Csp.Integer
 {
 	public class StateInteger : IState<int>
 	{
-		public IConstraint[] ConstraintList { get; private set; }
+		public List<IConstraint> ConstraintList { get; private set; }
 		public IVariable<int>[] VariableList { get; private set; }
 
 		public int Depth { get; private set; }
@@ -55,7 +55,7 @@ namespace Decider.Csp.Integer
 
 		void IState<int>.SetConstraints(IEnumerable<IConstraint> constraintList)
 		{
-			this.ConstraintList = constraintList.ToArray();
+			this.ConstraintList = constraintList.ToList();
 		}
 
 		void IState<int>.StartSearch(out StateOperationResult searchResult)
@@ -133,8 +133,57 @@ namespace Decider.Csp.Integer
 			solutions = solutionsList;
 		}
 
+		void IState<int>.StartSearch(out StateOperationResult searchResult, IVariable<int> optimiseVar, out IDictionary<string, IVariable<int>> solution, int timeOut)
+		{
+			var unassignedVariables = this.LastSolution == null
+				? new LinkedList<IVariable<int>>(this.VariableList)
+				: new LinkedList<IVariable<int>>();
+			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.VariableList.Length];
+			var startTime = DateTime.Now;
+
+			solution = new Dictionary<string, IVariable<int>>();
+			searchResult = StateOperationResult.Unsatisfiable;
+
+			this.ConstraintList.Add(new ConstraintInteger((VariableInteger) optimiseVar > Int32.MinValue));
+
+			try
+			{
+				while (true)
+				{
+					if (this.Depth == instantiatedVariables.Length)
+					{
+						--this.Depth;
+						Backtrack(unassignedVariables, instantiatedVariables);
+						++this.Depth;
+					}
+					else if (ConstraintsViolated())
+					{
+						throw new ApplicationException("No solution found.");
+					}
+
+					startTime = DateTime.Now;
+					Search(out searchResult, unassignedVariables, instantiatedVariables, startTime, timeOut);
+
+					this.ConstraintList.RemoveAt(this.ConstraintList.Count - 1);
+					this.ConstraintList.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
+
+					// Console.WriteLine("Optimised Value: {0} ({1}s)", optimiseVar.InstantiatedValue, DateTime.Now - startTime);
+
+					solution = this.LastSolution.Select(v => v.Clone())
+						.Cast<IVariable<int>>()
+						.Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
+						.OrderBy(kvp => kvp.Key)
+						.ToDictionary(k => k.Key, v => v.Value);
+				}
+			}
+			catch (ApplicationException)
+			{
+				this.Runtime += DateTime.Now - startTime;
+			}
+		}
+
 		private void Search(out StateOperationResult searchResult, LinkedList<IVariable<int>> unassignedVariables,
-			IList<IVariable<int>> instantiatedVariables, DateTime startTime)
+			IList<IVariable<int>> instantiatedVariables, DateTime startTime, int timeOut = Int32.MaxValue)
 		{
 			while (true)
 			{
@@ -155,6 +204,9 @@ namespace Decider.Csp.Integer
 
 				if (ConstraintsViolated() || unassignedVariables.Any(v => v.Size() == 0))
 				{
+					if ((DateTime.Now - startTime).Seconds > timeOut)
+						throw new ApplicationException();
+
 					Backtrack(unassignedVariables, instantiatedVariables);
 				}
 

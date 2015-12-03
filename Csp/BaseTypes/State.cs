@@ -39,5 +39,6 @@ namespace Decider.Csp.BaseTypes
 		void SetConstraints(IEnumerable<IConstraint> constraintList);
 		void StartSearch(out StateOperationResult result);
 		void StartSearch(out StateOperationResult result, out IList<IDictionary<string, IVariable<T>>> solutions);
+		void StartSearch(out StateOperationResult result, IVariable<int> optimiseVar, out IDictionary<string, IVariable<int>> solution, int timeOut);
 	}
 }
