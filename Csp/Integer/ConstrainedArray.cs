@@ -23,7 +23,7 @@ namespace Decider.Csp.BaseTypes
 			this.AddRange(elements);
 		}
 
-		public VariableInteger GetVariableInteger()
+		private VariableInteger GetVariableInteger()
 		{
 			return new VariableInteger(Index.Name + this.ToString(), Elements());
 		}
