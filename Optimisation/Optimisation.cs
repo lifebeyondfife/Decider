@@ -21,6 +21,8 @@ namespace Decider.Example.Optimisation
 			var h = new VariableInteger("h", 0, 9);
 			var optimise = new VariableInteger("optimise", 0, 72);
 
+			var array = new ConstrainedArray(new int[] { 0, 23, 52, 62, 75, 73, 47, 20, 87, 27 });
+
 			var constraints = new List<IConstraint>
 				{
 					new AllDifferentInteger(new [] { a, b, c, d }),
@@ -28,6 +30,7 @@ namespace Decider.Example.Optimisation
 					new ConstraintInteger(a + b < 10),
 					new ConstraintInteger(c + d > 15),
 					new ConstraintInteger(h > e),
+					new ConstraintInteger(array[a] < 40),
 					new ConstraintInteger(optimise == a + b + c + d + e + f + g + h)
 				};
 
