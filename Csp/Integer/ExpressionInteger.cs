@@ -883,7 +883,9 @@ namespace Decider.Csp.Integer
 		public override void Propagate(Bounds<int> enforceBounds, out ConstraintOperationResult result)
 		{
 			left.GetUpdatedBounds();
-			right.GetUpdatedBounds();
+
+			if (right != null)
+				right.GetUpdatedBounds();
 
 			var propagated = false;
 			var intermediateResult = propagator((ExpressionInteger) left, (ExpressionInteger) right, enforceBounds);
@@ -896,7 +898,7 @@ namespace Decider.Csp.Integer
 				if (!left.IsBound)
 					left.Propagate(left.Bounds, out leftResult);
 
-				if (!right.IsBound)
+				if (right != null && !right.IsBound)
 					right.Propagate(right.Bounds, out rightResult);
 
 				intermediateResult = (leftResult | rightResult) & ConstraintOperationResult.Propagated;
@@ -924,6 +926,17 @@ namespace Decider.Csp.Integer
 			this.integer = integer;
 			Bounds = new Bounds<int>(integer, integer);
 			remove = _ => DomainOperationResult.ElementNotInDomain;
+		}
+
+		internal ExpressionInteger(VariableInteger variable,
+			Func<ExpressionInteger, ExpressionInteger, int> evaluate,
+			Func<ExpressionInteger, ExpressionInteger, Bounds<int>> evaluateBounds,
+			Func<ExpressionInteger, ExpressionInteger, Bounds<int>, ConstraintOperationResult> propagator)
+		{
+			this.left = variable;
+			this.evaluate = evaluate;
+			this.evaluateBounds = evaluateBounds;
+			this.propagator = propagator;
 		}
 
 		public static implicit operator ExpressionInteger(int i)

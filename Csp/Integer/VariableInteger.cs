@@ -188,6 +188,11 @@ namespace Decider.Csp.Integer
 
 		public override void Propagate(Bounds<int> enforceBounds, out ConstraintOperationResult result)
 		{
+			result = ConstraintOperationResult.Undecided;
+
+			if (this.State == null)
+				return;
+
 			var domainIntStack = this.domainStack.Peek();
 			var isDomainNew = false;
 			IDomain<int> propagatedDomain;
@@ -204,7 +209,6 @@ namespace Decider.Csp.Integer
 			}
 
 			var domainResult = DomainOperationResult.RemoveSuccessful;
-			result = ConstraintOperationResult.Undecided;
 
 			while (enforceBounds.LowerBound > propagatedDomain.LowerBound &&
 				domainResult == DomainOperationResult.RemoveSuccessful)

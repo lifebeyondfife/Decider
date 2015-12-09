@@ -71,6 +71,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConstrainedArray.cs" />
     <Compile Include="ConstraintInteger.cs" />
     <Compile Include="DomainBinaryInteger.cs" />
     <Compile Include="ExpressionInteger.cs" />
