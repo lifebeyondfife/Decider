@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Constraint.cs" />
+    <Compile Include="DeciderException.cs" />
     <Compile Include="Domain.cs" />
     <Compile Include="Expression.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

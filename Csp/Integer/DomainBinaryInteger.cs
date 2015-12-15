@@ -59,17 +59,6 @@ namespace Decider.Csp.Integer
 				(index + 1) / BitsPerDatatype] &= (uint) ~(0x1 << (index % BitsPerDatatype));
 		}
 
-		protected DomainBinaryInteger(SerializationInfo info, StreamingContext context)
-		{
-			if (info == null)
-				throw new ArgumentNullException("info");
-
-			this.domain = info.GetValue("domain", this.domain.GetType()) as uint[];
-			this.lowerBound = (int) info.GetValue("lowerBound", this.lowerBound.GetType());
-			this.upperBound = (int) info.GetValue("upperBound", this.upperBound.GetType());
-			this.size = (int) info.GetValue("size", this.size.GetType());
-		}
-
 		internal DomainBinaryInteger()
 			: this(1)
 		{
@@ -106,7 +95,7 @@ namespace Decider.Csp.Integer
 		public static IDomain<int> CreateDomain(int lowerBound, int upperBound)
 		{
 			if (lowerBound > upperBound)
-				throw new ApplicationException("Invalid Domain Bounds");
+				throw new ArgumentException("Invalid Domain Bounds");
 
 			var domainImpl = new DomainBinaryInteger(lowerBound, upperBound);
 			return domainImpl;
@@ -133,7 +122,7 @@ namespace Decider.Csp.Integer
 			get
 			{
 				if (!((IDomain<int>) this).Instantiated())
-					throw new ApplicationException("Trying to access InstantiatedValue of an uninstantiated domain.");
+					throw new DeciderException("Trying to access InstantiatedValue of an uninstantiated domain.");
 
 				return this.lowerBound;
 			}
@@ -253,21 +242,6 @@ namespace Decider.Csp.Integer
 			clone.size = this.size;
 
 			return clone;
-		}
-
-		#endregion
-
-		#region ISerializable Members
-
-		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
-		{
-			if (info == null)
-				throw new ArgumentNullException("info");
-
-			info.AddValue("domain", this.domain, this.domain.GetType());
-			info.AddValue("lowerBound", this.lowerBound, this.lowerBound.GetType());
-			info.AddValue("upperBound", this.upperBound, this.upperBound.GetType());
-			info.AddValue("size", this.size, this.size.GetType());
 		}
 
 		#endregion
