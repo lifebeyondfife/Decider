@@ -13,10 +13,11 @@ Install using nuget
 
 
 Variables
-=========
+---------
 
 Created constrained integer _variables_
 
+```csharp
     var s = new VariableInteger("s", 0, 9);
     var e = new VariableInteger("e", 0, 9);
     var n = new VariableInteger("n", 0, 9);
@@ -29,13 +30,15 @@ Created constrained integer _variables_
     var c1 = new VariableInteger("c1", 0, 1);
     var c2 = new VariableInteger("c2", 0, 1);
     var c3 = new VariableInteger("c3", 0, 1);
+```
 
 
 Constraints
-===========
+-----------
 
 Define the _constraints_ of your problem
 
+```csharp
     var constraints = new List<IConstraint>
         {
             new AllDifferentInteger(new [] { s, e, n, d, m, o, r, y }),
@@ -45,13 +48,15 @@ Define the _constraints_ of your problem
             new ConstraintInteger(s + m + c2 == (10 * c3) + o),
             new ConstraintInteger(c3 == m)
         };
+```
 
 
 Search
-======
+------
 
-_Search_ for a solution
+Find a solution using Decider's _search_ routines
 
+```csharp
     StateOperationResult searchResult;
     state.StartSearch(out searchResult);
     
@@ -65,6 +70,7 @@ _Search_ for a solution
     
     Console.WriteLine("Runtime:\t{0}, state.Runtime);
     Console.WriteLine("Backtracks:\t{1}", state.Backtracks);
+```
 
 Which results in
 
@@ -78,8 +84,9 @@ Which results in
 
 
 Find All Solutions
-==================
+------------------
 
+```csharp
     StateOperationResult searchResult;
     IList<IDictionary<string, IVariable<int>>> solutions;
     state.StartSearch(out searchResult, out solutions);
@@ -95,6 +102,7 @@ Find All Solutions
         }
         Console.WriteLine();
     }
+```
 
 Which results in
 
@@ -120,45 +128,52 @@ and ninety more solutions.
 
 
 Optimise
-========
+--------
 
 Create an integer variable to optimise
 
+```csharp
     new ConstraintInteger(optimise == a + b + c + d + e + f + g + h)
+```
+
 
 Specify an upper time bound on how long you search, say, five minutes
 
+```csharp
     var timeout = 60 * 5;
     StateOperationResult searchResult;
     var solution = default(IDictionary<string, IVariable<int>>);
     
     state.StartSearch(out searchResult, optimise, out solution, timeout);
+```
 
 
 Constrained Arrays
-==================
+------------------
 
 Index integer arrays with constained integer variables
 
+```csharp
     var a = new VariableInteger("a", 0, 9);
     var array = new ConstrainedArray(new int[] { 0, 23, 52, 62, 75, 73, 47, 20, 87, 27 });
     
     var constraint = new ConstraintInteger(array[a] < 40)
+```
 
 
 More Examples?
-==============
+--------------
 
 Fork the repo to see more examples, some toy and some real world, of Decider in action.
 
 
 Licence
-=======
+-------
 
-Released under the MIT licence, Decider is freely available for commercial use
+Released under the MIT licence, Decider is freely available for commercial use.
 
 
 Author
-======
+------
 
-I have a PhD in Constraint Programming and love turning NP-complete problems into CSPs. Come see my blog at http://lifebeyondfife.com/.
+I have a PhD in Constraint Programming and love turning NP-complete problems into CSPs. Visit my blog at http://lifebeyondfife.com/.
