@@ -57,7 +57,10 @@ Search
 Find a solution using Decider's _search_ routines
 
 ```csharp
-    StateOperationResult searchResult;
+	var variables = new [] { c0, c1, c2, c3, s, e, n, d, m, o, r, y };
+	IState<int> state = new StateInteger(variables, constraints);
+	
+	StateOperationResult searchResult;
     state.StartSearch(out searchResult);
     
     if (searchResult == StateOperationResult.Solved)
@@ -68,7 +71,7 @@ Find a solution using Decider's _search_ routines
         Console.WriteLine("  {0} {1} {2} {3} {4} \n", m, o, n, e, y);
     }
     
-    Console.WriteLine("Runtime:\t{0}, state.Runtime);
+    Console.WriteLine("Runtime:\t{0}", state.Runtime);
     Console.WriteLine("Backtracks:\t{1}", state.Backtracks);
 ```
 
