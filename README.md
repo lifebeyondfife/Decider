@@ -5,7 +5,7 @@ An Open Source .Net Constraint Programming Solver
 
 
 Installation
-============
+------------
 
 Install using nuget
 
@@ -15,7 +15,7 @@ Install using nuget
 Variables
 ---------
 
-Created constrained integer _variables_
+Created constrained integer variables
 
 ```csharp
 var s = new VariableInteger("s", 0, 9);
@@ -36,7 +36,7 @@ var c3 = new VariableInteger("c3", 0, 1);
 Constraints
 -----------
 
-Define the _constraints_ of your problem
+Define the constraints of your problem
 
 ```csharp
 var constraints = new List<IConstraint>
@@ -54,7 +54,7 @@ var constraints = new List<IConstraint>
 Search
 ------
 
-Find a solution using Decider's _search_ routines
+Find a solution using Decider's search routines
 
 ```csharp
 var variables = new [] { c0, c1, c2, c3, s, e, n, d, m, o, r, y };
@@ -89,6 +89,8 @@ Which results in
 Find All Solutions
 ------------------
 
+Display all solutions to the n-queens problem
+
 ```csharp
 StateOperationResult searchResult;
 IList<IDictionary<string, IVariable<int>>> solutions;
@@ -99,7 +101,7 @@ foreach (var solution in solutions)
     for (var i = 0; i < variables.Length; ++i)
     {
         for (var j = 0; j < variables.Length; ++j)
-            Console.Write(solution[i.ToString(CultureInfo.CurrentCulture)].InstantiatedValue == j ? "Q" : ".");
+            Console.Write(solution[i.ToString()].InstantiatedValue == j ? "Q" : ".");
         
         Console.WriteLine();
     }
@@ -127,7 +129,7 @@ Which results in
     .Q......
     ....Q...
 
-and ninety more solutions.
+and a further ninety solutions.
 
 
 Optimise
