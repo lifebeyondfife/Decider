@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2013
+  Copyright © Iain McDonald 2010-2015
   
   This file is part of Decider.
 
@@ -17,34 +17,19 @@
 	along with Decider.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
-using System.Collections;
-using System.Runtime.Serialization;
 
 namespace Decider.Csp.BaseTypes
 {
-	public enum DomainOperationResult
+	public class DeciderException : Exception
 	{
-		EmptyDomain,
-		ElementNotInDomain,
-		RemoveSuccessful,
-		InstantiateSuccessful
-	}
+		public DeciderException()
+			: base()
+		{
+		}
 
-	public interface IDomain<T> : ICloneable, IEnumerable
-	{
-		T InstantiatedValue { get; }
-
-		void Instantiate(out DomainOperationResult result);
-		void Instantiate(T value, out DomainOperationResult result);
-		void InstantiateLowest(out DomainOperationResult result);
-
-		void Remove(T element, out DomainOperationResult result);
-		bool Contains(T element);
-
-		string ToString();
-		bool Instantiated();
-		T Size();
-		T LowerBound { get; }
-		T UpperBound { get; }
+		public DeciderException(string message)
+			: base(message)
+		{
+		}
 	}
 }

@@ -76,12 +76,12 @@ namespace Decider.Csp.Integer
 				}
 				else if (ConstraintsViolated())
 				{
-					throw new ApplicationException("No solution found.");
+					throw new DeciderException("No solution found.");
 				}
 
 				Search(out searchResult, unassignedVariables, instantiatedVariables, startTime);
 			}
-			catch (ApplicationException)
+			catch (DeciderException)
 			{
 				searchResult = StateOperationResult.Unsatisfiable;
 				this.Runtime += DateTime.Now - startTime;
@@ -112,7 +112,7 @@ namespace Decider.Csp.Integer
 					}
 					else if (ConstraintsViolated())
 					{
-						throw new ApplicationException("No solution found.");
+						throw new DeciderException("No solution found.");
 					}
 
 					startTime = DateTime.Now;
@@ -125,7 +125,7 @@ namespace Decider.Csp.Integer
 						.ToDictionary(k => k.Key, v => v.Value));
 				}
 			}
-			catch (ApplicationException)
+			catch (DeciderException)
 			{
 				this.Runtime += DateTime.Now - startTime;
 			}
@@ -158,7 +158,7 @@ namespace Decider.Csp.Integer
 					}
 					else if (ConstraintsViolated())
 					{
-						throw new ApplicationException("No solution found.");
+						throw new DeciderException("No solution found.");
 					}
 
 					startTime = DateTime.Now;
@@ -176,7 +176,7 @@ namespace Decider.Csp.Integer
 						.ToDictionary(k => k.Key, v => v.Value);
 				}
 			}
-			catch (ApplicationException)
+			catch (DeciderException)
 			{
 				this.Runtime += DateTime.Now - startTime;
 			}
@@ -205,7 +205,7 @@ namespace Decider.Csp.Integer
 				if (ConstraintsViolated() || unassignedVariables.Any(v => v.Size() == 0))
 				{
 					if ((DateTime.Now - startTime).Seconds > timeOut)
-						throw new ApplicationException();
+						throw new DeciderException();
 
 					Backtrack(unassignedVariables, instantiatedVariables);
 				}
@@ -220,7 +220,7 @@ namespace Decider.Csp.Integer
 			do
 			{
 				if (this.Depth < 0)
-					throw new ApplicationException("No solution found.");
+					throw new DeciderException("No solution found.");
 
 				unassignedVariables.AddFirst(instantiatedVariables[this.Depth]);
 				BackTrackVariable(instantiatedVariables[this.Depth], out removeResult);

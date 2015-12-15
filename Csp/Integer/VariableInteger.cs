@@ -98,7 +98,7 @@ namespace Decider.Csp.Integer
 			var instantiatedDomain = (IDomain<int>) this.Domain.Clone();
 			instantiatedDomain.Instantiate(out result);
 			if (result != DomainOperationResult.InstantiateSuccessful)
-				throw new ApplicationException("Failed to instantiate Variable.");
+				throw new DeciderException("Failed to instantiate Variable.");
 
 			this.domainStack.Push(new DomInt(instantiatedDomain, depth));
 		}
@@ -108,7 +108,7 @@ namespace Decider.Csp.Integer
 			var instantiatedDomain = (IDomain<int>) this.Domain.Clone();
 			instantiatedDomain.Instantiate(value, out result);
 			if (result != DomainOperationResult.InstantiateSuccessful)
-				throw new ApplicationException("Failed to instantiate Variable.");
+				throw new DeciderException("Failed to instantiate Variable.");
 
 			this.domainStack.Push(new DomInt(instantiatedDomain, depth));
 		}
@@ -227,7 +227,6 @@ namespace Decider.Csp.Integer
 			if (isDomainNew && result != ConstraintOperationResult.Propagated)
 				this.domainStack.Pop();
 		}
-
 
 		public override string ToString()
 		{
