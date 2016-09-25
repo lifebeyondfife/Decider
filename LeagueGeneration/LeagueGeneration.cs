@@ -84,6 +84,36 @@ namespace Decider.Example.LeagueGeneration
 			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}", state.Runtime, state.Backtracks);
 			Console.WriteLine("Solutions:\t{0}", state.NumberOfSolutions);
 
+			/*
+			 *	Create a full, random home and away schedule from the solved CSP.
+			 *
+
+			var random = new Random();
+			var map = Enumerable.Range(1, (leagueSize - 1) * 2).
+				OrderBy(i => random.Next()).
+				Select((e, i) => Tuple.Create(i + 1, e)).
+				ToDictionary(t => t.Item1, t => t.Item2);
+
+			var fixtureWeeks = new int[leagueSize][];
+			for (var i = 0; i < fixtureWeeks.Length; ++i)
+				fixtureWeeks[i] = new int[leagueSize];
+
+			for (int i = 0; i < variables.Length; ++i)
+				for (int j = 0; j < variables[i].Length; ++j)
+				{
+					fixtureWeeks[i + 1][j] = map[variables[i][j].Value];
+					fixtureWeeks[j][i + 1] = map[variables[i][j].Value + leagueSize - 1];
+				}
+
+			for (var i = 0; i < fixtureWeeks.Length; ++i)
+			{
+				for (var j = 0; j < fixtureWeeks[i].Length; ++j)
+					Console.Write(string.Format("{0,2}", fixtureWeeks[i][j]) + " ");
+
+				Console.WriteLine();
+			}
+			*/
+
 			Console.ReadKey();
 
 			#endregion

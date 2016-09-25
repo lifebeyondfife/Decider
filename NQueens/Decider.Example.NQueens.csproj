@@ -66,15 +66,15 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Csp\AllDifferentInteger\Decider.Csp.Global.AllDifferentInteger.csproj">
-      <Project>{972097BD-5F21-44E4-8FC5-79BB9F22CDE3}</Project>
+      <Project>{972097bd-5f21-44e4-8fc5-79bb9f22cde3}</Project>
       <Name>Decider.Csp.Global.AllDifferentInteger</Name>
     </ProjectReference>
     <ProjectReference Include="..\Csp\BaseTypes\Decider.Csp.BaseTypes.csproj">
-      <Project>{E7E1D925-308C-4F53-B06E-51EF3FD9E918}</Project>
+      <Project>{e7e1d925-308c-4f53-b06e-51ef3fd9e918}</Project>
       <Name>Decider.Csp.BaseTypes</Name>
     </ProjectReference>
     <ProjectReference Include="..\Csp\Integer\Decider.Csp.Integer.csproj">
-      <Project>{DBF302BA-4EC1-462A-BDB7-86CA658B5D7E}</Project>
+      <Project>{dbf302ba-4ec1-462a-bdb7-86ca658b5d7e}</Project>
       <Name>Decider.Csp.Integer</Name>
     </ProjectReference>
   </ItemGroup>
