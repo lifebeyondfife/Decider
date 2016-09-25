@@ -15,7 +15,7 @@ Install using nuget
 Variables
 ---------
 
-Created constrained integer variables
+Create constrained integer variables
 
 ```csharp
 var s = new VariableInteger("s", 0, 9);
