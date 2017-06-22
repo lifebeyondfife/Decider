@@ -72,7 +72,7 @@ if (searchResult == StateOperationResult.Solved)
 }
 
 Console.WriteLine("Runtime:\t{0}", state.Runtime);
-Console.WriteLine("Backtracks:\t{1}", state.Backtracks);
+Console.WriteLine("Backtracks:\t{0}", state.Backtracks);
 ```
 
 Which results in
