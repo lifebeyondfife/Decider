@@ -6,9 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\CSP\AllDifferentInteger\AllDifferentInteger.csproj" />
+    <ProjectReference Include="..\..\Csp\AllDifferentInteger\AllDifferentInteger.csproj" />
     <ProjectReference Include="..\..\Csp\BaseTypes\BaseTypes.csproj" />
-    <ProjectReference Include="..\..\CSP\Integer\Integer.csproj" />
+    <ProjectReference Include="..\..\Csp\Integer\Integer.csproj" />
   </ItemGroup>
 
 </Project>

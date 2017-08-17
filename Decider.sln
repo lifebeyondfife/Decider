@@ -5,11 +5,11 @@ VisualStudioVersion = 15.0.26730.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaseTypes", "Csp\BaseTypes\BaseTypes.csproj", "{53FD7F47-7D3D-46D7-AF6A-379E8465A72E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CSP", "CSP", "{559666EA-DB33-4675-928F-7E12D6B35995}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Csp", "Csp", "{559666EA-DB33-4675-928F-7E12D6B35995}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Integer", "CSP\Integer\Integer.csproj", "{CC2F173A-660D-4AE1-A0A9-06178DCD75F7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Integer", "Csp\Integer\Integer.csproj", "{CC2F173A-660D-4AE1-A0A9-06178DCD75F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AllDifferentInteger", "CSP\AllDifferentInteger\AllDifferentInteger.csproj", "{9B499959-8B39-4F37-A9B0-69D92ACA2D56}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AllDifferentInteger", "Csp\AllDifferentInteger\AllDifferentInteger.csproj", "{9B499959-8B39-4F37-A9B0-69D92ACA2D56}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{F952D6C7-7A95-492B-8F68-05F42C1B9954}"
 EndProject
