@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BaseTypes\BaseTypes.csproj" />
+    <ProjectReference Include="..\BaseTypes\BaseTypes.Csproj" />
   </ItemGroup>
 
 </Project>
