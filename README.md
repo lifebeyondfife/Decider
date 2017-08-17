@@ -7,10 +7,15 @@ An Open Source .Net Constraint Programming Solver
 Installation
 ------------
 
-Install using nuget
+Install using nuget for .Net Framework 4.5, or .Net Core 2
+
+.Net Framework v4.5
 
     Install-Package Decider
 
+.Net Core 2
+
+    dotnet add package Decider
 
 Variables
 ---------
