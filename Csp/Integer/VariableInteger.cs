@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2013
+  Copyright © Iain McDonald 2010-2017
   
   This file is part of Decider.
 */
@@ -14,7 +14,7 @@ namespace Decider.Csp.Integer
 {
 	public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 	{
-		private struct DomInt : ICloneable
+		private struct DomInt
 		{
 			internal readonly IDomain<int> Domain;
 			internal readonly int Depth;
@@ -31,7 +31,7 @@ namespace Decider.Csp.Integer
 			}
 		}
 
-		public object Clone()
+		public IVariable<int> Clone()
 		{
 			return new VariableInteger
 				{

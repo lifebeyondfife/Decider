@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2013
+  Copyright © Iain McDonald 2010-2017
   
   This file is part of Decider.
 */
@@ -7,7 +7,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 
 using Decider.Csp.BaseTypes;
 
@@ -220,7 +219,7 @@ namespace Decider.Csp.Integer
 
 		#region ICloneable Members
 
-		object ICloneable.Clone()
+		public IDomain<int> Clone()
 		{
 			var clone = new DomainBinaryInteger { domain = new uint[this.domain.Length] };
 			Array.Copy(this.domain, clone.domain, this.domain.Length);

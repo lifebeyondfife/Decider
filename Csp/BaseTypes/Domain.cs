@@ -1,11 +1,9 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2013
+  Copyright © Iain McDonald 2010-2017
   
   This file is part of Decider.
 */
-using System;
 using System.Collections;
-using System.Runtime.Serialization;
 
 namespace Decider.Csp.BaseTypes
 {
@@ -17,7 +15,7 @@ namespace Decider.Csp.BaseTypes
 		InstantiateSuccessful
 	}
 
-	public interface IDomain<T> : ICloneable, IEnumerable
+	public interface IDomain<T> : IEnumerable
 	{
 		T InstantiatedValue { get; }
 
@@ -33,5 +31,6 @@ namespace Decider.Csp.BaseTypes
 		T Size();
 		T LowerBound { get; }
 		T UpperBound { get; }
+        IDomain<T> Clone();
 	}
 }

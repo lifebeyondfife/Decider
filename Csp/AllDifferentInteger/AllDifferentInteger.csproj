@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <RootNamespace>Decider.Csp.Global</RootNamespace>
+    <AssemblyName>Decider.Csp.Global.AllDifferentInteger</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BaseTypes\BaseTypes.csproj" />
+    <ProjectReference Include="..\Integer\Integer.csproj" />
+  </ItemGroup>
+
+</Project>
