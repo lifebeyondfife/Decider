@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.3
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaseTypes", "Csp\BaseTypes\BaseTypes.csproj", "{53FD7F47-7D3D-46D7-AF6A-379E8465A72E}"
 EndProject
@@ -9,19 +9,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Csp", "Csp", "{559666EA-DB3
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Integer", "Csp\Integer\Integer.csproj", "{CC2F173A-660D-4AE1-A0A9-06178DCD75F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AllDifferentInteger", "Csp\AllDifferentInteger\AllDifferentInteger.csproj", "{9B499959-8B39-4F37-A9B0-69D92ACA2D56}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AllDifferentInteger", "Csp\AllDifferentInteger\AllDifferentInteger.csproj", "{9B499959-8B39-4F37-A9B0-69D92ACA2D56}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{F952D6C7-7A95-492B-8F68-05F42C1B9954}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SendMoreMoney", "Examples\SendMoreMoney\SendMoreMoney.csproj", "{B7676E61-D13D-4633-A8F0-A9DFB476F4DC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SendMoreMoney", "Examples\SendMoreMoney\SendMoreMoney.csproj", "{B7676E61-D13D-4633-A8F0-A9DFB476F4DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhaseLockedLoop", "Examples\PhaseLockedLoop\PhaseLockedLoop.csproj", "{58763A0D-CBBB-47E6-B7C0-7EABC56E85D8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhaseLockedLoop", "Examples\PhaseLockedLoop\PhaseLockedLoop.csproj", "{58763A0D-CBBB-47E6-B7C0-7EABC56E85D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NQueens", "Examples\NQueens\NQueens.csproj", "{FC41A181-68BA-4536-ADCE-9035720517C9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NQueens", "Examples\NQueens\NQueens.csproj", "{FC41A181-68BA-4536-ADCE-9035720517C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeagueGeneration", "Examples\LeagueGeneration\LeagueGeneration.csproj", "{E9A42C59-265A-4D85-B847-00E42F8C6D1A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LeagueGeneration", "Examples\LeagueGeneration\LeagueGeneration.csproj", "{E9A42C59-265A-4D85-B847-00E42F8C6D1A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Optimisation", "Examples\Optimisation\Optimisation.csproj", "{67CE6B0B-B9D7-4A4F-82AA-064DF514F916}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Optimisation", "Examples\Optimisation\Optimisation.csproj", "{67CE6B0B-B9D7-4A4F-82AA-064DF514F916}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeacherTimetable", "Examples\TeacherTimetable\TeacherTimetable.csproj", "{75C859E3-538A-46E0-8936-7FE8F2F24E79}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,6 +63,10 @@ Global
 		{67CE6B0B-B9D7-4A4F-82AA-064DF514F916}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{67CE6B0B-B9D7-4A4F-82AA-064DF514F916}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{67CE6B0B-B9D7-4A4F-82AA-064DF514F916}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75C859E3-538A-46E0-8936-7FE8F2F24E79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75C859E3-538A-46E0-8936-7FE8F2F24E79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75C859E3-538A-46E0-8936-7FE8F2F24E79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75C859E3-538A-46E0-8936-7FE8F2F24E79}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -74,6 +80,7 @@ Global
 		{FC41A181-68BA-4536-ADCE-9035720517C9} = {F952D6C7-7A95-492B-8F68-05F42C1B9954}
 		{E9A42C59-265A-4D85-B847-00E42F8C6D1A} = {F952D6C7-7A95-492B-8F68-05F42C1B9954}
 		{67CE6B0B-B9D7-4A4F-82AA-064DF514F916} = {F952D6C7-7A95-492B-8F68-05F42C1B9954}
+		{75C859E3-538A-46E0-8936-7FE8F2F24E79} = {F952D6C7-7A95-492B-8F68-05F42C1B9954}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BFA77F26-FE23-4622-A969-2BF2B7BA0568}
