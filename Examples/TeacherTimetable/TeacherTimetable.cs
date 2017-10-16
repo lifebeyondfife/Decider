@@ -66,7 +66,7 @@ namespace Decider.Example.TeacherTimetable
 
 					constraints.Add(new ConstraintInteger(
 						threeHourWindow[0] != threeHourWindow[1] |
-						threeHourWindow[0] != threeHourWindow[1] |
+						threeHourWindow[0] != threeHourWindow[2] |
 						threeHourWindow[1] != threeHourWindow[2])
 					);
 				}
