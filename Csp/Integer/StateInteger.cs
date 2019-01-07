@@ -148,7 +148,6 @@ namespace Decider.Csp.Integer
 						throw new DeciderException("No solution found.");
 					}
 
-					startTime = DateTime.Now;
 					Search(out searchResult, unassignedVariables, instantiatedVariables, startTime, timeOut);
 
 					this.ConstraintList.RemoveAt(this.ConstraintList.Count - 1);
@@ -191,13 +190,13 @@ namespace Decider.Csp.Integer
 
 				if (ConstraintsViolated() || unassignedVariables.Any(v => v.Size() == 0))
 				{
-					if ((DateTime.Now - startTime).Seconds > timeOut)
-						throw new DeciderException();
-
 					Backtrack(unassignedVariables, instantiatedVariables);
 				}
 
-				++this.Depth;
+                if ((DateTime.Now - startTime).TotalSeconds > timeOut)
+                    throw new DeciderException();
+
+                ++this.Depth;
 			}
 		}
 
