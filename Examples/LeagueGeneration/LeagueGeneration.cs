@@ -1,6 +1,10 @@
-﻿using System;
+﻿/*
+  Copyright © Iain McDonald 2010-2019
+  
+  This file is part of Decider.
+*/
+using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 using Decider.Csp.BaseTypes;

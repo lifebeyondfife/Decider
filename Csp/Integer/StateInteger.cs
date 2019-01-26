@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2017
+  Copyright © Iain McDonald 2010-2019
   
   This file is part of Decider.
 */
@@ -76,7 +76,7 @@ namespace Decider.Csp.Integer
 		}
 
 		void IState<int>.StartSearch(out StateOperationResult searchResult,
-			out IList<IDictionary<string,IVariable<int>>> solutions)
+			out IList<IDictionary<string, IVariable<int>>> solutions)
 		{
 			var unassignedVariables = this.LastSolution == null
 				? new LinkedList<IVariable<int>>(this.VariableList)
@@ -106,8 +106,8 @@ namespace Decider.Csp.Integer
 					Search(out searchResult, unassignedVariables, instantiatedVariables, startTime);
 
 					solutionsList.Add(this.LastSolution.Select(v => v.Clone())
-					    .Cast<IVariable<int>>()
-					    .Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
+						.Cast<IVariable<int>>()
+						.Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
 						.OrderBy(kvp => kvp.Key)
 						.ToDictionary(k => k.Key, v => v.Value));
 				}
@@ -184,19 +184,18 @@ namespace Decider.Csp.Integer
 					return;
 				}
 
-				DomainOperationResult instantiateResult;
 				instantiatedVariables[this.Depth] = GetMostConstrainedVariable(unassignedVariables);
-				instantiatedVariables[this.Depth].Instantiate(this.Depth, out instantiateResult);
+				instantiatedVariables[this.Depth].Instantiate(this.Depth, out DomainOperationResult instantiateResult);
 
 				if (ConstraintsViolated() || unassignedVariables.Any(v => v.Size() == 0))
 				{
 					Backtrack(unassignedVariables, instantiatedVariables);
 				}
 
-                if ((DateTime.Now - startTime).TotalSeconds > timeOut)
-                    throw new DeciderException();
+				if ((DateTime.Now - startTime).TotalSeconds > timeOut)
+					throw new DeciderException();
 
-                ++this.Depth;
+				++this.Depth;
 			}
 		}
 
@@ -217,8 +216,7 @@ namespace Decider.Csp.Integer
 		{
 			foreach (var constraint in this.ConstraintList.Where(constraint => constraint.StateChanged()))
 			{
-				ConstraintOperationResult result;
-				constraint.Propagate(out result);
+				constraint.Propagate(out ConstraintOperationResult result);
 				if ((result & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
 					return true;
 
