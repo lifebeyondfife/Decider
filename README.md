@@ -94,9 +94,8 @@ foreach (var solution in solutions)
     for (var i = 0; i < variables.Length; ++i)
     {
         for (var j = 0; j < variables.Length; ++j)
-	    Console.Write(solution[i.ToString(CultureInfo.CurrentCulture)].InstantiatedValue == j ? "Q" : ".");
-
-	Console.WriteLine();
+            Console.Write(solution[i.ToString()].InstantiatedValue == j ? "Q" : ".");
+        Console.WriteLine();
     }
     Console.WriteLine();
 }
@@ -140,7 +139,7 @@ Specify an upper time bound on how long you search, say, five minutes
 ```csharp
 var timeout = 60 * 5;
 var solution = default(IDictionary<string, IVariable<int>>);
-state.StartSearch(out StateOperationResult searchResult, optimise, out solution, 2);
+state.StartSearch(out StateOperationResult searchResult, optimise, out solution, timeout);
 ```
 
 
