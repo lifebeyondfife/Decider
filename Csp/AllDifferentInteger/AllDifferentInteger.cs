@@ -17,7 +17,7 @@ namespace Decider.Csp.Global
 		private readonly IDomain<int>[] domainArray;
 		private BipartiteGraph Graph { get; set; }
 		private readonly CycleDetection cycleDetection;
-		
+
 		private IState<int> State { get; set; }
 		private int Depth
 		{
@@ -90,9 +90,8 @@ namespace Decider.Csp.Global
 					{
 						result = ConstraintOperationResult.Propagated;
 
-						DomainOperationResult domainResult;
-						((IVariable<int>) variable).Remove(value, this.Depth, out domainResult);
-						
+						((IVariable<int>) variable).Remove(value, this.Depth, out DomainOperationResult domainResult);
+
 						if (domainResult != DomainOperationResult.EmptyDomain)
 							continue;
 

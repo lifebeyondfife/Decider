@@ -42,8 +42,7 @@ namespace Decider.Example.SendMoreMoney
 			var variables = new [] { c0, c1, c2, c3, s, e, n, d, m, o, r, y };
 			IState<int> state = new StateInteger(variables, constraints);
 
-			StateOperationResult searchResult;
-			state.StartSearch(out searchResult);
+			state.StartSearch(out StateOperationResult searchResult);
 
 			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
 
