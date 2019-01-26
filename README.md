@@ -7,15 +7,9 @@ An Open Source .Net Constraint Programming Solver
 Installation
 ------------
 
-Install using nuget for .Net Framework 4.5, or .Net Core 2
+Install using nuget for .Net Core 2.1
 
-.Net Framework v4.5
-
-    Install-Package Decider
-
-.Net Core 2
-
-    dotnet add package Decider
+     dotnet add package Decider
 
 Variables
 ---------
@@ -65,19 +59,14 @@ Find a solution using Decider's search routines
 var variables = new [] { c0, c1, c2, c3, s, e, n, d, m, o, r, y };
 IState<int> state = new StateInteger(variables, constraints);
 
-StateOperationResult searchResult;
-state.StartSearch(out searchResult);
+state.StartSearch(out StateOperationResult searchResult);
 
-if (searchResult == StateOperationResult.Solved)
-{
-    Console.WriteLine("    {0} {1} {2} {3} ", s, e, n, d);
-    Console.WriteLine("  + {0} {1} {2} {3} ", m, o, r, e);
-    Console.WriteLine("  ---------");
-    Console.WriteLine("  {0} {1} {2} {3} {4} \n", m, o, n, e, y);
-}
+Console.WriteLine("    {0} {1} {2} {3} ", s, e, n, d);
+Console.WriteLine("  + {0} {1} {2} {3} ", m, o, r, e);
+Console.WriteLine("  ---------");
+Console.WriteLine("  {0} {1} {2} {3} {4} ", m, o, n, e, y);
 
-Console.WriteLine("Runtime:\t{0}", state.Runtime);
-Console.WriteLine("Backtracks:\t{0}", state.Backtracks);
+Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
 ```
 
 Which results in
@@ -97,9 +86,8 @@ Find All Solutions
 Display all solutions to the n-queens problem
 
 ```csharp
-StateOperationResult searchResult;
-IList<IDictionary<string, IVariable<int>>> solutions;
-state.StartSearch(out searchResult, out solutions);
+state.StartSearch(out StateOperationResult searchResult,
+    out IList<IDictionary<string, IVariable<int>>> solutions);
 
 foreach (var solution in solutions)
 {
@@ -107,7 +95,6 @@ foreach (var solution in solutions)
     {
         for (var j = 0; j < variables.Length; ++j)
             Console.Write(solution[i.ToString()].InstantiatedValue == j ? "Q" : ".");
-        
         Console.WriteLine();
     }
     Console.WriteLine();
@@ -151,10 +138,8 @@ Specify an upper time bound on how long you search, say, five minutes
 
 ```csharp
 var timeout = 60 * 5;
-StateOperationResult searchResult;
 var solution = default(IDictionary<string, IVariable<int>>);
-    
-state.StartSearch(out searchResult, optimise, out solution, timeout);
+state.StartSearch(out StateOperationResult searchResult, optimise, out solution, timeout);
 ```
 
 
