@@ -42,10 +42,7 @@ namespace Decider.Example.Optimisation
 			var variables = new[] { a, b, c, d, e, f, g, h, optimise };
 			IState<int> state = new StateInteger(variables, constraints);
 
-			StateOperationResult searchResult;
-			var solution = default(IDictionary<string, IVariable<int>>);
-
-			state.StartSearch(out searchResult, optimise, out solution, 2);
+			state.StartSearch(out StateOperationResult searchResult, optimise, out IDictionary<string, IVariable<int>> solution, 2);
 
 			Console.WriteLine("a: {0}", solution["a"]);
 			Console.WriteLine("b: {0}", solution["b"]);

@@ -95,6 +95,7 @@ foreach (var solution in solutions)
     {
         for (var j = 0; j < variables.Length; ++j)
             Console.Write(solution[i.ToString()].InstantiatedValue == j ? "Q" : ".");
+
         Console.WriteLine();
     }
     Console.WriteLine();

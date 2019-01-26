@@ -36,9 +36,7 @@ namespace Decider.Example.NQueens
 			//	Search
 			IState<int> state = new StateInteger(variables, constraints);
 
-			StateOperationResult searchResult;
-			IList<IDictionary<string, IVariable<int>>> solutions;
-			state.StartSearch(out searchResult, out solutions);
+			state.StartSearch(out StateOperationResult searchResult, out IList<IDictionary<string, IVariable<int>>> solutions);
 
 			foreach (var solution in solutions)
 			{
