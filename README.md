@@ -86,17 +86,18 @@ Find All Solutions
 Display all solutions to the n-queens problem
 
 ```csharp
-state.StartSearch(out StateOperationResult searchResult, out IList<IDictionary<string, IVariable<int>>> solutions);
+state.StartSearch(out StateOperationResult searchResult,
+    out IList<IDictionary<string, IVariable<int>>> solutions);
 
 foreach (var solution in solutions)
 {
-	for (var i = 0; i < variables.Length; ++i)
-	{
-		for (var j = 0; j < variables.Length; ++j)
-			Console.Write(solution[i.ToString(CultureInfo.CurrentCulture)].InstantiatedValue == j ? "Q" : ".");
-        Console.WriteLine();
-	}
+    for (var i = 0; i < variables.Length; ++i)
+    {
+        for (var j = 0; j < variables.Length; ++j)
+	    Console.Write(solution[i.ToString(CultureInfo.CurrentCulture)].InstantiatedValue == j ? "Q" : ".");
 
+	Console.WriteLine();
+    }
     Console.WriteLine();
 }
 ```
