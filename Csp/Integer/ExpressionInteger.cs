@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2017
+  Copyright © Iain McDonald 2010-2019
   
   This file is part of Decider.
 */
