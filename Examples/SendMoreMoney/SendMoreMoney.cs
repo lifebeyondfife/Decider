@@ -50,8 +50,6 @@ namespace Decider.Example.SendMoreMoney
 			Console.WriteLine("  + {0} {1} {2} {3} ", m, o, r, e);
 			Console.WriteLine("  ---------");
 			Console.WriteLine("  {0} {1} {2} {3} {4} ", m, o, n, e, y);
-
-			Console.ReadKey();
 		}
 	}
 }

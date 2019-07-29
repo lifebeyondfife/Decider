@@ -83,8 +83,6 @@ namespace Decider.Example.PhaseLockedLoop
 				Console.WriteLine("No solution found.");
 				Console.WriteLine();
 			}
-
-			Console.ReadKey();
 		}
 	}
 }

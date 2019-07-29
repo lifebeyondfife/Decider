@@ -53,8 +53,6 @@ namespace Decider.Example.NQueens
 
 			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}", state.Runtime, state.Backtracks);
 			Console.WriteLine("Solutions:\t{0}", state.NumberOfSolutions);
-
-			Console.ReadKey();
 		}
 	}
 }
