@@ -75,7 +75,7 @@ namespace Decider.Csp.Integer
 		}
 
 		internal DomainBinaryInteger(int lowerBound, int upperBound)
-			: this(upperBound + Math.Abs(lowerBound))
+			: this(upperBound + lowerBound < 0 ? -lowerBound : 0)
 		{
 			if (lowerBound < 0)
 				this.offset = Math.Abs(lowerBound);
