@@ -56,7 +56,6 @@ namespace Decider.Example.Optimisation
 			Console.WriteLine("Optimised Variable: {0}\n", solution["optimise"]);
 
 			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
-			Console.ReadKey();
 		}
 	}
 }

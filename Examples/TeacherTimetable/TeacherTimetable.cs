@@ -99,7 +99,6 @@ namespace Decider.Example.TeacherTimetable
 			}
 
 			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
-			Console.ReadKey();
 
 			#endregion
 		}

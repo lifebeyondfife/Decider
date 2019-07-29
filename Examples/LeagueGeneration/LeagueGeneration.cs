@@ -118,8 +118,6 @@ namespace Decider.Example.LeagueGeneration
 			}
 			*/
 
-			Console.ReadKey();
-
 			#endregion
 		}
 	}
