@@ -26,6 +26,7 @@ namespace Decider.Csp.Integer
 		private int lowerBound;
 		private int upperBound;
 		private int size;
+		private int offset;
 
 		bool IDomain<int>.Contains(int index)
 		{
@@ -34,6 +35,7 @@ namespace Decider.Csp.Integer
 
 		private bool IsInDomain(int index)
 		{
+			index += offset;
 			return (this.domain[((index + 1) % BitsPerDatatype == 0) ?
 				(index + 1) / BitsPerDatatype - 1 : (index + 1) / BitsPerDatatype] &
 				(ulong) (0x1 << (index % BitsPerDatatype))) != 0;
@@ -41,6 +43,7 @@ namespace Decider.Csp.Integer
 
 		private void RemoveFromDomain(int index)
 		{
+			index += offset;
 			this.domain[((index + 1) % BitsPerDatatype == 0) ? (index + 1) / BitsPerDatatype - 1 :
 				(index + 1) / BitsPerDatatype] &= (uint) ~(0x1 << (index % BitsPerDatatype));
 		}
@@ -52,6 +55,9 @@ namespace Decider.Csp.Integer
 
 		internal DomainBinaryInteger(int domainSize)
 		{
+			if (domainSize < 1)
+				throw new ArgumentException("Invalid Domain Size");
+			
 			this.lowerBound = 0;
 			this.upperBound = domainSize;
 			this.size = upperBound - lowerBound + 1;
@@ -69,9 +75,12 @@ namespace Decider.Csp.Integer
 		}
 
 		internal DomainBinaryInteger(int lowerBound, int upperBound)
-			: this(upperBound)
+			: this(upperBound + (lowerBound < 0 ? -lowerBound : 0))
 		{
-			this.lowerBound = lowerBound;
+			if (lowerBound < 0)
+				this.offset = -lowerBound;
+
+			this.lowerBound = Math.Max(lowerBound, 0);
 			this.size = upperBound - lowerBound + 1;
 			var count = 0;
 			while (count < lowerBound)
@@ -110,7 +119,7 @@ namespace Decider.Csp.Integer
 				if (!((IDomain<int>) this).Instantiated())
 					throw new DeciderException("Trying to access InstantiatedValue of an uninstantiated domain.");
 
-				return this.lowerBound;
+				return this.lowerBound - offset;
 			}
 		}
 
@@ -128,13 +137,13 @@ namespace Decider.Csp.Integer
 			}
 
 			this.size = 1;
-			this.lowerBound = this.upperBound = value;
+			this.lowerBound = this.upperBound = value - offset;
 			result = DomainOperationResult.InstantiateSuccessful;
 		}
 
 		void IDomain<int>.InstantiateLowest(out DomainOperationResult result)
 		{
-			if (!IsInDomain(this.lowerBound))
+			if (!IsInDomain(this.lowerBound - offset))
 			{
 				result = DomainOperationResult.ElementNotInDomain;
 				return;
@@ -148,7 +157,7 @@ namespace Decider.Csp.Integer
 		void IDomain<int>.Remove(int element, out DomainOperationResult result)
 		{
 			result = DomainOperationResult.EmptyDomain;
-			if (element < 0 || !IsInDomain(element))
+			if (element < -offset || !IsInDomain(element))
 			{
 				result = DomainOperationResult.ElementNotInDomain;
 				return;
@@ -163,19 +172,17 @@ namespace Decider.Csp.Integer
 				return;
 			}
 
-			if (element == this.lowerBound)
+			if (element + offset == this.lowerBound)
 			{
-				this.lowerBound = element;
-				while (this.lowerBound <= this.upperBound && !IsInDomain(this.lowerBound))
+				while (this.lowerBound <= this.upperBound && !IsInDomain(this.lowerBound - offset))
 				{
 					++this.lowerBound;
 					--this.size;
 				}
 			}
-			else if (element == this.upperBound)
+			else if (element + offset == this.upperBound)
 			{
-				this.upperBound = element;
-				while (this.upperBound >= this.lowerBound && !IsInDomain(this.upperBound))
+				while (this.upperBound >= this.lowerBound && !IsInDomain(this.upperBound - offset))
 				{
 					--this.upperBound;
 					--this.size;
@@ -190,7 +197,7 @@ namespace Decider.Csp.Integer
 
 		string IDomain<int>.ToString()
 		{
-			var domainRange = Enumerable.Range(lowerBound, upperBound - lowerBound + 1).Where(IsInDomain);
+			var domainRange = Enumerable.Range(lowerBound, upperBound - lowerBound + 1).Select(x => x - offset).Where(IsInDomain);
 
 			return "[" + string.Join(", ", domainRange) + "]";
 		}
@@ -207,12 +214,12 @@ namespace Decider.Csp.Integer
 
 		int IDomain<int>.LowerBound
 		{
-			get { return this.lowerBound; }
+			get { return this.lowerBound - offset; }
 		}
 
 		int IDomain<int>.UpperBound
 		{
-			get { return this.upperBound; }
+			get { return this.upperBound - offset; }
 		}
 
 		#endregion
@@ -226,6 +233,7 @@ namespace Decider.Csp.Integer
 			clone.lowerBound = this.lowerBound;
 			clone.upperBound = this.upperBound;
 			clone.size = this.size;
+			clone.offset = this.offset;
 
 			return clone;
 		}
@@ -236,7 +244,7 @@ namespace Decider.Csp.Integer
 
 		IEnumerator IEnumerable.GetEnumerator()
 		{
-			for (int i = this.lowerBound; i <= this.upperBound; ++i)
+			for (int i = this.lowerBound - offset; i <= this.upperBound - offset; ++i)
 				if (IsInDomain(i))
 					yield return i;
 		}
