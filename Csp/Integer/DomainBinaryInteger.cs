@@ -75,12 +75,12 @@ namespace Decider.Csp.Integer
 		}
 
 		internal DomainBinaryInteger(int lowerBound, int upperBound)
-			: this(upperBound + lowerBound < 0 ? -lowerBound : 0)
+			: this(upperBound + (lowerBound < 0 ? -lowerBound : 0))
 		{
 			if (lowerBound < 0)
-				this.offset = Math.Abs(lowerBound);
+				this.offset = -lowerBound;
 
-			this.lowerBound = lowerBound;
+			this.lowerBound = Math.Max(lowerBound, 0);
 			this.size = upperBound - lowerBound + 1;
 			var count = 0;
 			while (count < lowerBound)
@@ -143,7 +143,7 @@ namespace Decider.Csp.Integer
 
 		void IDomain<int>.InstantiateLowest(out DomainOperationResult result)
 		{
-			if (!IsInDomain(this.lowerBound))
+			if (!IsInDomain(this.lowerBound - offset))
 			{
 				result = DomainOperationResult.ElementNotInDomain;
 				return;
@@ -157,7 +157,7 @@ namespace Decider.Csp.Integer
 		void IDomain<int>.Remove(int element, out DomainOperationResult result)
 		{
 			result = DomainOperationResult.EmptyDomain;
-			if (element < 0 || !IsInDomain(element))
+			if (element < -offset || !IsInDomain(element))
 			{
 				result = DomainOperationResult.ElementNotInDomain;
 				return;
@@ -172,19 +172,17 @@ namespace Decider.Csp.Integer
 				return;
 			}
 
-			if (element == this.lowerBound)
+			if (element + offset == this.lowerBound)
 			{
-				this.lowerBound = element;
-				while (this.lowerBound <= this.upperBound && !IsInDomain(this.lowerBound))
+				while (this.lowerBound <= this.upperBound && !IsInDomain(this.lowerBound - offset))
 				{
 					++this.lowerBound;
 					--this.size;
 				}
 			}
-			else if (element == this.upperBound)
+			else if (element + offset == this.upperBound)
 			{
-				this.upperBound = element;
-				while (this.upperBound >= this.lowerBound && !IsInDomain(this.upperBound))
+				while (this.upperBound >= this.lowerBound && !IsInDomain(this.upperBound - offset))
 				{
 					--this.upperBound;
 					--this.size;
@@ -199,7 +197,7 @@ namespace Decider.Csp.Integer
 
 		string IDomain<int>.ToString()
 		{
-			var domainRange = Enumerable.Range(lowerBound, upperBound - lowerBound + 1).Where(IsInDomain).Select(x => x - offset);
+			var domainRange = Enumerable.Range(lowerBound, upperBound - lowerBound + 1).Select(x => x - offset).Where(IsInDomain);
 
 			return "[" + string.Join(", ", domainRange) + "]";
 		}
