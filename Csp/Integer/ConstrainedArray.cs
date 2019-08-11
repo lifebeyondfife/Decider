@@ -41,12 +41,23 @@ namespace Decider.Csp.BaseTypes
 				ToList();
 		}
 
-		private SortedList<int, int> SortedElements()
+		private SortedList<int, IList<int>> SortedElements()
 		{
-			return new SortedList<int, int>(Enumerable.Range(Index.Domain.LowerBound, Index.Domain.UpperBound - Index.Domain.LowerBound + 1).
+			var kvps = Enumerable.Range(Index.Domain.LowerBound, Index.Domain.UpperBound - Index.Domain.LowerBound + 1).
 				Where(i => Index.Domain.Contains(i)).
-				Select(i => new { Index = i, Value = this[i] }).
-				ToDictionary(i => i.Value, i => i.Index));
+				Select(i => new { Index = this[i], Value = i });
+
+			var sortedList = new SortedList<int, IList<int>>();
+
+			foreach (var kvp in kvps)
+			{
+				if (sortedList.ContainsKey(kvp.Index))
+					sortedList[kvp.Index].Add(kvp.Value);
+				else
+					sortedList[kvp.Index] = new List<int>(new[] { kvp.Value });
+			}
+
+			return sortedList;
 		}
 
 		private int Evaluate(ExpressionInteger left, ExpressionInteger right)
@@ -77,6 +88,7 @@ namespace Decider.Csp.BaseTypes
 					Reverse().
 					TakeWhile(v => v.Key > enforce.UpperBound).
 					Select(v => v.Value)).
+				SelectMany(i => i.ToList()).
 				ToList();
 
 			if (remove.Any())
