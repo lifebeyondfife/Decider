@@ -285,7 +285,7 @@ namespace Decider.Csp.Integer
 						{
 							if (second.Bounds.LowerBound > 0)
 								result = ConstraintOperationResult.Violated;
-							else
+							else if (second.Bounds.UpperBound == 1)
 							{
 								second.Bounds.UpperBound = 0;
 								result = ConstraintOperationResult.Propagated;
@@ -296,7 +296,7 @@ namespace Decider.Csp.Integer
 						{
 							if (second.Bounds.LowerBound > 0)
 								result = ConstraintOperationResult.Violated;
-							else
+							else if (first.Bounds.UpperBound == 1)
 							{
 								first.Bounds.UpperBound = 0;
 								result = ConstraintOperationResult.Propagated;
