@@ -26,7 +26,7 @@ namespace Decider.Example.Optimisation
 			var h = new VariableInteger("h", 0, 9);
 			var optimise = new VariableInteger("optimise", 0, 72);
 
-			var array = new ConstrainedArray(new int[] { 0, 23, 52, 62, 75, 73, 47, 20, 87, 27 });
+			var array = new ConstrainedArray(new int[] { 60, 52, 52, 62, 35, 73, 47, 20, 87, 27 });
 
 			var constraints = new List<IConstraint>
 				{
@@ -42,7 +42,7 @@ namespace Decider.Example.Optimisation
 			var variables = new[] { a, b, c, d, e, f, g, h, optimise };
 			IState<int> state = new StateInteger(variables, constraints);
 
-			state.StartSearch(out StateOperationResult searchResult, optimise, out IDictionary<string, IVariable<int>> solution, 2);
+			state.StartSearch(out StateOperationResult searchResult, optimise, out IDictionary<string, IVariable<int>> solution, 20);
 
 			Console.WriteLine("a: {0}", solution["a"]);
 			Console.WriteLine("b: {0}", solution["b"]);

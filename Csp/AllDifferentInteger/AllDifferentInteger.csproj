@@ -1,6 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <GenerateResourceNeverLockTypeAssemblies>true</GenerateResourceNeverLockTypeAssemblies>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Decider.Csp.Global</RootNamespace>
     <AssemblyName>Decider.Csp.Global.AllDifferentInteger</AssemblyName>

@@ -13,13 +13,13 @@ namespace Decider.Csp.BaseTypes
 	{
 		private VariableInteger Index { get; set; }
 
-		public ExpressionInteger this[VariableInteger index]
+		public MetaExpressionInteger this[VariableInteger index]
 		{
 			get
 			{
 				Index = index;
 
-				return new ExpressionInteger(GetVariableInteger(), this.Evaluate, this.EvaluateBounds, this.Propagator);
+				return new MetaExpressionInteger(GetVariableInteger(), this.Evaluate, this.EvaluateBounds, this.Propagator, new[] { Index });
 			}
 		}
 
