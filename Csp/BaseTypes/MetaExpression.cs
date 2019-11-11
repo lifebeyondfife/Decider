@@ -1,6 +1,6 @@
 ﻿/*
   Copyright © Iain McDonald 2010-2019
-  
+
   This file is part of Decider.
 
   Unlike the Expression type which is wholly supported on its own, the MetaExpression relies
