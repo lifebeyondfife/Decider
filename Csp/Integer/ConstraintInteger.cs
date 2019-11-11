@@ -35,14 +35,39 @@ namespace Decider.Csp.Integer
 		private static void ConstructVariableList(ExpressionInteger expression, ISet<IVariable<int>> variableSet)
 		{
 			if (expression.Left is VariableInteger)
+			{
 				variableSet.Add((VariableInteger) expression.Left);
-			else if (expression.Left is ExpressionInteger)
+			}
+			else if (expression.Left is MetaExpressionInteger)
+			{
 				ConstructVariableList((ExpressionInteger) expression.Left, variableSet);
+				foreach (var variable in ((IMetaExpression<int>) expression.Left).Support)
+				{
+					variableSet.Add(variable);
+				}
+			}
+			else if (expression.Left is ExpressionInteger)
+			{
+				ConstructVariableList((ExpressionInteger) expression.Left, variableSet);
+			}
+
 
 			if (expression.Right is VariableInteger)
+			{
 				variableSet.Add((VariableInteger) expression.Right);
-			else if (expression.Right is ExpressionInteger)
+			}
+			else if (expression.Right is MetaExpressionInteger)
+			{
 				ConstructVariableList((ExpressionInteger) expression.Right, variableSet);
+				foreach (var variable in ((IMetaExpression<int>) expression.Right).Support)
+				{
+					variableSet.Add(variable);
+				}
+			}
+			else if (expression.Right is ExpressionInteger)
+			{
+				ConstructVariableList((ExpressionInteger) expression.Right, variableSet);
+			}
 		}
 
 		void IConstraint.Check(out ConstraintOperationResult result)
