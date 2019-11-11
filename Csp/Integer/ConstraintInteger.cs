@@ -103,11 +103,6 @@ namespace Decider.Csp.Integer
 
 		bool IConstraint.StateChanged()
 		{
-			// what is variableArray?
-			// what is domainArray?
-			// these are apparently the same, so it doesn't look like the state has changed...
-			// ...so this constraint is ruled out as one worth testing...
-			// ...so despite it being violated, the program continues on regardless.
 			return this.variableArray.Where((variable, index) => ((VariableInteger) variable)
 				.Domain != this.domainArray[index]).Any();
 		}
