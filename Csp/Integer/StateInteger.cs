@@ -153,8 +153,6 @@ namespace Decider.Csp.Integer
 					this.ConstraintList.RemoveAt(this.ConstraintList.Count - 1);
 					this.ConstraintList.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
 
-					// Console.WriteLine("Optimised Value: {0} ({1}s)", optimiseVar.InstantiatedValue, DateTime.Now - startTime);
-
 					solution = this.LastSolution.Select(v => v.Clone())
 						.Cast<IVariable<int>>()
 						.Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
