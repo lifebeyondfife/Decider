@@ -95,11 +95,9 @@ namespace Decider.Csp.BaseTypes
 			{
 				result = ConstraintOperationResult.Propagated;
 
-				var domainOperation = default(DomainOperationResult);
-
 				foreach (var value in remove)
 				{
-					Index.Domain.Remove(value, out domainOperation);
+					((IVariable<int>) Index).Remove(value, out DomainOperationResult domainOperation);
 
 					if (domainOperation == DomainOperationResult.EmptyDomain)
 						return ConstraintOperationResult.Violated;
