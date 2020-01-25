@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
-  </PropertyGroup>
-
   <ItemGroup>
-    <ProjectReference Include="..\..\Csp\AllDifferentInteger\AllDifferentInteger.csproj" />
     <ProjectReference Include="..\..\Csp\BaseTypes\BaseTypes.csproj" />
     <ProjectReference Include="..\..\Csp\Integer\Integer.csproj" />
+    <ProjectReference Include="..\..\Csp\Global\Global.csproj" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
 
 </Project>
