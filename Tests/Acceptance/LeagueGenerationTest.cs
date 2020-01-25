@@ -27,8 +27,8 @@ namespace Decider.Tests.Example
             Assert.Equal(12, leagueGeneration.FixtureWeeks[5][7]);
             Assert.Equal(13, leagueGeneration.FixtureWeeks[5][8]);
 
-			Assert.Equal(0, leagueGeneration.State.Backtracks);
-			Assert.Equal(1, leagueGeneration.State.NumberOfSolutions);
+            Assert.Equal(0, leagueGeneration.State.Backtracks);
+            Assert.Equal(1, leagueGeneration.State.NumberOfSolutions);
         }
         
         [Fact]
@@ -50,8 +50,8 @@ namespace Decider.Tests.Example
             Assert.Equal(18, leagueGeneration.FixtureWeeks[17][1]);
             Assert.Equal(19, leagueGeneration.FixtureWeeks[17][2]);
 
-			Assert.Equal(6262, leagueGeneration.State.Backtracks);
-			Assert.Equal(1, leagueGeneration.State.NumberOfSolutions);
+            Assert.Equal(6262, leagueGeneration.State.Backtracks);
+            Assert.Equal(1, leagueGeneration.State.NumberOfSolutions);
         }
     }
 }
