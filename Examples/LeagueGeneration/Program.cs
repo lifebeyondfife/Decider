@@ -29,5 +29,5 @@ namespace Decider.Example.LeagueGeneration
 			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}", leagueGeneration.State.Runtime, leagueGeneration.State.Backtracks);
 			Console.WriteLine("Solutions:\t{0}", leagueGeneration.State.NumberOfSolutions);
 		}
-    }
+	}
 }
