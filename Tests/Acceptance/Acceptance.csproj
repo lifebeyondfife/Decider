@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
+    <PackageReference Include="xunit" Version="2.4.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
+    <PackageReference Include="coverlet.collector" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Csp\BaseTypes\BaseTypes.csproj" />
+    <ProjectReference Include="..\..\Csp\Integer\Integer.csproj" />
+    <ProjectReference Include="..\..\Csp\Global\Global.csproj" />
+    <ProjectReference Include="..\..\Examples\LeagueGeneration\LeagueGeneration.csproj" />
+    <ProjectReference Include="..\..\Examples\NQueens\NQueens.csproj" />
+    <ProjectReference Include="..\..\Examples\Optimisation\Optimisation.csproj" />
+    <ProjectReference Include="..\..\Examples\PhaseLockedLoop\PhaseLockedLoop.csproj" />
+    <ProjectReference Include="..\..\Examples\SendMoreMoney\SendMoreMoney.csproj" />
+    <ProjectReference Include="..\..\Examples\TeacherTimetable\TeacherTimetable.csproj" />
+  </ItemGroup>
+
+</Project>

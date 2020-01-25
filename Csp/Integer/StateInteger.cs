@@ -13,8 +13,8 @@ namespace Decider.Csp.Integer
 {
 	public class StateInteger : IState<int>
 	{
-		public List<IConstraint> ConstraintList { get; private set; }
-		public IVariable<int>[] VariableList { get; private set; }
+		public IList<IConstraint> Constraints { get; private set; }
+		public IList<IVariable<int>> Variables { get; private set; }
 
 		public int Depth { get; private set; }
 		public int Backtracks { get; private set; }
@@ -34,23 +34,23 @@ namespace Decider.Csp.Integer
 
 		void IState<int>.SetVariables(IEnumerable<IVariable<int>> variableList)
 		{
-			this.VariableList = variableList.ToArray();
+			this.Variables = variableList.ToList();
 
-			foreach (var variable in this.VariableList)
+			foreach (var variable in this.Variables)
 				variable.SetState(this);
 		}
 
-		void IState<int>.SetConstraints(IEnumerable<IConstraint> constraintList)
+		void IState<int>.SetConstraints(IEnumerable<IConstraint> constraints)
 		{
-			this.ConstraintList = constraintList.ToList();
+			this.Constraints = constraints.ToList();
 		}
 
 		void IState<int>.StartSearch(out StateOperationResult searchResult)
 		{
 			var unassignedVariables = this.LastSolution == null
-				? new LinkedList<IVariable<int>>(this.VariableList)
+				? new LinkedList<IVariable<int>>(this.Variables)
 				: new LinkedList<IVariable<int>>();
-			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.VariableList.Length];
+			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
 			var startTime = DateTime.Now;
 
 			try
@@ -79,9 +79,9 @@ namespace Decider.Csp.Integer
 			out IList<IDictionary<string, IVariable<int>>> solutions)
 		{
 			var unassignedVariables = this.LastSolution == null
-				? new LinkedList<IVariable<int>>(this.VariableList)
+				? new LinkedList<IVariable<int>>(this.Variables)
 				: new LinkedList<IVariable<int>>();
-			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.VariableList.Length];
+			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
 			var startTime = DateTime.Now;
 
 			searchResult = StateOperationResult.Unsatisfiable;
@@ -123,15 +123,15 @@ namespace Decider.Csp.Integer
 		void IState<int>.StartSearch(out StateOperationResult searchResult, IVariable<int> optimiseVar, out IDictionary<string, IVariable<int>> solution, int timeOut)
 		{
 			var unassignedVariables = this.LastSolution == null
-				? new LinkedList<IVariable<int>>(this.VariableList)
+				? new LinkedList<IVariable<int>>(this.Variables)
 				: new LinkedList<IVariable<int>>();
-			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.VariableList.Length];
+			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
 			var startTime = DateTime.Now;
 
 			solution = new Dictionary<string, IVariable<int>>();
 			searchResult = StateOperationResult.Unsatisfiable;
 
-			this.ConstraintList.Add(new ConstraintInteger((VariableInteger) optimiseVar > Int32.MinValue));
+			this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > Int32.MinValue));
 
 			try
 			{
@@ -150,8 +150,8 @@ namespace Decider.Csp.Integer
 
 					Search(out searchResult, unassignedVariables, instantiatedVariables, startTime, timeOut);
 
-					this.ConstraintList.RemoveAt(this.ConstraintList.Count - 1);
-					this.ConstraintList.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
+					this.Constraints.RemoveAt(this.Constraints.Count - 1);
+					this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
 
 					solution = this.LastSolution.Select(v => v.Clone())
 						.Cast<IVariable<int>>()
@@ -171,7 +171,7 @@ namespace Decider.Csp.Integer
 		{
 			while (true)
 			{
-				if (this.Depth == this.VariableList.Length)
+				if (this.Depth == this.Variables.Count)
 				{
 					searchResult = StateOperationResult.Solved;
 					this.Runtime += DateTime.Now - startTime;
@@ -212,7 +212,7 @@ namespace Decider.Csp.Integer
 
 		private bool ConstraintsViolated()
 		{
-			foreach (var constraint in this.ConstraintList.Where(constraint => constraint.StateChanged()))
+			foreach (var constraint in this.Constraints.Where(constraint => constraint.StateChanged()))
 			{
 				constraint.Propagate(out ConstraintOperationResult result);
 				if ((result & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
@@ -231,7 +231,7 @@ namespace Decider.Csp.Integer
 			++this.Backtracks;
 			var value = variablePrune.InstantiatedValue;
 
-			foreach (var variable in this.VariableList)
+			foreach (var variable in this.Variables)
 				variable.Backtrack(this.Depth);
 			--this.Depth;
 
