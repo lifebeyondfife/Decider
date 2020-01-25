@@ -1,0 +1,75 @@
+{
+    // Use IntelliSense to find out which attributes exist for C# debugging
+    // Use hover for the description of the existing attributes
+    // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
+    "version": "0.2.0",
+    "configurations": [
+         {
+             "name": "League Generation",
+             "type": "coreclr",
+             "request": "launch",
+             "preLaunchTask": "build-league-generation",
+             "program": "${workspaceFolder}/Examples/LeagueGeneration/bin/Debug/netcoreapp3.0/LeagueGeneration.dll",
+             "args": [],
+             "cwd": "${workspaceFolder}/Examples/LeagueGeneration",
+             "stopAtEntry": false,
+             "console": "internalConsole"
+         },
+         {
+             "name": "NQueens",
+             "type": "coreclr",
+             "request": "launch",
+             "preLaunchTask": "build-nqueens",
+             "program": "${workspaceFolder}/Examples/NQueens/bin/Debug/netcoreapp3.0/NQueens.dll",
+             "args": [],
+             "cwd": "${workspaceFolder}/Examples/NQueens",
+             "stopAtEntry": false,
+             "console": "internalConsole"
+         },
+         {
+             "name": "Optimisation",
+             "type": "coreclr",
+             "request": "launch",
+             "preLaunchTask": "build-optimisation",
+             "program": "${workspaceFolder}/Examples/Optimisation/bin/Debug/netcoreapp3.0/Optimisation.dll",
+             "args": [],
+             "cwd": "${workspaceFolder}/Examples/Optimisation",
+             "stopAtEntry": false,
+             "console": "internalConsole"
+         },
+ 
+         {
+             "name": "Phased Locked Loop",
+             "type": "coreclr",
+             "request": "launch",
+             "preLaunchTask": "build-phased-locked-loop",
+             "program": "${workspaceFolder}/Examples/PhaseLockedLoop/bin/Debug/netcoreapp3.0/PhasedLockedLoop.dll",
+             "args": [],
+             "cwd": "${workspaceFolder}/Examples/PhaseLockedLoop",
+             "stopAtEntry": false,
+             "console": "internalConsole"
+         },
+         {
+             "name": "Send More Money",
+             "type": "coreclr",
+             "request": "launch",
+             "preLaunchTask": "build-send-more-money",
+             "program": "${workspaceFolder}/Examples/SendMoreMoney/bin/Debug/netcoreapp3.0/SendMoreMoney.dll",
+             "args": [],
+             "cwd": "${workspaceFolder}/Examples/SendMoreMoney",
+             "console": "internalConsole",
+             "stopAtEntry": false
+         },
+         {
+             "name": "Teacher Timetable",
+             "type": "coreclr",
+             "request": "launch",
+             "preLaunchTask": "build-teacher-timetable",
+             "program": "${workspaceFolder}/Examples/TeacherTimetable/bin/Debug/netcoreapp3.0/TeacherTimetable.dll",
+             "args": [],
+             "cwd": "${workspaceFolder}/Examples/TeacherTimetable",
+             "stopAtEntry": false,
+             "console": "internalConsole"
+         }
+     ]
+ }

@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BaseTypes\BaseTypes.csproj" />
+    <ProjectReference Include="..\Integer\Integer.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
