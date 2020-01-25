@@ -21,6 +21,7 @@ namespace Decider.Csp.BaseTypes
 		TimeSpan Runtime { get; }
 		int Backtracks { get; }
 		int NumberOfSolutions { get; }
+		IList<IVariable<T>> Variables { get; }
 
 		void SetVariables(IEnumerable<IVariable<T>> variableList);
 		void SetConstraints(IEnumerable<IConstraint> constraintList);
