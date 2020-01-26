@@ -3,7 +3,6 @@
   
   This file is part of Decider.
 */
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -13,46 +12,39 @@ using Decider.Csp.Integer;
 
 namespace Decider.Example.NQueens
 {
-	class NQueens
+	public class NQueens
 	{
-		static void Main(string[] args)
+		private int NumberOfQueens { get; set; }
+		private IList<VariableInteger> Variables { get; set; }
+		private IList<IConstraint> Constraints { get; set; }
+		public IState<int> State { get; private set; }
+		public IList<IDictionary<string, IVariable<int>>> Solutions { get; private set; }
+
+		public NQueens(int numberOfQueens)
 		{
-			var numberOfQueens = (args.Length >= 1) ? Int32.Parse(args[0]) : 8;
+			NumberOfQueens = numberOfQueens;
 
 			// Model
-			var variables = new VariableInteger[numberOfQueens];
-			for (var i = 0; i < variables.Length; ++i)
-				variables[i] = new VariableInteger(i.ToString(CultureInfo.CurrentCulture), 0, numberOfQueens - 1);
+			Variables = new VariableInteger[numberOfQueens];
+			for (var i = 0; i < Variables.Count; ++i)
+				Variables[i] = new VariableInteger(i.ToString(CultureInfo.CurrentCulture), 0, numberOfQueens - 1);
 
 			//	Constraints
-			var constraints = new List<IConstraint> { new AllDifferentInteger(variables) };
-			for (var i=0; i < variables.Length - 1; ++i)
-				for (var j = i + 1; j < variables.Length; ++j)
+			Constraints = new List<IConstraint> { new AllDifferentInteger(Variables) };
+			for (var i=0; i < Variables.Count - 1; ++i)
+				for (var j = i + 1; j < Variables.Count; ++j)
 				{
-					constraints.Add(new ConstraintInteger(variables[i] - variables[j] != j - i));
-					constraints.Add(new ConstraintInteger(variables[i] - variables[j] != i - j));
+					Constraints.Add(new ConstraintInteger(Variables[i] - Variables[j] != j - i));
+					Constraints.Add(new ConstraintInteger(Variables[i] - Variables[j] != i - j));
 				}
+		}
 
+		public void Search()
+		{
 			//	Search
-			IState<int> state = new StateInteger(variables, constraints);
-
-			state.StartSearch(out StateOperationResult searchResult, out IList<IDictionary<string, IVariable<int>>> solutions);
-
-			foreach (var solution in solutions)
-			{
-				for (var i = 0; i < variables.Length; ++i)
-				{
-					for (var j = 0; j < variables.Length; ++j)
-						Console.Write(solution[i.ToString(CultureInfo.CurrentCulture)].InstantiatedValue == j ? "Q" : ".");
-
-					Console.WriteLine();
-				}
-
-				Console.WriteLine();
-			}
-
-			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}", state.Runtime, state.Backtracks);
-			Console.WriteLine("Solutions:\t{0}", state.NumberOfSolutions);
+			State = new StateInteger(Variables, Constraints);
+			State.StartSearch(out StateOperationResult searchResult, out IList<IDictionary<string, IVariable<int>>> solutions);
+			Solutions = solutions;
 		}
 	}
 }

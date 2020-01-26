@@ -1,11 +1,9 @@
-/*
+﻿/*
   Copyright © Iain McDonald 2010-2020
-  
+
   This file is part of Decider.
 */
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Decider.Example.LeagueGeneration
 {
@@ -26,7 +24,8 @@ namespace Decider.Example.LeagueGeneration
 			}
 
 			Console.WriteLine();
-			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}", leagueGeneration.State.Runtime, leagueGeneration.State.Backtracks);
+			Console.WriteLine("Runtime:\t{0}", leagueGeneration.State.Runtime);
+			Console.WriteLine("Backtracks:\t{0}", leagueGeneration.State.Backtracks);
 			Console.WriteLine("Solutions:\t{0}", leagueGeneration.State.NumberOfSolutions);
 		}
 	}

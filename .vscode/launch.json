@@ -37,13 +37,12 @@
              "stopAtEntry": false,
              "console": "internalConsole"
          },
- 
          {
-             "name": "Phased Locked Loop",
+             "name": "Phase Locked Loop",
              "type": "coreclr",
              "request": "launch",
-             "preLaunchTask": "build-phased-locked-loop",
-             "program": "${workspaceFolder}/Examples/PhaseLockedLoop/bin/Debug/netcoreapp3.0/PhasedLockedLoop.dll",
+             "preLaunchTask": "build-phase-locked-loop",
+             "program": "${workspaceFolder}/Examples/PhaseLockedLoop/bin/Debug/netcoreapp3.0/PhaseLockedLoop.dll",
              "args": [],
              "cwd": "${workspaceFolder}/Examples/PhaseLockedLoop",
              "stopAtEntry": false,
