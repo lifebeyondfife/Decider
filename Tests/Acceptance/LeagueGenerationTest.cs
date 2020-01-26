@@ -1,9 +1,8 @@
-/*
-  Copyright � Iain McDonald 2010-2020
-  
+﻿/*
+  Copyright © Iain McDonald 2010-2020
+
   This file is part of Decider.
 */
-using System;
 using Xunit;
 
 using Decider.Example.LeagueGeneration;
