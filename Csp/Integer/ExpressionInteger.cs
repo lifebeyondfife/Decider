@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2020
+  Copyright © Iain McDonald 2010-2021
 
   This file is part of Decider.
 */
@@ -354,6 +354,92 @@ namespace Decider.Csp.Integer
 						first.Bounds.UpperBound = 0;
 						second.Bounds.UpperBound = 0;
 						result = ConstraintOperationResult.Propagated;
+					}
+
+					if (first.Bounds.LowerBound > first.Bounds.UpperBound || second.Bounds.LowerBound > second.Bounds.UpperBound)
+						result = ConstraintOperationResult.Violated;
+
+					return result;
+				}
+			};
+		}
+
+		public static ExpressionInteger operator ^(ExpressionInteger left, ExpressionInteger right)
+		{
+			return new ExpressionInteger(left, right)
+			{
+				evaluate = (l, r) => ((l.Value != 0) || (r.Value != 0)) && ((l.Value == 0) || (r.Value == 0)) ? 1 : 0,
+				evaluateBounds = (l, r) =>
+				{
+					var leftBounds = l.GetUpdatedBounds();
+					var rightBounds = r.GetUpdatedBounds();
+
+					return new Bounds<int>
+					(
+						(leftBounds.LowerBound == leftBounds.UpperBound) && (rightBounds.LowerBound > 0) &&
+							(leftBounds.LowerBound != rightBounds.LowerBound) ? 1 : 0,
+						(leftBounds.LowerBound == leftBounds.UpperBound) && (rightBounds.LowerBound == rightBounds.UpperBound) &&
+							(leftBounds.LowerBound == rightBounds.LowerBound) ? 0 : 1
+					);
+				},
+				propagator = (first, second, enforce) =>
+				{
+					var result = ConstraintOperationResult.Undecided;
+					
+					if (enforce.LowerBound == 0 && enforce.LowerBound < enforce.UpperBound)
+						return result;
+					
+					if (enforce.LowerBound > 0)
+					{
+						if (first.Bounds.UpperBound == 0)
+						{
+							second.Bounds.LowerBound = 1;
+							result = ConstraintOperationResult.Propagated;
+						}
+
+						if (first.Bounds.LowerBound == 1)
+						{
+							second.Bounds.UpperBound = 0;
+							result = ConstraintOperationResult.Propagated;
+						}
+
+						if (second.Bounds.UpperBound == 0)
+						{
+							first.Bounds.LowerBound = 1;
+							result = ConstraintOperationResult.Propagated;
+						}
+						
+						if (second.Bounds.LowerBound == 1)
+						{
+							first.Bounds.UpperBound = 0;
+							result = ConstraintOperationResult.Propagated;
+						}
+					}
+					else if (enforce.UpperBound == 0)
+					{
+						if (first.Bounds.UpperBound == 0)
+						{
+							second.Bounds.UpperBound = 0;
+							result = ConstraintOperationResult.Propagated;
+						}
+						
+						if (first.Bounds.LowerBound == 1)
+						{
+							second.Bounds.LowerBound = 1;
+							result = ConstraintOperationResult.Propagated;
+						}
+
+						if (second.Bounds.UpperBound == 0)
+						{
+							first.Bounds.UpperBound = 0;
+							result = ConstraintOperationResult.Propagated;
+						}
+						
+						if (second.Bounds.LowerBound == 1)
+						{
+							first.Bounds.LowerBound = 1;
+							result = ConstraintOperationResult.Propagated;
+						}
 					}
 
 					if (first.Bounds.LowerBound > first.Bounds.UpperBound || second.Bounds.LowerBound > second.Bounds.UpperBound)

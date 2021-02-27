@@ -1,5 +1,5 @@
 /*
-  Copyright © Iain McDonald 2010-2020
+  Copyright © Iain McDonald 2010-2021
 
   This file is part of Decider.
 */
@@ -64,6 +64,19 @@ namespace Decider.Tests.Csp
 
             Assert.Equal(2, updatedBounds.LowerBound);
             Assert.Equal(10, updatedBounds.UpperBound);
+        }
+
+        [Fact]
+        public void TestXorBoundsCorrect()
+        {
+            var variable1 = new VariableInteger("var1", 0, 0);
+            var variable2 = new VariableInteger("var2", 1, 1);
+
+            var expression = variable1 ^ variable2;
+            var updatedBounds = expression.GetUpdatedBounds();
+
+            Assert.Equal(1, updatedBounds.LowerBound);
+            Assert.Equal(1, updatedBounds.UpperBound);
         }
     }
 }
