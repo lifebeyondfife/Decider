@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2020
+  Copyright © Iain McDonald 2010-2021
   
   This file is part of Decider.
 */
@@ -55,7 +55,7 @@ namespace Decider.Csp.Integer
 
 		internal DomainBinaryInteger(int domainSize)
 		{
-			if (domainSize < 1)
+			if (domainSize < 0)
 				throw new ArgumentException("Invalid Domain Size");
 			
 			this.lowerBound = 0;
