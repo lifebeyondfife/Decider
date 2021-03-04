@@ -7,7 +7,7 @@ An Open Source .Net Constraint Programming Solver
 Installation
 ------------
 
-Install using nuget for .Net Standard 2.0
+Install using nuget for .Net Standard 2.1
 
      dotnet add package Decider
 
@@ -104,23 +104,24 @@ foreach (var solution in solutions)
 
 Which results in
 
-    Q.......
-    ....Q...
-    .......Q
-    .....Q..
-    ..Q.....
-    ......Q.
-    .Q......
-    ...Q....
-    
-    Q.......
-    .....Q..
-    .......Q
-    ..Q.....
-    ......Q.
-    ...Q....
-    .Q......
-    ....Q...
+    Q . . . . . . .
+    . . . . Q . . .
+    . . . . . . . Q
+    . . . . . Q . .
+    . . Q . . . . .
+    . . . . . . Q .
+    . Q . . . . . .
+    . . . Q . . . .
+
+    Q . . . . . . .
+    . . . . . Q . .
+    . . . . . . . Q
+    . . Q . . . . .
+    . . . . . . Q .
+    . . . Q . . . .
+    . Q . . . . . .
+    . . . . Q . . .
+
 
 and a further ninety solutions.
 
