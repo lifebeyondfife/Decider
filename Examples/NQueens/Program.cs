@@ -20,7 +20,7 @@ namespace Decider.Example.NQueens
 				for (var i = 0; i < nQueens.State.Variables.Count; ++i)
 				{
 					for (var j = 0; j < nQueens.State.Variables.Count; ++j)
-						Console.Write(solution[i.ToString(CultureInfo.CurrentCulture)].InstantiatedValue == j ? "Q" : ".");
+						Console.Write(solution[i.ToString(CultureInfo.CurrentCulture)].InstantiatedValue == j ? "Q " : ". ");
 
 					Console.WriteLine();
 				}
