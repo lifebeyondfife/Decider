@@ -1,6 +1,8 @@
 Decider
 =======
 
+![main ci pipeline](https://github.com/lifebeyondfife/decider/actions/workflows/main.yml/badge.svg)
+
 An Open Source .Net Constraint Programming Solver
 
 
