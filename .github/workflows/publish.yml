@@ -1,0 +1,28 @@
+name: Publish Nuget Package
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [ main ]
+    types:
+      - completed
+
+jobs:
+  publish-nuget:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .Net core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.x'
+    - name: Install Dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+    - name: Publish Nuget Package
+      uses: brandedoutcast/publish-nuget@v2
+      with:
+        PROJECT_FILE_PATH: Csp/Csp.csproj
+        VERSION_REGEX: '^\s*<PackageVersion>(.*)<\/PackageVersion>\s*$'
+        NUGET_KEY: ${{secrets.NUGET_TOKEN}}
