@@ -1,20 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\BaseTypes\BaseTypes.csproj" />
-    <ProjectReference Include="..\Integer\Integer.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Authors>Iain McDonald</Authors>
+    <Company>Life Beyond Fife</Company>
+    <Title>Decider</Title>
+    <PackageId>Decider</PackageId>
+    <PackageDescription>Simple integer Constraint Programming toolkit for C#</PackageDescription>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/lifebeyondfife/Decider</RepositoryUrl>
+    <Version>0.4.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
   </ItemGroup>
-
-
 </Project>
