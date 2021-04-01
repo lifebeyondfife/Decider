@@ -31,8 +31,10 @@ jobs:
       - name: Install Dependencies
         run: dotnet restore
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build --configuration Release
       - name: Run Unit Tests
+        run: dotnet test
+
         run: dotnet run --project Tests/Unit
       - name: Run Acceptance Tests
         run: dotnet run --project Tests/Acceptance
