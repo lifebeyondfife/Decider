@@ -27,10 +27,10 @@ jobs:
       - name: Setup .Net Core
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '3.1.x'
+          dotnet-version: '5.0.x'
       - name: Install Dependencies
         run: dotnet restore
       - name: Build
-        run: dotnet build --configuration Release
+        run: dotnet build --configuration Release --no-restore
       - name: Run Tests
-        run: dotnet test
+        run: dotnet test --no-restore
