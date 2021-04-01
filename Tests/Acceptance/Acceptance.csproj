@@ -14,9 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Csp\BaseTypes\BaseTypes.csproj" />
-    <ProjectReference Include="..\..\Csp\Integer\Integer.csproj" />
-    <ProjectReference Include="..\..\Csp\Global\Global.csproj" />
+    <ProjectReference Include="..\..\Csp\Csp.csproj" />
     <ProjectReference Include="..\..\Examples\LeagueGeneration\LeagueGeneration.csproj" />
     <ProjectReference Include="..\..\Examples\NQueens\NQueens.csproj" />
     <ProjectReference Include="..\..\Examples\Optimisation\Optimisation.csproj" />
