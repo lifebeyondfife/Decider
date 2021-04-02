@@ -2,6 +2,7 @@ Decider
 =======
 
 ![main ci pipeline](https://github.com/lifebeyondfife/decider/actions/workflows/main.yml/badge.svg)
+![nuget package](https://buildstats.info/nuget/Decider)
 
 An Open Source .Net Constraint Programming Solver
 
