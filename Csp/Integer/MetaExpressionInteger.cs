@@ -15,7 +15,7 @@ namespace Decider.Csp.Integer
 	{
 		private readonly IList<IVariable<int>> support;
 
-		IList<IVariable<int>> IMetaExpression<int>.Support
+		public IList<IVariable<int>> Support
 		{
 			get { return this.support; }
 		}
@@ -41,6 +41,5 @@ namespace Decider.Csp.Integer
 		{
 			this.support = support.ToList();
 		}
-
 	}
 }

@@ -59,8 +59,7 @@ namespace Decider.Example.PhaseLockedLoop
 
 
 			//	Search
-			IState<int> state = new StateInteger(new[] { f1, f2, r1, r2, q1, q2 }, constraints);
-
+			var state = new StateInteger(new[] { f1, f2, r1, r2, q1, q2 }, constraints);
 			state.StartSearch(out StateOperationResult searchResult);
 
 			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);

@@ -40,7 +40,7 @@ namespace Decider.Example.Optimisation
 				};
 
 			var variables = new[] { a, b, c, d, e, f, g, h, optimise };
-			IState<int> state = new StateInteger(variables, constraints);
+			var state = new StateInteger(variables, constraints);
 
 			state.StartSearch(out StateOperationResult searchResult, optimise, out IDictionary<string, IVariable<int>> solution, 20);
 

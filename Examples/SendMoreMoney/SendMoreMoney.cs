@@ -40,7 +40,7 @@ namespace Decider.Example.SendMoreMoney
 				};
 
 			var variables = new [] { c0, c1, c2, c3, s, e, n, d, m, o, r, y };
-			IState<int> state = new StateInteger(variables, constraints);
+			var state = new StateInteger(variables, constraints);
 
 			state.StartSearch(out StateOperationResult searchResult);
 

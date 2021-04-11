@@ -89,8 +89,7 @@ namespace Decider.Example.TeacherTimetable
 
 			#region Search
 
-			IState<int> state = new StateInteger(Week, constraints);
-
+			var state = new StateInteger(Week, constraints);
 			state.StartSearch(out StateOperationResult searchResult);
 
 			foreach (var period in Week)

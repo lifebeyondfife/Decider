@@ -70,7 +70,7 @@ namespace Decider.Csp.Integer
 			}
 		}
 
-		void IConstraint.Check(out ConstraintOperationResult result)
+		public void Check(out ConstraintOperationResult result)
 		{
 			for (var i = 0; i < this.variableArray.Length; ++i)
 				this.domainArray[i] = ((VariableInteger) variableArray[i]).Domain;
@@ -91,7 +91,7 @@ namespace Decider.Csp.Integer
 			}
 		}
 
-		void IConstraint.Propagate(out ConstraintOperationResult result)
+		public void Propagate(out ConstraintOperationResult result)
 		{
 			var enforce = new Bounds<int>(1, 1);
 
@@ -101,7 +101,7 @@ namespace Decider.Csp.Integer
 			} while ((result &= ConstraintOperationResult.Propagated) == ConstraintOperationResult.Propagated);
 		}
 
-		bool IConstraint.StateChanged()
+		public bool StateChanged()
 		{
 			return this.variableArray.Where((variable, index) => ((VariableInteger) variable)
 				.Domain != this.domainArray[index]).Any();

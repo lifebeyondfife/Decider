@@ -26,14 +26,14 @@ namespace Decider.Csp.Integer
 
 		public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints)
 		{
-			((IState<int>) this).SetVariables(variables);
-			((IState<int>) this).SetConstraints(constraints);
+			SetVariables(variables);
+			SetConstraints(constraints);
 			this.Depth = 0;
 			this.Backtracks = 0;
 			this.Runtime = new TimeSpan(0);
 		}
 
-		void IState<int>.SetVariables(IEnumerable<IVariable<int>> variableList)
+		public void SetVariables(IEnumerable<IVariable<int>> variableList)
 		{
 			this.Variables = variableList.ToList();
 
@@ -41,12 +41,12 @@ namespace Decider.Csp.Integer
 				variable.SetState(this);
 		}
 
-		void IState<int>.SetConstraints(IEnumerable<IConstraint> constraints)
+		public void SetConstraints(IEnumerable<IConstraint> constraints)
 		{
 			this.Constraints = constraints.ToList();
 		}
 
-		void IState<int>.StartSearch(out StateOperationResult searchResult)
+		public void StartSearch(out StateOperationResult searchResult)
 		{
 			var unassignedVariables = this.LastSolution == null
 				? new LinkedList<IVariable<int>>(this.Variables)
@@ -77,7 +77,7 @@ namespace Decider.Csp.Integer
 			}
 		}
 
-		void IState<int>.StartSearch(out StateOperationResult searchResult,
+		public void StartSearch(out StateOperationResult searchResult,
 			out IList<IDictionary<string, IVariable<int>>> solutions)
 		{
 			var unassignedVariables = this.LastSolution == null
@@ -122,7 +122,8 @@ namespace Decider.Csp.Integer
 			solutions = solutionsList;
 		}
 
-		void IState<int>.StartSearch(out StateOperationResult searchResult, IVariable<int> optimiseVar, out IDictionary<string, IVariable<int>> solution, int timeOut)
+		public void StartSearch(out StateOperationResult searchResult, IVariable<int> optimiseVar,
+			out IDictionary<string, IVariable<int>> solution, int timeOut)
 		{
 			var unassignedVariables = this.LastSolution == null
 				? new LinkedList<IVariable<int>>(this.Variables)
