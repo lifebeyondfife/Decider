@@ -5,6 +5,7 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using Decider.Csp.BaseTypes;
@@ -25,14 +26,14 @@ namespace Decider.Csp.Integer
 
 		public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints)
 		{
-			((IState<int>) this).SetVariables(variables);
-			((IState<int>) this).SetConstraints(constraints);
+			SetVariables(variables);
+			SetConstraints(constraints);
 			this.Depth = 0;
 			this.Backtracks = 0;
 			this.Runtime = new TimeSpan(0);
 		}
 
-		void IState<int>.SetVariables(IEnumerable<IVariable<int>> variableList)
+		public void SetVariables(IEnumerable<IVariable<int>> variableList)
 		{
 			this.Variables = variableList.ToList();
 
@@ -40,18 +41,18 @@ namespace Decider.Csp.Integer
 				variable.SetState(this);
 		}
 
-		void IState<int>.SetConstraints(IEnumerable<IConstraint> constraints)
+		public void SetConstraints(IEnumerable<IConstraint> constraints)
 		{
 			this.Constraints = constraints.ToList();
 		}
 
-		void IState<int>.StartSearch(out StateOperationResult searchResult)
+		public void StartSearch(out StateOperationResult searchResult)
 		{
 			var unassignedVariables = this.LastSolution == null
 				? new LinkedList<IVariable<int>>(this.Variables)
 				: new LinkedList<IVariable<int>>();
 			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
-			var startTime = DateTime.Now;
+			var stopwatch = Stopwatch.StartNew();
 
 			try
 			{
@@ -66,23 +67,24 @@ namespace Decider.Csp.Integer
 					throw new DeciderException("No solution found.");
 				}
 
-				Search(out searchResult, unassignedVariables, instantiatedVariables, startTime);
+				Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch);
 			}
 			catch (DeciderException)
 			{
 				searchResult = StateOperationResult.Unsatisfiable;
-				this.Runtime += DateTime.Now - startTime;
+				this.Runtime += stopwatch.Elapsed;
+				stopwatch.Stop();
 			}
 		}
 
-		void IState<int>.StartSearch(out StateOperationResult searchResult,
+		public void StartSearch(out StateOperationResult searchResult,
 			out IList<IDictionary<string, IVariable<int>>> solutions)
 		{
 			var unassignedVariables = this.LastSolution == null
 				? new LinkedList<IVariable<int>>(this.Variables)
 				: new LinkedList<IVariable<int>>();
 			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
-			var startTime = DateTime.Now;
+			var stopwatch = Stopwatch.StartNew();
 
 			searchResult = StateOperationResult.Unsatisfiable;
 			var solutionsList = new List<IDictionary<string, IVariable<int>>>();
@@ -102,8 +104,7 @@ namespace Decider.Csp.Integer
 						throw new DeciderException("No solution found.");
 					}
 
-					startTime = DateTime.Now;
-					Search(out searchResult, unassignedVariables, instantiatedVariables, startTime);
+					Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch);
 
 					solutionsList.Add(this.LastSolution.Select(v => v.Clone())
 						.Cast<IVariable<int>>()
@@ -114,19 +115,21 @@ namespace Decider.Csp.Integer
 			}
 			catch (DeciderException)
 			{
-				this.Runtime += DateTime.Now - startTime;
+				this.Runtime += stopwatch.Elapsed;
+				stopwatch.Stop();
 			}
 
 			solutions = solutionsList;
 		}
 
-		void IState<int>.StartSearch(out StateOperationResult searchResult, IVariable<int> optimiseVar, out IDictionary<string, IVariable<int>> solution, int timeOut)
+		public void StartSearch(out StateOperationResult searchResult, IVariable<int> optimiseVar,
+			out IDictionary<string, IVariable<int>> solution, int timeOut)
 		{
 			var unassignedVariables = this.LastSolution == null
 				? new LinkedList<IVariable<int>>(this.Variables)
 				: new LinkedList<IVariable<int>>();
 			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
-			var startTime = DateTime.Now;
+			var stopwatch = Stopwatch.StartNew();
 
 			solution = new Dictionary<string, IVariable<int>>();
 			searchResult = StateOperationResult.Unsatisfiable;
@@ -148,7 +151,7 @@ namespace Decider.Csp.Integer
 						throw new DeciderException("No solution found.");
 					}
 
-					Search(out searchResult, unassignedVariables, instantiatedVariables, startTime, timeOut);
+					Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, timeOut);
 
 					this.Constraints.RemoveAt(this.Constraints.Count - 1);
 					this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
@@ -162,19 +165,21 @@ namespace Decider.Csp.Integer
 			}
 			catch (DeciderException)
 			{
-				this.Runtime += DateTime.Now - startTime;
+				this.Runtime += stopwatch.Elapsed;
+				stopwatch.Stop();
 			}
 		}
 
 		private void Search(out StateOperationResult searchResult, LinkedList<IVariable<int>> unassignedVariables,
-			IList<IVariable<int>> instantiatedVariables, DateTime startTime, int timeOut = Int32.MaxValue)
+			IList<IVariable<int>> instantiatedVariables, ref Stopwatch stopwatch, int timeOut = Int32.MaxValue)
 		{
 			while (true)
 			{
 				if (this.Depth == this.Variables.Count)
 				{
 					searchResult = StateOperationResult.Solved;
-					this.Runtime += DateTime.Now - startTime;
+					this.Runtime += stopwatch.Elapsed;
+					stopwatch = Stopwatch.StartNew();
 
 					this.LastSolution = instantiatedVariables.ToArray();
 					++this.NumberOfSolutions;
@@ -190,7 +195,7 @@ namespace Decider.Csp.Integer
 					Backtrack(unassignedVariables, instantiatedVariables);
 				}
 
-				if ((DateTime.Now - startTime).TotalSeconds > timeOut)
+				if (stopwatch.Elapsed.TotalSeconds > timeOut)
 					throw new DeciderException();
 
 				++this.Depth;

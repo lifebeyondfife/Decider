@@ -28,7 +28,7 @@ namespace Decider.Csp.Integer
 		private int size;
 		private int offset;
 
-		bool IDomain<int>.Contains(int index)
+		public bool Contains(int index)
 		{
 			return IsInDomain(index);
 		}
@@ -112,23 +112,23 @@ namespace Decider.Csp.Integer
 
 		#region IDomain<int> Members
 
-		int IDomain<int>.InstantiatedValue
+		public int InstantiatedValue
 		{
 			get
 			{
-				if (!((IDomain<int>) this).Instantiated())
+				if (!Instantiated())
 					throw new DeciderException("Trying to access InstantiatedValue of an uninstantiated domain.");
 
 				return this.lowerBound - offset;
 			}
 		}
 
-		void IDomain<int>.Instantiate(out DomainOperationResult result)
+		public void Instantiate(out DomainOperationResult result)
 		{
-			((IDomain<int>) this).InstantiateLowest(out result);
+			InstantiateLowest(out result);
 		}
 
-		void IDomain<int>.Instantiate(int value, out DomainOperationResult result)
+		public void Instantiate(int value, out DomainOperationResult result)
 		{
 			if (!IsInDomain(value))
 			{
@@ -141,7 +141,7 @@ namespace Decider.Csp.Integer
 			result = DomainOperationResult.InstantiateSuccessful;
 		}
 
-		void IDomain<int>.InstantiateLowest(out DomainOperationResult result)
+		public void InstantiateLowest(out DomainOperationResult result)
 		{
 			if (!IsInDomain(this.lowerBound - offset))
 			{
@@ -154,7 +154,7 @@ namespace Decider.Csp.Integer
 			result = DomainOperationResult.InstantiateSuccessful;
 		}
 
-		void IDomain<int>.Remove(int element, out DomainOperationResult result)
+		public void Remove(int element, out DomainOperationResult result)
 		{
 			result = DomainOperationResult.EmptyDomain;
 			if (element < -offset || !IsInDomain(element))
@@ -195,29 +195,29 @@ namespace Decider.Csp.Integer
 			result = DomainOperationResult.RemoveSuccessful;
 		}
 
-		string IDomain<int>.ToString()
+		public override string ToString()
 		{
 			var domainRange = Enumerable.Range(lowerBound, upperBound - lowerBound + 1).Select(x => x - offset).Where(IsInDomain);
 
 			return "[" + string.Join(", ", domainRange) + "]";
 		}
 
-		bool IDomain<int>.Instantiated()
+		public bool Instantiated()
 		{
 			return this.upperBound == this.lowerBound;
 		}
 
-		int IDomain<int>.Size()
+		public int Size()
 		{
 			return this.size;
 		}
 
-		int IDomain<int>.LowerBound
+		public int LowerBound
 		{
 			get { return this.lowerBound - offset; }
 		}
 
-		int IDomain<int>.UpperBound
+		public int UpperBound
 		{
 			get { return this.upperBound - offset; }
 		}

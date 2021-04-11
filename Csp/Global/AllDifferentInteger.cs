@@ -37,7 +37,7 @@ namespace Decider.Csp.Global
 			this.cycleDetection = new CycleDetection();
 		}
 
-		void IConstraint.Check(out ConstraintOperationResult result)
+		public void Check(out ConstraintOperationResult result)
 		{
 			for (var i = 0; i < this.variableArray.Length; ++i)
 				this.domainArray[i] = variableArray[i].Domain;
@@ -62,7 +62,7 @@ namespace Decider.Csp.Global
 			return this.Graph.MaximalMatching() >= this.variableArray.Length;
 		}
 
-		void IConstraint.Propagate(out ConstraintOperationResult result)
+		public void Propagate(out ConstraintOperationResult result)
 		{
 			this.Graph = new BipartiteGraph(this.variableArray);
 
@@ -90,7 +90,7 @@ namespace Decider.Csp.Global
 					{
 						result = ConstraintOperationResult.Propagated;
 
-						((IVariable<int>) variable).Remove(value, this.Depth, out DomainOperationResult domainResult);
+						variable.Remove(value, this.Depth, out DomainOperationResult domainResult);
 
 						if (domainResult != DomainOperationResult.EmptyDomain)
 							continue;
@@ -102,7 +102,7 @@ namespace Decider.Csp.Global
 			}
 		}
 
-		bool IConstraint.StateChanged()
+		public bool StateChanged()
 		{
 			return this.variableArray.Where((t, i) => t.Domain != this.domainArray[i]).Any();
 		}
