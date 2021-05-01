@@ -53,28 +53,27 @@ namespace Decider.Csp.Integer
 				: new LinkedList<IVariable<int>>();
 			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
 			var stopwatch = Stopwatch.StartNew();
+			searchResult = StateOperationResult.Unsatisfiable;
 
-			try
+
+			if (this.Depth == instantiatedVariables.Length)
 			{
-				if (this.Depth == instantiatedVariables.Length)
-				{
-					--this.Depth;
-					Backtrack(unassignedVariables, instantiatedVariables);
-					++this.Depth;
-				}
-				else if (ConstraintsViolated())
-				{
-					throw new DeciderException("No solution found.");
-				}
-
-				Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch);
+				--this.Depth;
+				Backtrack(unassignedVariables, instantiatedVariables);
+				++this.Depth;
 			}
-			catch (DeciderException)
+			else if (ConstraintsViolated())
 			{
-				searchResult = StateOperationResult.Unsatisfiable;
 				this.Runtime += stopwatch.Elapsed;
 				stopwatch.Stop();
+				return;
 			}
+
+			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
+				searchResult = StateOperationResult.Solved;
+
+			this.Runtime += stopwatch.Elapsed;
+			stopwatch.Stop();
 		}
 
 		public void StartSearch(out StateOperationResult searchResult,
@@ -89,22 +88,24 @@ namespace Decider.Csp.Integer
 			searchResult = StateOperationResult.Unsatisfiable;
 			var solutionsList = new List<IDictionary<string, IVariable<int>>>();
 
-			try
+			while (true)
 			{
-				while (true)
+				if (this.Depth == instantiatedVariables.Length)
 				{
-					if (this.Depth == instantiatedVariables.Length)
-					{
-						--this.Depth;
-						Backtrack(unassignedVariables, instantiatedVariables);
-						++this.Depth;
-					}
-					else if (ConstraintsViolated())
-					{
-						throw new DeciderException("No solution found.");
-					}
+					--this.Depth;
+					Backtrack(unassignedVariables, instantiatedVariables);
+					++this.Depth;
+				}
+				else if (ConstraintsViolated())
+				{
+					this.Runtime += stopwatch.Elapsed;
+					stopwatch.Stop();
+					break;
+				}
 
-					Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch);
+				if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
+				{
+					searchResult = StateOperationResult.Solved;
 
 					solutionsList.Add(this.LastSolution.Select(v => v.Clone())
 						.Cast<IVariable<int>>()
@@ -113,12 +114,9 @@ namespace Decider.Csp.Integer
 						.ToDictionary(k => k.Key, v => v.Value));
 				}
 			}
-			catch (DeciderException)
-			{
-				this.Runtime += stopwatch.Elapsed;
-				stopwatch.Stop();
-			}
 
+			this.Runtime += stopwatch.Elapsed;
+			stopwatch.Stop();
 			solutions = solutionsList;
 		}
 
@@ -136,23 +134,21 @@ namespace Decider.Csp.Integer
 
 			this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > Int32.MinValue));
 
-			try
+			while (true)
 			{
-				while (true)
+				if (this.Depth == instantiatedVariables.Length)
 				{
-					if (this.Depth == instantiatedVariables.Length)
-					{
-						--this.Depth;
-						Backtrack(unassignedVariables, instantiatedVariables);
-						++this.Depth;
-					}
-					else if (ConstraintsViolated())
-					{
-						throw new DeciderException("No solution found.");
-					}
+					--this.Depth;
+					Backtrack(unassignedVariables, instantiatedVariables);
+					++this.Depth;
+				}
+				else if (ConstraintsViolated())
+					break;
 
-					Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, timeOut);
 
+				if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, timeOut))
+				{
+					searchResult = StateOperationResult.Solved;
 					this.Constraints.RemoveAt(this.Constraints.Count - 1);
 					this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
 
@@ -163,16 +159,16 @@ namespace Decider.Csp.Integer
 						.ToDictionary(k => k.Key, v => v.Value);
 				}
 			}
-			catch (DeciderException)
-			{
-				this.Runtime += stopwatch.Elapsed;
-				stopwatch.Stop();
-			}
+
+			this.Runtime += stopwatch.Elapsed;
+			stopwatch.Stop();
 		}
 
-		private void Search(out StateOperationResult searchResult, LinkedList<IVariable<int>> unassignedVariables,
+		private bool Search(out StateOperationResult searchResult, LinkedList<IVariable<int>> unassignedVariables,
 			IList<IVariable<int>> instantiatedVariables, ref Stopwatch stopwatch, int timeOut = Int32.MaxValue)
 		{
+			searchResult = StateOperationResult.Unsatisfiable;
+
 			while (true)
 			{
 				if (this.Depth == this.Variables.Count)
@@ -184,7 +180,7 @@ namespace Decider.Csp.Integer
 					this.LastSolution = instantiatedVariables.ToArray();
 					++this.NumberOfSolutions;
 
-					return;
+					return true;
 				}
 
 				instantiatedVariables[this.Depth] = GetMostConstrainedVariable(unassignedVariables);
@@ -192,27 +188,34 @@ namespace Decider.Csp.Integer
 
 				if (ConstraintsViolated() || unassignedVariables.Any(v => v.Size() == 0))
 				{
-					Backtrack(unassignedVariables, instantiatedVariables);
+					if (!Backtrack(unassignedVariables, instantiatedVariables))
+						return false;
 				}
 
 				if (stopwatch.Elapsed.TotalSeconds > timeOut)
-					throw new DeciderException();
+				{
+					searchResult = StateOperationResult.TimedOut;
+					this.Runtime += stopwatch.Elapsed;
+					return false;
+				}
 
 				++this.Depth;
 			}
 		}
 
-		private void Backtrack(LinkedList<IVariable<int>> unassignedVariables, IList<IVariable<int>> instantiatedVariables)
+		private bool Backtrack(LinkedList<IVariable<int>> unassignedVariables, IList<IVariable<int>> instantiatedVariables)
 		{
 			DomainOperationResult removeResult;
 			do
 			{
 				if (this.Depth < 0)
-					throw new DeciderException("No solution found.");
+					return false;
 
 				unassignedVariables.AddFirst(instantiatedVariables[this.Depth]);
 				BackTrackVariable(instantiatedVariables[this.Depth], out removeResult);
 			} while (removeResult == DomainOperationResult.EmptyDomain);
+
+			return true;
 		}
 
 		private bool ConstraintsViolated()
