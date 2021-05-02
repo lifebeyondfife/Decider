@@ -63,10 +63,10 @@ var variables = new [] { c0, c1, c2, c3, s, e, n, d, m, o, r, y };
 var state = new StateInteger(variables, constraints);
 var searchResult = state.Search();
 
-Console.WriteLine("    {0} {1} {2} {3} ", s, e, n, d);
-Console.WriteLine("  + {0} {1} {2} {3} ", m, o, r, e);
-Console.WriteLine("  ---------");
-Console.WriteLine("  {0} {1} {2} {3} {4} ", m, o, n, e, y);
+Console.WriteLine($"    {s} {e} {n} {d} ");
+Console.WriteLine($"  + {m} {o} {r} {e} ");
+Console.WriteLine($"  ---------");
+Console.WriteLine($"  {m} {o} {n} {e} {y} ");
 
 Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
 ```
@@ -95,7 +95,7 @@ foreach (var solution in state.Solutions)
     for (var i = 0; i < variables.Length; ++i)
     {
         for (var j = 0; j < variables.Length; ++j)
-            Console.Write(solution[i.ToString()].InstantiatedValue == j ? "Q" : ".");
+            Console.Write(solution[i.ToString()].InstantiatedValue == j ? "Q " : ". ");
 
         Console.WriteLine();
     }
@@ -141,7 +141,6 @@ Specify an upper time bound on how long you search, say, five minutes
 
 ```csharp
 var timeout = 60 * 5;
-var solution = default(IDictionary<string, IVariable<int>>);
 var searchResult = state.Search(optimise, timeout);
 ```
 
