@@ -20,7 +20,8 @@ namespace Decider.Csp.Integer
 		public int Depth { get; private set; }
 		public int Backtracks { get; private set; }
 		public TimeSpan Runtime { get; private set; }
-		public int NumberOfSolutions { get; private set; }
+		public IDictionary<string, IVariable<int>> OptimalSolution { get; private set; }
+		public IList<IDictionary<string, IVariable<int>>> Solutions { get; private set; }
 
 		private IVariable<int>[] LastSolution { get; set; }
 
@@ -31,6 +32,7 @@ namespace Decider.Csp.Integer
 			this.Depth = 0;
 			this.Backtracks = 0;
 			this.Runtime = new TimeSpan(0);
+			this.Solutions = new List<IDictionary<string, IVariable<int>>>();
 		}
 
 		public void SetVariables(IEnumerable<IVariable<int>> variableList)
@@ -46,15 +48,14 @@ namespace Decider.Csp.Integer
 			this.Constraints = constraints.ToList();
 		}
 
-		public void StartSearch(out StateOperationResult searchResult)
+		public StateOperationResult Search()
 		{
 			var unassignedVariables = this.LastSolution == null
 				? new LinkedList<IVariable<int>>(this.Variables)
 				: new LinkedList<IVariable<int>>();
 			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
 			var stopwatch = Stopwatch.StartNew();
-			searchResult = StateOperationResult.Unsatisfiable;
-
+			var searchResult = StateOperationResult.Unsatisfiable;
 
 			if (this.Depth == instantiatedVariables.Length)
 			{
@@ -66,71 +67,28 @@ namespace Decider.Csp.Integer
 			{
 				this.Runtime += stopwatch.Elapsed;
 				stopwatch.Stop();
-				return;
+				return searchResult;
 			}
 
 			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
-				searchResult = StateOperationResult.Solved;
-
-			this.Runtime += stopwatch.Elapsed;
-			stopwatch.Stop();
-		}
-
-		public void StartSearch(out StateOperationResult searchResult,
-			out IList<IDictionary<string, IVariable<int>>> solutions)
-		{
-			var unassignedVariables = this.LastSolution == null
-				? new LinkedList<IVariable<int>>(this.Variables)
-				: new LinkedList<IVariable<int>>();
-			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
-			var stopwatch = Stopwatch.StartNew();
-
-			searchResult = StateOperationResult.Unsatisfiable;
-			var solutionsList = new List<IDictionary<string, IVariable<int>>>();
-
-			while (true)
 			{
-				if (this.Depth == instantiatedVariables.Length)
-				{
-					--this.Depth;
-					Backtrack(unassignedVariables, instantiatedVariables);
-					++this.Depth;
-				}
-				else if (ConstraintsViolated())
-				{
-					this.Runtime += stopwatch.Elapsed;
-					stopwatch.Stop();
-					break;
-				}
-
-				if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
-				{
-					searchResult = StateOperationResult.Solved;
-
-					solutionsList.Add(this.LastSolution.Select(v => v.Clone())
-						.Cast<IVariable<int>>()
-						.Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
-						.OrderBy(kvp => kvp.Key)
-						.ToDictionary(k => k.Key, v => v.Value));
-				}
+				searchResult = StateOperationResult.Solved;
+				this.Solutions.Add(CloneLastSolution());
 			}
 
 			this.Runtime += stopwatch.Elapsed;
 			stopwatch.Stop();
-			solutions = solutionsList;
+			return searchResult;
 		}
 
-		public void StartSearch(out StateOperationResult searchResult, IVariable<int> optimiseVar,
-			out IDictionary<string, IVariable<int>> solution, int timeOut)
+		public StateOperationResult Search(IVariable<int> optimiseVar, int timeOut)
 		{
 			var unassignedVariables = this.LastSolution == null
 				? new LinkedList<IVariable<int>>(this.Variables)
 				: new LinkedList<IVariable<int>>();
 			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
 			var stopwatch = Stopwatch.StartNew();
-
-			solution = new Dictionary<string, IVariable<int>>();
-			searchResult = StateOperationResult.Unsatisfiable;
+			var searchResult = StateOperationResult.Unsatisfiable;
 
 			this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > Int32.MinValue));
 
@@ -151,17 +109,59 @@ namespace Decider.Csp.Integer
 					searchResult = StateOperationResult.Solved;
 					this.Constraints.RemoveAt(this.Constraints.Count - 1);
 					this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
-
-					solution = this.LastSolution.Select(v => v.Clone())
-						.Cast<IVariable<int>>()
-						.Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
-						.OrderBy(kvp => kvp.Key)
-						.ToDictionary(k => k.Key, v => v.Value);
+					this.OptimalSolution = CloneLastSolution();
 				}
 			}
 
 			this.Runtime += stopwatch.Elapsed;
 			stopwatch.Stop();
+			return searchResult;
+		}
+
+		public StateOperationResult SearchAllSolutions()
+		{
+			var unassignedVariables = this.LastSolution == null
+				? new LinkedList<IVariable<int>>(this.Variables)
+				: new LinkedList<IVariable<int>>();
+			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
+			var stopwatch = Stopwatch.StartNew();
+
+			var searchResult = StateOperationResult.Unsatisfiable;
+
+			while (true)
+			{
+				if (this.Depth == instantiatedVariables.Length)
+				{
+					--this.Depth;
+					Backtrack(unassignedVariables, instantiatedVariables);
+					++this.Depth;
+				}
+				else if (ConstraintsViolated())
+				{
+					this.Runtime += stopwatch.Elapsed;
+					stopwatch.Stop();
+					break;
+				}
+
+				if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
+				{
+					searchResult = StateOperationResult.Solved;
+					this.Solutions.Add(CloneLastSolution());
+				}
+			}
+
+			this.Runtime += stopwatch.Elapsed;
+			stopwatch.Stop();
+			return searchResult;
+		}
+
+		private IDictionary<string, IVariable<int>> CloneLastSolution()
+		{
+			return this.LastSolution.Select(v => v.Clone())
+				.Cast<IVariable<int>>()
+				.Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
+				.OrderBy(kvp => kvp.Key)
+				.ToDictionary(k => k.Key, v => v.Value);
 		}
 
 		private bool Search(out StateOperationResult searchResult, LinkedList<IVariable<int>> unassignedVariables,
@@ -178,7 +178,6 @@ namespace Decider.Csp.Integer
 					stopwatch = Stopwatch.StartNew();
 
 					this.LastSolution = instantiatedVariables.ToArray();
-					++this.NumberOfSolutions;
 
 					return true;
 				}

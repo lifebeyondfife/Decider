@@ -60,11 +60,8 @@ namespace Decider.Example.PhaseLockedLoop
 
 			//	Search
 			var state = new StateInteger(new[] { f1, f2, r1, r2, q1, q2 }, constraints);
-			state.StartSearch(out StateOperationResult searchResult);
 
-			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
-
-			if (searchResult == StateOperationResult.Solved)
+			if (state.Search() == StateOperationResult.Solved)
 			{
 				var tmp = (double) (refF * f1.Value) / (r1.Value * q1.Value);
 
@@ -82,6 +79,8 @@ namespace Decider.Example.PhaseLockedLoop
 				Console.WriteLine("No solution found.");
 				Console.WriteLine();
 			}
+
+			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
 		}
 	}
 }

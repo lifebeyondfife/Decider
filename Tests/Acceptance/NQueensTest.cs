@@ -16,7 +16,7 @@ namespace Decider.Tests.Example
         public void TestCorrectSolution()
         {
             var nQueens = new NQueens(8);
-            nQueens.Search();
+            nQueens.SearchAllSolutions();
             var solution = nQueens.Solutions.First();
 
             Assert.Equal(0, solution["0"].InstantiatedValue);
@@ -36,7 +36,7 @@ namespace Decider.Tests.Example
         public void TestNumberOfSolutions(int boardSize, int expectedSolutions, int expectedBacktracks)
         {
             var nQueens = new NQueens(boardSize);
-            nQueens.Search();
+            nQueens.SearchAllSolutions();
 
             Assert.Equal(expectedSolutions, nQueens.Solutions.Count);
             Assert.Equal(expectedBacktracks, nQueens.State.Backtracks);

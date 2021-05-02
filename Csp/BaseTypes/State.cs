@@ -20,13 +20,15 @@ namespace Decider.Csp.BaseTypes
 		int Depth { get; }
 		TimeSpan Runtime { get; }
 		int Backtracks { get; }
-		int NumberOfSolutions { get; }
+		IList<IDictionary<string, IVariable<T>>> Solutions { get; }
+		IDictionary<string, IVariable<T>> OptimalSolution { get; }
 		IList<IVariable<T>> Variables { get; }
 
 		void SetVariables(IEnumerable<IVariable<T>> variableList);
 		void SetConstraints(IEnumerable<IConstraint> constraintList);
-		void StartSearch(out StateOperationResult result);
-		void StartSearch(out StateOperationResult result, out IList<IDictionary<string, IVariable<T>>> solutions);
-		void StartSearch(out StateOperationResult result, IVariable<int> optimiseVar, out IDictionary<string, IVariable<int>> solution, int timeOut = Int32.MaxValue);
+
+		StateOperationResult Search();
+		StateOperationResult Search(IVariable<int> optimiseVariable, int timeOut = Int32.MaxValue);
+		StateOperationResult SearchAllSolutions();
 	}
 }

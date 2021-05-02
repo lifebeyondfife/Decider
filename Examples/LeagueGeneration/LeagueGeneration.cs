@@ -71,9 +71,7 @@ namespace Decider.Example.LeagueGeneration
 		public void Search()
 		{
 			State = new StateInteger(Variables.SelectMany(s => s.Select(a => a)), Constraints);
-
-			StateOperationResult searchResult;
-			State.StartSearch(out searchResult);
+			State.Search();
 		}
 
 		public void GenerateFixtures()

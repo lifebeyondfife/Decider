@@ -61,8 +61,7 @@ Find a solution using Decider's search routines
 ```csharp
 var variables = new [] { c0, c1, c2, c3, s, e, n, d, m, o, r, y };
 var state = new StateInteger(variables, constraints);
-
-state.StartSearch(out StateOperationResult searchResult);
+var searchResult = state.Search();
 
 Console.WriteLine("    {0} {1} {2} {3} ", s, e, n, d);
 Console.WriteLine("  + {0} {1} {2} {3} ", m, o, r, e);
@@ -89,10 +88,9 @@ Find All Solutions
 Display all solutions to the n-queens problem
 
 ```csharp
-state.StartSearch(out StateOperationResult searchResult,
-    out IList<IDictionary<string, IVariable<int>>> solutions);
+var searchResult = state.SearchAllSolutions();
 
-foreach (var solution in solutions)
+foreach (var solution in state.Solutions)
 {
     for (var i = 0; i < variables.Length; ++i)
     {
@@ -144,7 +142,7 @@ Specify an upper time bound on how long you search, say, five minutes
 ```csharp
 var timeout = 60 * 5;
 var solution = default(IDictionary<string, IVariable<int>>);
-state.StartSearch(out StateOperationResult searchResult, optimise, out solution, timeout);
+var searchResult = state.Search(optimise, timeout);
 ```
 
 
