@@ -71,10 +71,7 @@ namespace Decider.Csp.Integer
 			}
 
 			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
-			{
-				searchResult = StateOperationResult.Solved;
 				this.Solutions.Add(CloneLastSolution());
-			}
 
 			this.Runtime += stopwatch.Elapsed;
 			stopwatch.Stop();
@@ -106,7 +103,6 @@ namespace Decider.Csp.Integer
 
 				if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, timeOut))
 				{
-					searchResult = StateOperationResult.Solved;
 					this.Constraints.RemoveAt(this.Constraints.Count - 1);
 					this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
 					this.OptimalSolution = CloneLastSolution();
@@ -144,15 +140,12 @@ namespace Decider.Csp.Integer
 				}
 
 				if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
-				{
-					searchResult = StateOperationResult.Solved;
 					this.Solutions.Add(CloneLastSolution());
-				}
 			}
 
 			this.Runtime += stopwatch.Elapsed;
 			stopwatch.Stop();
-			return searchResult;
+			return Solutions.Any() ? StateOperationResult.Solved : StateOperationResult.Unsatisfiable;
 		}
 
 		private IDictionary<string, IVariable<int>> CloneLastSolution()
