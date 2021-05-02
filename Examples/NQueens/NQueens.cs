@@ -3,6 +3,7 @@
   
   This file is part of Decider.
 */
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -39,12 +40,17 @@ namespace Decider.Example.NQueens
 				}
 		}
 
-		public void Search()
+		public void SearchAllSolutions()
 		{
 			//	Search
 			State = new StateInteger(Variables, Constraints);
-			State.StartSearch(out StateOperationResult searchResult, out IList<IDictionary<string, IVariable<int>>> solutions);
-			Solutions = solutions;
+			if (State.SearchAllSolutions() == StateOperationResult.Solved)
+				Solutions = State.Solutions;
+			else
+			{
+				Console.WriteLine("${State.Solutions.Count}");
+				throw new ApplicationException("NQueens problem has no solutions.");
+			}
 		}
 	}
 }

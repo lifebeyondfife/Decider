@@ -42,18 +42,19 @@ namespace Decider.Example.Optimisation
 			var variables = new[] { a, b, c, d, e, f, g, h, optimise };
 			var state = new StateInteger(variables, constraints);
 
-			state.StartSearch(out StateOperationResult searchResult, optimise, out IDictionary<string, IVariable<int>> solution, 20);
+			if (state.Search(optimise, 20) == StateOperationResult.Unsatisfiable)
+				throw new ApplicationException("Cannot find a solution to constraint problem.");
 
-			Console.WriteLine("a: {0}", solution["a"]);
-			Console.WriteLine("b: {0}", solution["b"]);
-			Console.WriteLine("c: {0}", solution["c"]);
-			Console.WriteLine("d: {0}", solution["d"]);
-			Console.WriteLine("e: {0}", solution["e"]);
-			Console.WriteLine("f: {0}", solution["f"]);
-			Console.WriteLine("g: {0}", solution["g"]);
-			Console.WriteLine("h: {0}\n", solution["h"]);
+			Console.WriteLine("a: {0}", state.OptimalSolution["a"]);
+			Console.WriteLine("b: {0}", state.OptimalSolution["b"]);
+			Console.WriteLine("c: {0}", state.OptimalSolution["c"]);
+			Console.WriteLine("d: {0}", state.OptimalSolution["d"]);
+			Console.WriteLine("e: {0}", state.OptimalSolution["e"]);
+			Console.WriteLine("f: {0}", state.OptimalSolution["f"]);
+			Console.WriteLine("g: {0}", state.OptimalSolution["g"]);
+			Console.WriteLine("h: {0}\n", state.OptimalSolution["h"]);
 
-			Console.WriteLine("Optimised Variable: {0}\n", solution["optimise"]);
+			Console.WriteLine("Optimised Variable: {0}\n", state.OptimalSolution["optimise"]);
 
 			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
 		}
