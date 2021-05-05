@@ -100,14 +100,18 @@ namespace Decider.Csp.Integer
 				else if (ConstraintsViolated())
 					break;
 
-
 				if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, timeOut))
 				{
 					this.Constraints.RemoveAt(this.Constraints.Count - 1);
 					this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
 					this.OptimalSolution = CloneLastSolution();
 				}
+				else if (searchResult == StateOperationResult.TimedOut)
+					break;
 			}
+
+			if (this.LastSolution != null && searchResult == StateOperationResult.Unsatisfiable)
+				searchResult = StateOperationResult.Solved;
 
 			this.Runtime += stopwatch.Elapsed;
 			stopwatch.Stop();
@@ -178,6 +182,9 @@ namespace Decider.Csp.Integer
 				instantiatedVariables[this.Depth] = GetMostConstrainedVariable(unassignedVariables);
 				instantiatedVariables[this.Depth].Instantiate(this.Depth, out DomainOperationResult instantiateResult);
 
+				if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
+					return false;
+
 				if (ConstraintsViolated() || unassignedVariables.Any(v => v.Size() == 0))
 				{
 					if (!Backtrack(unassignedVariables, instantiatedVariables))
@@ -187,7 +194,6 @@ namespace Decider.Csp.Integer
 				if (stopwatch.Elapsed.TotalSeconds > timeOut)
 				{
 					searchResult = StateOperationResult.TimedOut;
-					this.Runtime += stopwatch.Elapsed;
 					return false;
 				}
 

@@ -85,7 +85,7 @@ namespace Decider.Csp.Integer
 			var instantiatedDomain = this.Domain.Clone();
 			instantiatedDomain.Instantiate(out result);
 			if (result != DomainOperationResult.InstantiateSuccessful)
-				throw new DeciderException("Failed to instantiate Variable.");
+				return;
 
 			this.domainStack.Push(new DomInt(instantiatedDomain, depth));
 		}
@@ -95,7 +95,7 @@ namespace Decider.Csp.Integer
 			var instantiatedDomain = this.Domain.Clone();
 			instantiatedDomain.Instantiate(value, out result);
 			if (result != DomainOperationResult.InstantiateSuccessful)
-				throw new DeciderException("Failed to instantiate Variable.");
+				return;
 
 			this.domainStack.Push(new DomInt(instantiatedDomain, depth));
 		}
