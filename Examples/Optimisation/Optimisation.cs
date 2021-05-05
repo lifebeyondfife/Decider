@@ -42,21 +42,21 @@ namespace Decider.Example.Optimisation
 			var variables = new[] { a, b, c, d, e, f, g, h, optimise };
 			var state = new StateInteger(variables, constraints);
 
-			if (state.Search(optimise, 20) == StateOperationResult.Unsatisfiable)
+			if (state.Search(optimise, 10) == StateOperationResult.Unsatisfiable)
 				throw new ApplicationException("Cannot find a solution to constraint problem.");
 
-			Console.WriteLine("a: {0}", state.OptimalSolution["a"]);
-			Console.WriteLine("b: {0}", state.OptimalSolution["b"]);
-			Console.WriteLine("c: {0}", state.OptimalSolution["c"]);
-			Console.WriteLine("d: {0}", state.OptimalSolution["d"]);
-			Console.WriteLine("e: {0}", state.OptimalSolution["e"]);
-			Console.WriteLine("f: {0}", state.OptimalSolution["f"]);
-			Console.WriteLine("g: {0}", state.OptimalSolution["g"]);
-			Console.WriteLine("h: {0}\n", state.OptimalSolution["h"]);
+			Console.WriteLine($"a: {state.OptimalSolution["a"]}");
+			Console.WriteLine($"b: {state.OptimalSolution["b"]}");
+			Console.WriteLine($"c: {state.OptimalSolution["c"]}");
+			Console.WriteLine($"d: {state.OptimalSolution["d"]}");
+			Console.WriteLine($"e: {state.OptimalSolution["e"]}");
+			Console.WriteLine($"f: {state.OptimalSolution["f"]}");
+			Console.WriteLine($"g: {state.OptimalSolution["g"]}");
+			Console.WriteLine($"h: {state.OptimalSolution["h"]}\n");
 
-			Console.WriteLine("Optimised Variable: {0}\n", state.OptimalSolution["optimise"]);
+			Console.WriteLine($"Optimised Variable: {state.OptimalSolution["optimise"]}\n");
 
-			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
+			Console.WriteLine($"Runtime:\t{state.Runtime}\nBacktracks:\t{state.Backtracks}\n");
 		}
 	}
 }

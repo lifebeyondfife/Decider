@@ -45,12 +45,12 @@ namespace Decider.Example.SendMoreMoney
 			if (state.Search() == StateOperationResult.Unsatisfiable)
 				throw new ApplicationException("Cannot find solution to the SEND + MORE = MONEY problem.");
 
-			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
+			Console.WriteLine($"Runtime:\t{state.Runtime}\nBacktracks:\t{state.Backtracks}\n");
 
-			Console.WriteLine("    {0} {1} {2} {3} ", s, e, n, d);
-			Console.WriteLine("  + {0} {1} {2} {3} ", m, o, r, e);
+			Console.WriteLine($"    {s} {e} {n} {d} ");
+			Console.WriteLine($"  + {m} {o} {r} {e} ");
 			Console.WriteLine("  ---------");
-			Console.WriteLine("  {0} {1} {2} {3} {4} ", m, o, n, e, y);
+			Console.WriteLine($"  {m} {o} {n} {e} {y} ");
 		}
 	}
 }
