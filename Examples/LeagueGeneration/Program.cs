@@ -18,14 +18,14 @@ namespace Decider.Example.LeagueGeneration
 			for (var i = 0; i < leagueGeneration.FixtureWeeks.Length; ++i)
 			{
 				for (var j = 0; j < leagueGeneration.FixtureWeeks[i].Length; ++j)
-					Console.Write(string.Format("{0,2}", leagueGeneration.FixtureWeeks[i][j]) + " ");
+					Console.Write($"{leagueGeneration.FixtureWeeks[i][j],2} ");
 
 				Console.WriteLine();
 			}
 
 			Console.WriteLine();
-			Console.WriteLine("Runtime:\t{0}", leagueGeneration.State.Runtime);
-			Console.WriteLine("Backtracks:\t{0}", leagueGeneration.State.Backtracks);
+			Console.WriteLine($"Runtime:\t{leagueGeneration.State.Runtime}");
+			Console.WriteLine($"Backtracks:\t{leagueGeneration.State.Backtracks}");
 		}
 	}
 }

@@ -28,9 +28,9 @@ namespace Decider.Example.NQueens
 				Console.WriteLine();
 			}
 
-			Console.WriteLine("Runtime:\t{0}", nQueens.State.Runtime);
-			Console.WriteLine("Backtracks:\t{0}", nQueens.State.Backtracks);
-			Console.WriteLine("Solutions:\t{0}", nQueens.State.Solutions.Count);
+			Console.WriteLine($"Runtime:\t{nQueens.State.Runtime}");
+			Console.WriteLine($"Backtracks:\t{nQueens.State.Backtracks}");
+			Console.WriteLine($"Solutions:\t{nQueens.State.Solutions.Count}");
 		}
 	}
 }
