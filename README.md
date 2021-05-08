@@ -65,10 +65,10 @@ var searchResult = state.Search();
 
 Console.WriteLine($"    {s} {e} {n} {d} ");
 Console.WriteLine($"  + {m} {o} {r} {e} ");
-Console.WriteLine($"  ---------");
+Console.WriteLine("  ---------");
 Console.WriteLine($"  {m} {o} {n} {e} {y} ");
 
-Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
+Console.WriteLine($"Runtime:\t{state.Runtime}\nBacktracks:\t{state.Backtracks}\n");
 ```
 
 Which results in
@@ -130,9 +130,10 @@ and a further ninety solutions.
 Optimise
 --------
 
-Create an integer variable to optimise
+Create an integer variable to optimise i.e. make as large as possible
 
 ```csharp
+var optimise = new VariableInteger("optimalAnswer", 0, 1000);
 new ConstraintInteger(optimise == a + b + c + d + e + f + g + h)
 ```
 
@@ -142,6 +143,7 @@ Specify an upper time bound on how long you search, say, five minutes
 ```csharp
 var timeout = 60 * 5;
 var searchResult = state.Search(optimise, timeout);
+Console.WriteLine($"Optimal answer found is ${state.OptimalSolution["optimalAnswer"]}");
 ```
 
 

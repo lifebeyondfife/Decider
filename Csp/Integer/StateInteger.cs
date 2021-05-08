@@ -130,6 +130,9 @@ namespace Decider.Csp.Integer
 
 			while (true)
 			{
+				if (this.Depth == -1)
+					break;
+
 				if (this.Depth == instantiatedVariables.Length)
 				{
 					--this.Depth;
