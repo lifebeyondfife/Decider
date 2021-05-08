@@ -160,6 +160,21 @@ var constraint = new ConstraintInteger(array[a] < 40)
 ```
 
 
+F#
+---
+
+Thanks to contributor [@toburger](https://github.com/toburger), there's a simple example of using Decider in F#.
+
+```fsharp
+let constraints: IConstraint list = [
+    ConstraintInteger(kickboards + cityrollers == expr rollers)
+    ConstraintInteger(kickboards * expr 3 + cityrollers * expr 2 == expr rolls)
+]
+```
+See [Examples/FSharp](https://github.com/lifebeyondfife/Decider/tree/main/Examples/FSharp) for full details.
+
+
+
 More Examples?
 --------------
 
