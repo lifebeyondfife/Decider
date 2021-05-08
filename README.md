@@ -150,7 +150,7 @@ Console.WriteLine($"Optimal answer found is ${state.OptimalSolution["optimalAnsw
 Constrained Arrays
 ------------------
 
-Index integer arrays with constained integer variables
+Index integer arrays with constrained integer variables
 
 ```csharp
 var a = new VariableInteger("a", 0, 9);
