@@ -65,13 +65,13 @@ namespace Decider.Example.PhaseLockedLoop
 			{
 				var tmp = (double) (refF * f1.Value) / (r1.Value * q1.Value);
 
-				Console.WriteLine("refF: {0}\tpllOut: {1}", refF, pllOut);
+				Console.WriteLine($"refF: {refF}\tpllOut: {pllOut}");
 				Console.WriteLine();
 				Console.WriteLine("tmp == (refF * f1) / (r1 * q1)");
-				Console.WriteLine("{0} == ({1} * {2}) / ({3} * {4})", tmp, refF, f1, r1, q1);
+				Console.WriteLine($"{tmp} == ({refF} * {f1}) / ({r1} * {q1})");
 				Console.WriteLine();
 				Console.WriteLine("pllout == (tmp * f2) / (r2 * q2)");
-				Console.WriteLine("{0} == ({1} * {2}) / ({3} * {4})", pllOut, tmp, f2, r2, q2);
+				Console.WriteLine($"{pllOut} == ({tmp} * {f2}) / ({r2} * {q2})");
 				Console.WriteLine();
 			}
 			else
@@ -80,7 +80,7 @@ namespace Decider.Example.PhaseLockedLoop
 				Console.WriteLine();
 			}
 
-			Console.WriteLine("Runtime:\t{0}\nBacktracks:\t{1}\n", state.Runtime, state.Backtracks);
+			Console.WriteLine($"Runtime:\t{state.Runtime}\nBacktracks:\t{state.Backtracks}\n");
 		}
 	}
 }
