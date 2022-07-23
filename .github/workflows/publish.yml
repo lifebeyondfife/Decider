@@ -32,6 +32,10 @@ jobs:
       run: dotnet nuget push *.nupkg --api-key ${{secrets.PKG_GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/lifebeyondfife/index.json" --skip-duplicate
     - name: Publish to Nuget
       run: dotnet nuget push *.nupkg --api-key ${{secrets.NUGET_TOKEN}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+    - name: Git Config
+      run: |
+        git config user.name "GitHub Actions CI"
+        git config user.email "<>"
     - name: Create Tag
       run: |
         git tag -m "$(git log --format=%B -n 1)" v${{ steps.package_version.outputs.version }}
