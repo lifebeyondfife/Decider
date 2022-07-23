@@ -12,7 +12,7 @@
     <PackageDescription>Simple integer Constraint Programming toolkit for C#</PackageDescription>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/lifebeyondfife/Decider</RepositoryUrl>
-    <Version>0.5.2</Version>
+    <Version>0.5.3</Version>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
