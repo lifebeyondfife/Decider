@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2021
+  Copyright © Iain McDonald 2010-2022
   
   This file is part of Decider.
 */
@@ -54,6 +54,14 @@ namespace Decider.Csp.Integer
 				Remove(prune, out result);
 				return result;
 			};
+		}
+
+		public VariableInteger(string name)
+			: this()
+		{
+			this.Name = name;
+			this.domainStack = new Stack<DomInt>();
+			this.domainStack.Push(new DomInt(DomainBinaryInteger.CreateDomain(Int16.MinValue, Int16.MaxValue), -1));
 		}
 
 		public VariableInteger(string name, IList<int> elements)

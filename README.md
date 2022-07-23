@@ -133,7 +133,7 @@ Optimise
 Create an integer variable to optimise i.e. make as large as possible
 
 ```csharp
-var optimise = new VariableInteger("optimalAnswer", 0, 1000);
+var optimise = new VariableInteger("optimalAnswer");
 new ConstraintInteger(optimise == a + b + c + d + e + f + g + h)
 ```
 

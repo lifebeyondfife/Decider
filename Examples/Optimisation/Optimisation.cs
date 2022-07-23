@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2021
+  Copyright © Iain McDonald 2010-2022
   
   This file is part of Decider.
 */
@@ -24,7 +24,7 @@ namespace Decider.Example.Optimisation
 			var f = new VariableInteger("f", 0, 9);
 			var g = new VariableInteger("g", 0, 9);
 			var h = new VariableInteger("h", 0, 9);
-			var optimise = new VariableInteger("optimise", 0, 72);
+			var optimise = new VariableInteger("optimise");
 
 			var array = new ConstrainedArray(new int[] { 60, 52, 52, 62, 35, 73, 47, 20, 87, 27 });
 
