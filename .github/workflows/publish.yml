@@ -34,5 +34,5 @@ jobs:
       run: dotnet nuget push *.nupkg --api-key ${{secrets.NUGET_TOKEN}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
     - name: Create Tag
       run: |
-        git tag -m ${{github.event.head_commit.message}} v${{steps.package_version.version}}
+        git tag -m "${{ github.event.head_commit.message }}" v${{ steps.package_version.version }}
         git push https://${{github.token}}@github.com/lifebeyondfife/Decider
