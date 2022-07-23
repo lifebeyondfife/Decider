@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2021
+  Copyright © Iain McDonald 2010-2022
   
   This file is part of Decider.
 */
@@ -22,7 +22,7 @@ namespace Decider.Csp.BaseTypes
 		string Name { get; }
 		T InstantiatedValue { get; }
 		bool Instantiated();
-		T Size();
+		int Size();
         IVariable<T> Clone();
 	}
 }

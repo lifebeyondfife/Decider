@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2021
+  Copyright © Iain McDonald 2010-2022
   
   This file is part of Decider.
 */
@@ -28,7 +28,7 @@ namespace Decider.Csp.BaseTypes
 
 		string ToString();
 		bool Instantiated();
-		T Size();
+		int Size();
 		T LowerBound { get; }
 		T UpperBound { get; }
         IDomain<T> Clone();
