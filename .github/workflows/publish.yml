@@ -36,4 +36,4 @@ jobs:
       uses: rickstaa/action-create-tag@v1.3.2
       with:
         tag: v${{ steps.package_version.outputs.version }}
-        message: "$(git log --format=%B -n 1)"
+        message: $(git log --format=%B -n 1)
