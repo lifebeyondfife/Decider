@@ -17,13 +17,22 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: '6.0.x'
+    - name: Get Version
+      id: package_version
+      uses: KageKirin/get-csproj-version@v1.0.0
+      with:
+        file: Csp/Csp.proj
     - name: Install Dependencies
       run: dotnet restore
     - name: Build
       run: dotnet build --configuration Release --no-restore
-    - name: Publish Nuget Package
-      uses: brandedoutcast/publish-nuget@v2
-      with:
-        PROJECT_FILE_PATH: Csp/Csp.csproj
-        VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
-        NUGET_KEY: ${{secrets.NUGET_TOKEN}}
+    - name: Package
+      run: dotnet pack Csp/Csp.csproj --no-build --configuration Release --include-symbols -p:SymbolPackageFormat=snupkg -o .
+    - name: Publish to GitHub
+      run: dotnet nuget push *.nupkg --api-key ${{secrets.PKG_GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/lifebeyondfife/index.json" --skip-duplicate
+    - name: Publish to Nuget
+      run: dotnet nuget push *.nupkg --api-key ${{secrets.NUGET_TOKEN}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+    - name: Create Tag
+      run: |
+        git tag -m ${{github.event.head_commit.message}} v${{steps.package_version.version}}
+        git push https://${{github.token}}@github.com/lifebeyondfife/Decider
