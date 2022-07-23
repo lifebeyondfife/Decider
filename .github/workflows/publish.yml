@@ -32,11 +32,8 @@ jobs:
       run: dotnet nuget push *.nupkg --api-key ${{secrets.PKG_GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/lifebeyondfife/index.json" --skip-duplicate
     - name: Publish to Nuget
       run: dotnet nuget push *.nupkg --api-key ${{secrets.NUGET_TOKEN}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
-    - name: Git Config
-      run: |
-        git config user.name "GitHub Actions CI"
-        git config user.email "<>"
     - name: Create Tag
-      run: |
-        git tag -m "$(git log --format=%B -n 1)" v${{ steps.package_version.outputs.version }}
-        git push https://${{github.token}}@github.com/lifebeyondfife/Decider
+      uses: rickstaa/action-create-tag@v1.3.2
+      with:
+        tag: v${{ steps.package_version.outputs.version }}
+        message: "$(git log --format=%B -n 1)"
