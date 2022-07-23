@@ -45,7 +45,7 @@ namespace Decider.Csp.Integer
 
 		public void SetConstraints(IEnumerable<IConstraint> constraints)
 		{
-			this.Constraints = constraints.ToList();
+			this.Constraints = constraints?.ToList() ?? new List<IConstraint>();
 		}
 
 		public StateOperationResult Search()
@@ -168,6 +168,11 @@ namespace Decider.Csp.Integer
 			IList<IVariable<int>> instantiatedVariables, ref Stopwatch stopwatch, int timeOut = Int32.MaxValue)
 		{
 			searchResult = StateOperationResult.Unsatisfiable;
+			if (unassignedVariables.Any(x => x.Size() == 0))
+			{
+				this.Depth = -1;
+				return false;
+			}
 
 			while (true)
 			{
