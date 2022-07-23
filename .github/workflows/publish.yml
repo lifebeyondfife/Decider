@@ -23,7 +23,7 @@ jobs:
       with:
         file: Csp/Csp.csproj
     - name: Store Version
-      run: echo $(git log --format=%B -n 1) >> $VERSION
+      run: echo "message=$(git log --format=%B -n 1)" >> $GITHUB_ENV
     - name: Install Dependencies
       run: dotnet restore
     - name: Build
@@ -38,4 +38,4 @@ jobs:
       uses: rickstaa/action-create-tag@v1.3.2
       with:
         tag: v${{ steps.package_version.outputs.version }}
-        message: $VERSION
+        message: ${{env.message}}
