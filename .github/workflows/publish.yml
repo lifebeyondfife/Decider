@@ -24,7 +24,9 @@ jobs:
         file: Csp/Csp.csproj
     - name: Check New Version
       if: git tag -l v${{steps.package_version.outputs.version}}
-      run: exit 1
+      run: |
+        echo Version v${{steps.package_version.outputs.version}} already exists
+        exit 0
     - name: Install Dependencies
       run: dotnet restore
     - name: Build
