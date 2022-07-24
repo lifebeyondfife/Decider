@@ -22,8 +22,6 @@ jobs:
       uses: KageKirin/get-csproj-version@v1.0.0
       with:
         file: Csp/Csp.csproj
-    - name: Store Version
-      run: echo "message=$(git log --format=%B -n 1)" >> $GITHUB_ENV
     - name: Install Dependencies
       run: dotnet restore
     - name: Build
@@ -35,7 +33,6 @@ jobs:
     - name: Publish to Nuget
       run: dotnet nuget push *.nupkg --api-key ${{secrets.NUGET_TOKEN}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
     - name: Create Tag
-      uses: rickstaa/action-create-tag@v1.3.2
-      with:
-        tag: v${{ steps.package_version.outputs.version }}
-        message: ${{env.message}}
+      run: |
+        git tag v${{steps.package_version.outputs.version}}
+        git push origin v${{steps.package_version.outputs.version}}
