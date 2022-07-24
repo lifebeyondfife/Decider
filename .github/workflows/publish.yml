@@ -12,9 +12,9 @@ jobs:
   publish-nuget:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup .Net Core
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v2
       with:
         dotnet-version: '6.0.x'
     - name: Get Version
@@ -26,7 +26,7 @@ jobs:
       if: git tag -l v${{steps.package_version.outputs.version}}
       run: |
         echo Version v${{steps.package_version.outputs.version}} already exists
-        exit 0
+        exit 1
     - name: Install Dependencies
       run: dotnet restore
     - name: Build
