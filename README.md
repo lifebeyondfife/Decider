@@ -10,7 +10,7 @@ An Open Source .Net Constraint Programming Solver
 Installation
 ------------
 
-Install using nuget for .Net Standard 2.1
+Install using nuget for .Net Core 6.0 (.Net Standard 2.0 and 2.1 also supported)
 
      dotnet add package Decider
 
