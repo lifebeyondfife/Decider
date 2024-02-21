@@ -98,7 +98,7 @@ namespace Decider.Csp.Integer
 			do
 			{
 				Propagate(enforce, out result);
-			} while ((result &= ConstraintOperationResult.Propagated) == ConstraintOperationResult.Propagated);
+			} while ((result & ConstraintOperationResult.Propagated) == ConstraintOperationResult.Propagated);
 		}
 
 		public bool StateChanged()
