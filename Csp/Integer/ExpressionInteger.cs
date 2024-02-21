@@ -501,7 +501,7 @@ namespace Decider.Csp.Integer
 					return new Bounds<int>
 					(
 						leftBounds.UpperBound < rightBounds.LowerBound ? 1 : 0,
-						leftBounds.LowerBound < leftBounds.UpperBound ? 1 : 0
+						leftBounds.LowerBound <= leftBounds.UpperBound ? 1 : 0
 					);
 				},
 				propagator = (first, second, enforce) =>
@@ -571,7 +571,7 @@ namespace Decider.Csp.Integer
 					return new Bounds<int>
 					(
 						leftBounds.LowerBound > rightBounds.UpperBound ? 1 : 0,
-						leftBounds.UpperBound > leftBounds.LowerBound ? 1 : 0
+						leftBounds.UpperBound >= leftBounds.LowerBound ? 1 : 0
 					);
 				},
 				propagator = (first, second, enforce) =>
