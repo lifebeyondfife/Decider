@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2024
   
   This file is part of Decider.
 */
@@ -69,10 +69,10 @@ namespace Decider.Csp.BaseTypes
 		{
 			var elements = Elements();
 
-			return new Bounds<int>(elements.Min(), elements.Max());
+			return new Bounds<int>(elements.DefaultIfEmpty().Min(), elements.DefaultIfEmpty().Max());
 		}
 
-		private ConstraintOperationResult Propagator(ExpressionInteger left, ExpressionInteger right, Bounds<int> enforce)
+        private ConstraintOperationResult Propagator(ExpressionInteger left, ExpressionInteger right, Bounds<int> enforce)
 		{
 			var result = ConstraintOperationResult.Undecided;
 
