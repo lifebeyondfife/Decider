@@ -2,7 +2,9 @@ Decider
 =======
 
 ![main ci pipeline](https://github.com/lifebeyondfife/decider/actions/workflows/main.yml/badge.svg)
-![nuget package](https://buildstats.info/nuget/Decider)
+![nuget package](https://img.shields.io/nuget/v/Decider)
+![nuget package](https://img.shields.io/nuget/dt/Decider)
+
 
 An Open Source .Net Constraint Programming Solver
 
@@ -10,7 +12,7 @@ An Open Source .Net Constraint Programming Solver
 Installation
 ------------
 
-Install using nuget for .Net Core 6.0 (.Net Standard 2.0 and 2.1 also supported)
+Install using nuget for .Net Core 8.0 (.Net Standard 2.0 and 2.1 also supported)
 
      dotnet add package Decider
 
