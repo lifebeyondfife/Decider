@@ -23,8 +23,8 @@ namespace Decider.Csp.Integer
 
 						return new Bounds<int>
 						(
-							leftBounds.LowerBound + rightBounds.LowerBound,
-							leftBounds.UpperBound + rightBounds.UpperBound
+							(int) Math.Max(int.MinValue, Math.Min(int.MaxValue, (long)leftBounds.LowerBound + rightBounds.LowerBound)),
+							(int) Math.Min(int.MaxValue, Math.Max(int.MinValue, (long)leftBounds.UpperBound + rightBounds.UpperBound))
 						);
 					},
 				propagator = (first, second, enforce) =>
@@ -74,8 +74,8 @@ namespace Decider.Csp.Integer
 
 						return new Bounds<int>
 						(
-							leftBounds.LowerBound - rightBounds.UpperBound,
-							leftBounds.UpperBound - rightBounds.LowerBound
+							(int) Math.Max(int.MinValue, Math.Min(int.MaxValue, (long)leftBounds.LowerBound - rightBounds.UpperBound)),
+							(int) Math.Min(int.MaxValue, Math.Max(int.MinValue, (long)leftBounds.UpperBound - rightBounds.LowerBound))
 						);
 					},
 				propagator = (first, second, enforce) =>
@@ -142,8 +142,8 @@ namespace Decider.Csp.Integer
 
 					return new Bounds<int>
 					(
-						leftBounds.LowerBound / rightBounds.UpperBound,
-						leftBounds.UpperBound / rightBounds.LowerBound
+						rightBounds.UpperBound == 0 ? (leftBounds.LowerBound >= 0 ? int.MaxValue : int.MinValue) : leftBounds.LowerBound / rightBounds.UpperBound,
+						rightBounds.LowerBound == 0 ? (leftBounds.UpperBound >= 0 ? int.MaxValue : int.MinValue) : leftBounds.UpperBound / rightBounds.LowerBound
 					);
 				},
 				propagator = (first, second, enforce) =>
@@ -199,8 +199,8 @@ namespace Decider.Csp.Integer
 
 					return new Bounds<int>
 					(
-						leftBounds.LowerBound * rightBounds.LowerBound,
-						leftBounds.UpperBound * rightBounds.UpperBound
+						(leftBounds.LowerBound == 0 || rightBounds.LowerBound == 0) ? 0 : ((leftBounds.LowerBound < 0) != (rightBounds.LowerBound < 0) && Math.Abs((long)leftBounds.LowerBound) > int.MaxValue / Math.Abs((long)rightBounds.LowerBound)) ? int.MinValue : leftBounds.LowerBound * rightBounds.LowerBound,
+						(leftBounds.UpperBound > 0 && rightBounds.UpperBound > 0 && leftBounds.UpperBound > int.MaxValue / rightBounds.UpperBound) ? int.MaxValue : leftBounds.UpperBound * rightBounds.UpperBound
 					);
 				},
 				propagator = (first, second, enforce) =>
