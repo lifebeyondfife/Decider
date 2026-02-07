@@ -934,6 +934,8 @@ namespace Decider.Csp.Integer
 			{
 				if (this.left is VariableInteger)
 					this.Bounds = this.left.GetUpdatedBounds();
+				else if (this.left == null && this.right == null)
+					this.Bounds = new Bounds<int>(this.integer, this.integer);
 
 				return this.Bounds;
 			}

@@ -226,8 +226,12 @@ namespace Decider.Csp.Integer
 
 		private bool ConstraintsViolated()
 		{
-			foreach (var constraint in this.Constraints.Where(constraint => constraint.StateChanged()))
+			for (var i = 0; i < this.Constraints.Count; ++i)
 			{
+				var constraint = this.Constraints[i];
+				if (!constraint.StateChanged())
+					continue;
+
 				constraint.Propagate(out ConstraintOperationResult result);
 				if ((result & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
 					return true;
