@@ -4,6 +4,7 @@
   This file is part of Decider.
 */
 using System;
+using System.Linq;
 
 using Decider.Csp.BaseTypes;
 
@@ -11,11 +12,14 @@ namespace Decider.Csp.Integer
 {
 	public class ExpressionInteger : Expression<int>
 	{
+		private static int ClampToInt(long value) =>
+			(int) Math.Max(int.MinValue, Math.Min(int.MaxValue, value));
+
 		public static ExpressionInteger operator +(ExpressionInteger left, ExpressionInteger right)
 		{
 			return new ExpressionInteger(left, right)
 			{
-				evaluate = (l, r) => l.Value + r.Value,
+				evaluate = (l, r) => ClampToInt((long)l.Value + r.Value),
 				evaluateBounds = (l, r) =>
 					{
 						var leftBounds = l.GetUpdatedBounds();
@@ -23,34 +27,38 @@ namespace Decider.Csp.Integer
 
 						return new Bounds<int>
 						(
-							(int) Math.Max(int.MinValue, Math.Min(int.MaxValue, (long)leftBounds.LowerBound + rightBounds.LowerBound)),
-							(int) Math.Min(int.MaxValue, Math.Max(int.MinValue, (long)leftBounds.UpperBound + rightBounds.UpperBound))
+							ClampToInt((long)leftBounds.LowerBound + rightBounds.LowerBound),
+							ClampToInt((long)leftBounds.UpperBound + rightBounds.UpperBound)
 						);
 					},
 				propagator = (first, second, enforce) =>
 				{
 					var result = ConstraintOperationResult.Undecided;
-					if (first.Bounds.LowerBound < enforce.LowerBound - second.Bounds.UpperBound)
+					var newBound = ClampToInt((long)enforce.LowerBound - second.Bounds.UpperBound);
+					if (first.Bounds.LowerBound < newBound)
 					{
-						first.Bounds.LowerBound = enforce.LowerBound - second.Bounds.UpperBound;
+						first.Bounds.LowerBound = newBound;
 						result = ConstraintOperationResult.Propagated;
 					}
 
-					if (first.Bounds.UpperBound > enforce.UpperBound - second.Bounds.LowerBound)
+					newBound = ClampToInt((long)enforce.UpperBound - second.Bounds.LowerBound);
+					if (first.Bounds.UpperBound > newBound)
 					{
-						first.Bounds.UpperBound = enforce.UpperBound - second.Bounds.LowerBound;
+						first.Bounds.UpperBound = newBound;
 						result = ConstraintOperationResult.Propagated;
 					}
 
-					if (second.Bounds.LowerBound < enforce.LowerBound - first.Bounds.UpperBound)
+					newBound = ClampToInt((long)enforce.LowerBound - first.Bounds.UpperBound);
+					if (second.Bounds.LowerBound < newBound)
 					{
-						second.Bounds.LowerBound = enforce.LowerBound - first.Bounds.UpperBound;
+						second.Bounds.LowerBound = newBound;
 						result = ConstraintOperationResult.Propagated;
 					}
 
-					if (second.Bounds.UpperBound > enforce.UpperBound - first.Bounds.LowerBound)
+					newBound = ClampToInt((long)enforce.UpperBound - first.Bounds.LowerBound);
+					if (second.Bounds.UpperBound > newBound)
 					{
-						second.Bounds.UpperBound = enforce.UpperBound - first.Bounds.LowerBound;
+						second.Bounds.UpperBound = newBound;
 						result = ConstraintOperationResult.Propagated;
 					}
 
@@ -66,7 +74,7 @@ namespace Decider.Csp.Integer
 		{
 			var expression = new ExpressionInteger(left, right)
 			{
-				evaluate = (l, r) => l.Value - r.Value,
+				evaluate = (l, r) => ClampToInt((long)l.Value - r.Value),
 				evaluateBounds = (l, r) =>
 					{
 						var leftBounds = l.GetUpdatedBounds();
@@ -74,8 +82,8 @@ namespace Decider.Csp.Integer
 
 						return new Bounds<int>
 						(
-							(int) Math.Max(int.MinValue, Math.Min(int.MaxValue, (long)leftBounds.LowerBound - rightBounds.UpperBound)),
-							(int) Math.Min(int.MaxValue, Math.Max(int.MinValue, (long)leftBounds.UpperBound - rightBounds.LowerBound))
+							ClampToInt((long)leftBounds.LowerBound - rightBounds.UpperBound),
+							ClampToInt((long)leftBounds.UpperBound - rightBounds.LowerBound)
 						);
 					},
 				propagator = (first, second, enforce) =>
@@ -83,25 +91,25 @@ namespace Decider.Csp.Integer
 					var result = ConstraintOperationResult.Undecided;
 					if (first.Bounds.LowerBound < enforce.LowerBound + second.Bounds.LowerBound)
 					{
-						first.Bounds.LowerBound = enforce.LowerBound + second.Bounds.LowerBound;
+						first.Bounds.LowerBound = ClampToInt((long)enforce.LowerBound + second.Bounds.LowerBound);
 						result = ConstraintOperationResult.Propagated;
 					}
 
 					if (first.Bounds.UpperBound > enforce.UpperBound + second.Bounds.UpperBound)
 					{
-						first.Bounds.UpperBound = enforce.UpperBound + second.Bounds.UpperBound;
+						first.Bounds.UpperBound = ClampToInt((long)enforce.UpperBound + second.Bounds.UpperBound);
 						result = ConstraintOperationResult.Propagated;
 					}
 
 					if (second.Bounds.LowerBound < first.Bounds.LowerBound - enforce.UpperBound)
 					{
-						second.Bounds.LowerBound = first.Bounds.LowerBound - enforce.UpperBound;
+						second.Bounds.LowerBound = ClampToInt((long)first.Bounds.LowerBound - enforce.UpperBound);
 						result = ConstraintOperationResult.Propagated;
 					}
 
 					if (second.Bounds.UpperBound > first.Bounds.UpperBound - enforce.LowerBound)
 					{
-						second.Bounds.UpperBound = first.Bounds.UpperBound - enforce.LowerBound;
+						second.Bounds.UpperBound = ClampToInt((long)first.Bounds.UpperBound - enforce.LowerBound);
 						result = ConstraintOperationResult.Propagated;
 					}
 
@@ -134,7 +142,7 @@ namespace Decider.Csp.Integer
 		{
 			return new ExpressionInteger(left, right)
 			{
-				evaluate = (l, r) => l.Value / r.Value,
+				evaluate = (l, r) => (l.Value == int.MinValue && r.Value == -1) ? int.MaxValue : l.Value / r.Value,
 				evaluateBounds = (l, r) =>
 				{
 					var leftBounds = l.GetUpdatedBounds();
@@ -151,13 +159,13 @@ namespace Decider.Csp.Integer
 					var result = ConstraintOperationResult.Undecided;
 					if (first.Bounds.LowerBound < second.Bounds.LowerBound * enforce.LowerBound)
 					{
-						first.Bounds.LowerBound = second.Bounds.LowerBound * enforce.LowerBound;
+						first.Bounds.LowerBound = ClampToInt((long)second.Bounds.LowerBound * enforce.LowerBound);
 						result = ConstraintOperationResult.Propagated;
 					}
 
 					if (first.Bounds.UpperBound > second.Bounds.UpperBound * enforce.UpperBound)
 					{
-						first.Bounds.UpperBound = second.Bounds.UpperBound * enforce.UpperBound;
+						first.Bounds.UpperBound = ClampToInt((long)second.Bounds.UpperBound * enforce.UpperBound);
 						result = ConstraintOperationResult.Propagated;
 					}
 
@@ -191,17 +199,21 @@ namespace Decider.Csp.Integer
 		{
 			return new ExpressionInteger(left, right)
 			{
-				evaluate = (l, r) => l.Value * r.Value,
+				evaluate = (l, r) => ClampToInt((long)l.Value * r.Value),
 				evaluateBounds = (l, r) =>
 				{
 					var leftBounds = l.GetUpdatedBounds();
 					var rightBounds = r.GetUpdatedBounds();
 
-					return new Bounds<int>
-					(
-						(leftBounds.LowerBound == 0 || rightBounds.LowerBound == 0) ? 0 : ((leftBounds.LowerBound < 0) != (rightBounds.LowerBound < 0) && Math.Abs((long)leftBounds.LowerBound) > int.MaxValue / Math.Abs((long)rightBounds.LowerBound)) ? int.MinValue : leftBounds.LowerBound * rightBounds.LowerBound,
-						(leftBounds.UpperBound > 0 && rightBounds.UpperBound > 0 && leftBounds.UpperBound > int.MaxValue / rightBounds.UpperBound) ? int.MaxValue : leftBounds.UpperBound * rightBounds.UpperBound
-					);
+					var products = new[]
+					{
+						(long)leftBounds.LowerBound * rightBounds.LowerBound,
+						(long)leftBounds.LowerBound * rightBounds.UpperBound,
+						(long)leftBounds.UpperBound * rightBounds.LowerBound,
+						(long)leftBounds.UpperBound * rightBounds.UpperBound
+					};
+
+					return new Bounds<int>(ClampToInt(products.Min()), ClampToInt(products.Max()));
 				},
 				propagator = (first, second, enforce) =>
 				{
