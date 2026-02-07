@@ -6,3 +6,5 @@ bin
 obj
 packages
 .mcp.json
+
+BenchmarkDotNet.Artifacts
