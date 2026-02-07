@@ -22,9 +22,8 @@ namespace Decider.Csp.Integer
 			internal int OldSize;
 			internal int OldGeneration;
 
-			internal Change(int variableId, int arrayIndex, uint oldBits,
-			               int oldLowerBound, int oldUpperBound, int oldSize,
-			               int oldGeneration)
+			internal Change(int variableId, int arrayIndex, uint oldBits, int oldLowerBound,
+				int oldUpperBound, int oldSize, int oldGeneration)
 			{
 				this.VariableId = variableId;
 				this.ArrayIndex = arrayIndex;
@@ -51,8 +50,7 @@ namespace Decider.Csp.Integer
 		}
 
 		internal void RecordChange(int variableId, int arrayIndex, uint oldBits,
-		                          int oldLowerBound, int oldUpperBound, int oldSize,
-		                          int oldGeneration, int depth)
+			int oldLowerBound, int oldUpperBound, int oldSize, int oldGeneration, int depth)
 		{
 			if (this.changeCount >= this.changes.Length)
 				Array.Resize(ref this.changes, this.changes.Length * 2);
@@ -61,8 +59,7 @@ namespace Decider.Csp.Integer
 				this.depthStarts[depth] = this.changeCount;
 
 			this.changes[this.changeCount++] = new Change(variableId, arrayIndex, oldBits,
-			                                             oldLowerBound, oldUpperBound, oldSize,
-			                                             oldGeneration);
+				oldLowerBound, oldUpperBound, oldSize, oldGeneration);
 		}
 
 		internal void Backtrack(int toDepth, IList<IVariable<int>> variables)

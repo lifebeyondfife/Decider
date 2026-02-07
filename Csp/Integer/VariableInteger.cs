@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
 */
@@ -154,16 +154,8 @@ namespace Decider.Csp.Integer
 			var domainBinary = (DomainBinaryInteger)this.baseDomain;
 			var arrayIndex = domainBinary.GetArrayIndex(value);
 
-			((StateInteger)this.State).Trail.RecordChange(
-				this.variableId,
-				arrayIndex,
-				domainBinary.GetBits(arrayIndex),
-				domainBinary.InternalLowerBound,
-				domainBinary.InternalUpperBound,
-				domainBinary.Size(),
-				this.generation,
-				depth
-			);
+			((StateInteger)this.State).Trail.RecordChange(this.variableId, arrayIndex,
+				domainBinary.GetBits(arrayIndex), domainBinary.InternalLowerBound, domainBinary.InternalUpperBound, domainBinary.Size(), this.generation, depth);
 
 			this.generation = ++nextGeneration;
 		}
@@ -254,8 +246,7 @@ namespace Decider.Csp.Integer
 				result = ConstraintOperationResult.Propagated;
 			}
 
-			while (enforceBounds.UpperBound < domain.UpperBound &&
-				domainResult == DomainOperationResult.RemoveSuccessful)
+			while (enforceBounds.UpperBound < domain.UpperBound && domainResult == DomainOperationResult.RemoveSuccessful)
 			{
 				var valueToRemove = domain.UpperBound;
 				RecordRemoval(valueToRemove, depth);

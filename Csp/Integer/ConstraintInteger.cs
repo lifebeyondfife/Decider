@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
 */
@@ -14,7 +14,7 @@ namespace Decider.Csp.Integer
 	public class ConstraintInteger : ExpressionInteger, IConstraint
 	{
 		private readonly IVariable<int>[] variableArray;
-		private readonly int[] generationArray;
+		private IList<int> generationArray { get; set; }
 
 		public ConstraintInteger(Expression<int> expression)
 		{
@@ -29,7 +29,7 @@ namespace Decider.Csp.Integer
 			var variableSet = new HashSet<IVariable<int>>();
 			ConstructVariableList((ExpressionInteger) expression, variableSet);
 			this.variableArray = variableSet.ToArray();
-			this.generationArray = new int[this.variableArray.Length];
+			this.generationArray = new List<int>(this.variableArray.Length);
 		}
 
 		private static void ConstructVariableList(ExpressionInteger expression, ISet<IVariable<int>> variableSet)
@@ -103,8 +103,8 @@ namespace Decider.Csp.Integer
 
 		public bool StateChanged()
 		{
-			return this.variableArray.Where((variable, index) => ((VariableInteger) variable)
-				.Generation != this.generationArray[index]).Any();
+			return this.variableArray.Where((variable, index) =>
+				((VariableInteger) variable).Generation != this.generationArray[index]).Any();
 		}
 	}
 }

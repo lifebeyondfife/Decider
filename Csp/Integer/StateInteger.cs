@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
 */
@@ -25,8 +25,7 @@ namespace Decider.Csp.Integer
 
 		private IVariable<int>[] LastSolution { get; set; }
 
-		private DomainTrail trail;
-		internal DomainTrail Trail { get { return this.trail; } }
+		internal DomainTrail Trail { get; private set; }
 
 		public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints)
 		{
@@ -37,7 +36,7 @@ namespace Decider.Csp.Integer
 			this.Runtime = new TimeSpan(0);
 			this.Solutions = new List<IDictionary<string, IVariable<int>>>();
 
-			this.trail = new DomainTrail(this.Variables.Count, this.Variables.Count * 10000);
+			this.Trail = new DomainTrail(this.Variables.Count, this.Variables.Count * 10000);
 
 			for (var i = 0; i < this.Variables.Count; ++i)
 				((VariableInteger)this.Variables[i]).SetVariableId(i);
@@ -262,7 +261,7 @@ namespace Decider.Csp.Integer
 
 			--this.Depth;
 
-			this.trail.Backtrack(this.Depth, this.Variables);
+			this.Trail.Backtrack(this.Depth, this.Variables);
 
 			variablePrune.Remove(value, this.Depth, out result);
 		}
