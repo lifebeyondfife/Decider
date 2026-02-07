@@ -14,40 +14,70 @@ namespace Decider.Csp.Integer
 {
 	public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 	{
-		private struct DomInt
+		private readonly struct InstantiationEntry
 		{
 			internal readonly IDomain<int> Domain;
 			internal readonly int Depth;
+			internal readonly int OldGeneration;
 
-			internal DomInt(IDomain<int> domain, int depth)
+			internal InstantiationEntry(IDomain<int> domain, int depth, int oldGeneration)
 			{
 				this.Domain = domain;
 				this.Depth = depth;
-			}
-
-			public object Clone()
-			{
-				return new DomInt(this.Domain.Clone(), this.Depth);
+				this.OldGeneration = oldGeneration;
 			}
 		}
 
 		public IVariable<int> Clone()
 		{
+			var clonedStack = new Stack<InstantiationEntry>();
+			foreach (var entry in this.instantiationStack.Reverse())
+				clonedStack.Push(new InstantiationEntry(entry.Domain.Clone(), entry.Depth, entry.OldGeneration));
+
 			return new VariableInteger
 				{
-					domainStack = new Stack<DomInt>(domainStack.Select(d => d.Clone()).Reverse().Cast<DomInt>()),
+					baseDomain = this.baseDomain.Clone(),
+					instantiationStack = clonedStack,
 					State = State,
-					Name = Name
+					Name = Name,
+					variableId = variableId
 				};
 		}
 
-		private Stack<DomInt> domainStack;
+		private static int nextGeneration;
+
+		private IDomain<int> baseDomain;
+		private Stack<InstantiationEntry> instantiationStack;
+		private int variableId;
+		private int generation;
+
 		public IState<int> State { get; set; }
 		public string Name { get; private set; }
-		public IDomain<int> Domain { get { return this.domainStack.Peek().Domain; } }
+		internal int Generation { get { return this.generation; } }
+
+		internal void RestoreGeneration(int oldGeneration)
+		{
+			this.generation = oldGeneration;
+		}
+
+		public IDomain<int> Domain
+		{
+			get
+			{
+				return this.instantiationStack.Count > 0
+					? this.instantiationStack.Peek().Domain
+					: this.baseDomain;
+			}
+		}
+
+		internal IDomain<int> BaseDomain
+		{
+			get { return this.baseDomain; }
+		}
 
 		internal VariableInteger()
 		{
+			this.instantiationStack = new Stack<InstantiationEntry>();
 			this.remove = prune =>
 			{
 				DomainOperationResult result;
@@ -60,24 +90,21 @@ namespace Decider.Csp.Integer
 			: this()
 		{
 			this.Name = name;
-			this.domainStack = new Stack<DomInt>();
-			this.domainStack.Push(new DomInt(DomainBinaryInteger.CreateDomain(Int16.MinValue, Int16.MaxValue), -1));
+			this.baseDomain = DomainBinaryInteger.CreateDomain(Int16.MinValue, Int16.MaxValue);
 		}
 
 		public VariableInteger(string name, IList<int> elements)
 			: this()
 		{
 			this.Name = name;
-			this.domainStack = new Stack<DomInt>();
-			this.domainStack.Push(new DomInt(DomainBinaryInteger.CreateDomain(elements), -1));
+			this.baseDomain = DomainBinaryInteger.CreateDomain(elements);
 		}
 
 		public VariableInteger(string name, int lowerBound, int upperBound)
 			: this()
 		{
 			this.Name = name;
-			this.domainStack = new Stack<DomInt>();
-			this.domainStack.Push(new DomInt(DomainBinaryInteger.CreateDomain(lowerBound, upperBound), -1));
+			this.baseDomain = DomainBinaryInteger.CreateDomain(lowerBound, upperBound);
 		}
 
 		public int InstantiatedValue
@@ -95,7 +122,8 @@ namespace Decider.Csp.Integer
 			if (result != DomainOperationResult.InstantiateSuccessful)
 				return;
 
-			this.domainStack.Push(new DomInt(instantiatedDomain, depth));
+			this.instantiationStack.Push(new InstantiationEntry(instantiatedDomain, depth, this.generation));
+			this.generation = ++nextGeneration;
 		}
 
 		public void Instantiate(int value, int depth, out DomainOperationResult result)
@@ -105,28 +133,53 @@ namespace Decider.Csp.Integer
 			if (result != DomainOperationResult.InstantiateSuccessful)
 				return;
 
-			this.domainStack.Push(new DomInt(instantiatedDomain, depth));
+			this.instantiationStack.Push(new InstantiationEntry(instantiatedDomain, depth, this.generation));
+			this.generation = ++nextGeneration;
 		}
 
 		public void Backtrack(int fromDepth)
 		{
-			while (this.domainStack.Peek().Depth >= fromDepth)
-				this.domainStack.Pop();
+			while (this.instantiationStack.Count > 0 &&
+			       this.instantiationStack.Peek().Depth >= fromDepth)
+			{
+				this.generation = this.instantiationStack.Pop().OldGeneration;
+			}
+		}
+
+		private void RecordRemoval(int value, int depth)
+		{
+			if (this.instantiationStack.Count > 0)
+				return;
+
+			var domainBinary = (DomainBinaryInteger)this.baseDomain;
+			var arrayIndex = domainBinary.GetArrayIndex(value);
+
+			((StateInteger)this.State).Trail.RecordChange(
+				this.variableId,
+				arrayIndex,
+				domainBinary.GetBits(arrayIndex),
+				domainBinary.InternalLowerBound,
+				domainBinary.InternalUpperBound,
+				domainBinary.Size(),
+				this.generation,
+				depth
+			);
+
+			this.generation = ++nextGeneration;
 		}
 
 		public void Remove(int value, int depth, out DomainOperationResult result)
 		{
-			if (this.domainStack.Peek().Depth != depth)
+			var domain = this.instantiationStack.Count == 0 ? this.baseDomain : this.instantiationStack.Peek().Domain;
+
+			if (!domain.Contains(value))
 			{
-				this.domainStack.Push(new DomInt(this.Domain.Clone(), depth));
-
-				this.Domain.Remove(value, out result);
-
-				if (result == DomainOperationResult.ElementNotInDomain)
-					this.domainStack.Pop();
+				result = DomainOperationResult.ElementNotInDomain;
+				return;
 			}
-			else
-				this.Domain.Remove(value, out result);
+
+			RecordRemoval(value, depth);
+			domain.Remove(value, out result);
 		}
 
 		public void Remove(int value, out DomainOperationResult result)
@@ -153,6 +206,11 @@ namespace Decider.Csp.Integer
 		public void SetState(IState<int> state)
 		{
 			this.State = state;
+		}
+
+		internal void SetVariableId(int id)
+		{
+			this.variableId = id;
 		}
 
 		public int CompareTo(IVariable<int> otherVariable)
@@ -183,39 +241,27 @@ namespace Decider.Csp.Integer
 			if (this.State == null)
 				return;
 
-			var domainIntStack = this.domainStack.Peek();
-			var isDomainNew = false;
-			IDomain<int> propagatedDomain;
-
-			if (domainIntStack.Depth == this.State.Depth)
-			{
-				propagatedDomain = domainIntStack.Domain;
-			}
-			else
-			{
-				isDomainNew = true;
-				propagatedDomain = domainIntStack.Domain.Clone();
-				this.domainStack.Push(new DomInt(propagatedDomain, this.State.Depth));
-			}
-
+			var domain = this.instantiationStack.Count == 0 ? this.baseDomain : this.instantiationStack.Peek().Domain;
+			var depth = ((StateInteger)this.State).Depth;
 			var domainResult = DomainOperationResult.RemoveSuccessful;
 
-			while (enforceBounds.LowerBound > propagatedDomain.LowerBound &&
+			while (enforceBounds.LowerBound > domain.LowerBound &&
 				domainResult == DomainOperationResult.RemoveSuccessful)
 			{
-				propagatedDomain.Remove(propagatedDomain.LowerBound, out domainResult);
+				var valueToRemove = domain.LowerBound;
+				RecordRemoval(valueToRemove, depth);
+				domain.Remove(valueToRemove, out domainResult);
 				result = ConstraintOperationResult.Propagated;
 			}
 
-			while (enforceBounds.UpperBound < propagatedDomain.UpperBound &&
+			while (enforceBounds.UpperBound < domain.UpperBound &&
 				domainResult == DomainOperationResult.RemoveSuccessful)
 			{
-				propagatedDomain.Remove(propagatedDomain.UpperBound, out domainResult);
+				var valueToRemove = domain.UpperBound;
+				RecordRemoval(valueToRemove, depth);
+				domain.Remove(valueToRemove, out domainResult);
 				result = ConstraintOperationResult.Propagated;
 			}
-
-			if (isDomainNew && result != ConstraintOperationResult.Propagated)
-				this.domainStack.Pop();
 		}
 
 		public override string ToString()

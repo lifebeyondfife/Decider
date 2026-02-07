@@ -32,7 +32,7 @@ namespace Decider.Tests.Example
         [Theory]
         [InlineData(4, 2, 14)]
         [InlineData(8, 92, 1029)]
-        [InlineData(10, 724, 14057)]
+        [InlineData(10, 724, 14036)]
         public void TestNumberOfSolutions(int boardSize, int expectedSolutions, int expectedBacktracks)
         {
             var nQueens = new NQueens(boardSize);

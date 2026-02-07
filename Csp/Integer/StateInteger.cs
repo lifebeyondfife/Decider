@@ -25,6 +25,9 @@ namespace Decider.Csp.Integer
 
 		private IVariable<int>[] LastSolution { get; set; }
 
+		private DomainTrail trail;
+		internal DomainTrail Trail { get { return this.trail; } }
+
 		public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints)
 		{
 			SetVariables(variables);
@@ -33,6 +36,11 @@ namespace Decider.Csp.Integer
 			this.Backtracks = 0;
 			this.Runtime = new TimeSpan(0);
 			this.Solutions = new List<IDictionary<string, IVariable<int>>>();
+
+			this.trail = new DomainTrail(this.Variables.Count, this.Variables.Count * 10000);
+
+			for (var i = 0; i < this.Variables.Count; ++i)
+				((VariableInteger)this.Variables[i]).SetVariableId(i);
 		}
 
 		public void SetVariables(IEnumerable<IVariable<int>> variableList)
@@ -251,7 +259,10 @@ namespace Decider.Csp.Integer
 
 			foreach (var variable in this.Variables)
 				variable.Backtrack(this.Depth);
+
 			--this.Depth;
+
+			this.trail.Backtrack(this.Depth, this.Variables);
 
 			variablePrune.Remove(value, this.Depth, out result);
 		}

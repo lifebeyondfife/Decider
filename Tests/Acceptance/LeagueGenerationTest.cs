@@ -49,7 +49,7 @@ namespace Decider.Tests.Example
             Assert.Equal(18, leagueGeneration.FixtureWeeks[17][1]);
             Assert.Equal(19, leagueGeneration.FixtureWeeks[17][2]);
 
-            Assert.Equal(6262, leagueGeneration.State.Backtracks);
+            Assert.Equal(6249, leagueGeneration.State.Backtracks);
             Assert.Single(leagueGeneration.State.Solutions);
         }
     }

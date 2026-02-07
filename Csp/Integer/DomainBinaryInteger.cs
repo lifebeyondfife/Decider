@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
 */
@@ -247,6 +247,38 @@ namespace Decider.Csp.Integer
 			for (int i = this.lowerBound - offset; i <= this.upperBound - offset; ++i)
 				if (IsInDomain(i))
 					yield return i;
+		}
+
+		#endregion
+
+		#region Trail Support
+
+		internal int GetArrayIndex(int value)
+		{
+			var index = value + offset;
+			return ((index + 1) % BitsPerDatatype == 0) ?
+				(index + 1) / BitsPerDatatype - 1 :
+				(index + 1) / BitsPerDatatype;
+		}
+
+		internal uint GetBits(int arrayIndex)
+		{
+			return this.domain[arrayIndex];
+		}
+
+		internal int InternalLowerBound { get { return this.lowerBound; } }
+		internal int InternalUpperBound { get { return this.upperBound; } }
+
+		internal void RestoreBits(int arrayIndex, uint bits)
+		{
+			this.domain[arrayIndex] = bits;
+		}
+
+		internal void SetBounds(int lower, int upper, int size)
+		{
+			this.lowerBound = lower;
+			this.upperBound = upper;
+			this.size = size;
 		}
 
 		#endregion
