@@ -48,7 +48,7 @@ namespace Decider.Csp.Global
 				return;
 			}
 
-			if (this.variableArray.Cast<IVariable<int>>().Any(variable => !variable.Instantiated()))
+			if (this.variableArray.Any(variable => !variable.Instantiated()))
 			{
 				result = ConstraintOperationResult.Undecided;
 				return;
@@ -84,7 +84,7 @@ namespace Decider.Csp.Global
 						continue;
 
 					var variable = ((NodeVariable) node).Variable;
-					foreach (var value in variable.Domain.Cast<int>().Where(value =>
+					foreach (var value in variable.Domain.Where(value =>
 						this.Graph.Values[value].CycleIndex != node.CycleIndex &&
 						((NodeValue) this.Graph.Pair[node]).Value != value))
 					{

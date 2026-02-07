@@ -242,11 +242,16 @@ namespace Decider.Csp.Integer
 
 		#region IEnumerable Members
 
-		IEnumerator IEnumerable.GetEnumerator()
+		public IEnumerator<int> GetEnumerator()
 		{
 			for (int i = this.lowerBound - offset; i <= this.upperBound - offset; ++i)
 				if (IsInDomain(i))
 					yield return i;
+		}
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
 		}
 
 		#endregion
