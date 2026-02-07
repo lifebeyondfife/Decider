@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+    <PackageReference Include="Google.OrTools" Version="9.11.4210" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Csp\Csp.csproj" />
+    <ProjectReference Include="..\Examples\NQueens\NQueens.csproj" />
+    <ProjectReference Include="..\Examples\LeagueGeneration\LeagueGeneration.csproj" />
+  </ItemGroup>
+
+</Project>
