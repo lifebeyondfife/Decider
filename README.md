@@ -192,4 +192,4 @@ Released under the MIT licence, Decider is freely available for commercial use.
 Author
 ------
 
-I have a PhD in Constraint Programming and love turning NP-complete problems into CSPs. Visit my blog at http://lifebeyondfife.com/.
+I have a PhD in Constraint Programming and love turning NP-complete problems into CSPs. Visit my blog at https://lifebeyondfife.com/.

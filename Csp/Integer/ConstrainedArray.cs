@@ -1,15 +1,16 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2024
+  Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
 */
+using System.Collections.ObjectModel;
 using Decider.Csp.Integer;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Decider.Csp.BaseTypes
 {
-	public class ConstrainedArray : List<int>
+	public class ConstrainedArray : ReadOnlyCollection<int>
 	{
 		private VariableInteger Index { get; set; }
 
@@ -24,8 +25,8 @@ namespace Decider.Csp.BaseTypes
 		}
 
 		public ConstrainedArray(IEnumerable<int> elements)
+			: base(elements.ToList())
 		{
-			this.AddRange(elements);
 		}
 
 		private VariableInteger GetVariableInteger()
