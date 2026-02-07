@@ -14,7 +14,7 @@ namespace Decider.Csp.Integer
 	public class ConstraintInteger : ExpressionInteger, IConstraint
 	{
 		private readonly IVariable<int>[] variableArray;
-		private IList<int> generationArray { get; set; }
+		private readonly int[] generationArray;
 
 		public ConstraintInteger(Expression<int> expression)
 		{
@@ -29,7 +29,7 @@ namespace Decider.Csp.Integer
 			var variableSet = new HashSet<IVariable<int>>();
 			ConstructVariableList((ExpressionInteger) expression, variableSet);
 			this.variableArray = variableSet.ToArray();
-			this.generationArray = new List<int>(this.variableArray.Length);
+			this.generationArray = new int[this.variableArray.Length];
 		}
 
 		private static void ConstructVariableList(ExpressionInteger expression, ISet<IVariable<int>> variableSet)
