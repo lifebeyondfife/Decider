@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
 */
@@ -14,7 +14,7 @@ namespace Decider.Csp.Global
 	public class AllDifferentInteger : IConstraint
 	{
 		private readonly VariableInteger[] variableArray;
-		private readonly IDomain<int>[] domainArray;
+		private readonly int[] generationArray;
 		private BipartiteGraph Graph { get; set; }
 		private readonly CycleDetection cycleDetection;
 
@@ -33,14 +33,14 @@ namespace Decider.Csp.Global
 		public AllDifferentInteger(IEnumerable<VariableInteger> variables)
 		{
 			this.variableArray = variables.ToArray();
-			this.domainArray = new IDomain<int>[this.variableArray.Length];
+			this.generationArray = new int[this.variableArray.Length];
 			this.cycleDetection = new CycleDetection();
 		}
 
 		public void Check(out ConstraintOperationResult result)
 		{
 			for (var i = 0; i < this.variableArray.Length; ++i)
-				this.domainArray[i] = variableArray[i].Domain;
+				this.generationArray[i] = variableArray[i].Generation;
 
 			if (!FindMatching())
 			{
@@ -104,7 +104,7 @@ namespace Decider.Csp.Global
 
 		public bool StateChanged()
 		{
-			return this.variableArray.Where((t, i) => t.Domain != this.domainArray[i]).Any();
+			return this.variableArray.Where((t, i) => t.Generation != this.generationArray[i]).Any();
 		}
 	}
 }
