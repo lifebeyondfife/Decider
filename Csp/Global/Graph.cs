@@ -13,7 +13,7 @@ namespace Decider.Csp.Global;
 
 internal class Graph
 {
-	public List<Node> Nodes { get; set; }
+	public List<Node> Nodes { get; set; } = new List<Node>();
 }
 
 internal class BipartiteGraph : Graph
@@ -23,8 +23,8 @@ internal class BipartiteGraph : Graph
 	internal Dictionary<Node, Node> Pair { get; private set; }
 
 	public Node NullNode { get; private set; }
-	private Dictionary<Node, int> Distance { get; set; }
-	private Queue<Node> queue;
+	private Dictionary<Node, int> Distance { get; set; } = new Dictionary<Node, int>();
+	private Queue<Node> queue = new Queue<Node>();
 
 	internal BipartiteGraph(IEnumerable<VariableInteger> variables)
 	{
@@ -59,7 +59,7 @@ internal class BipartiteGraph : Graph
 			this.Pair[node] = this.NullNode;
 	}
 
-	internal int MaximalMatching(int?[] seedMatching = null)
+	internal int MaximalMatching(int?[]? seedMatching = null)
 	{
 		var matching = 0;
 		this.queue = new Queue<Node>();
@@ -75,7 +75,7 @@ internal class BipartiteGraph : Graph
 				if (!seedMatching[i].HasValue)
 					continue;
 
-				var value = seedMatching[i].Value;
+				var value = seedMatching[i]!.Value;
 				if (!this.Variables.ContainsKey(i) || !this.Values.ContainsKey(value))
 					continue;
 

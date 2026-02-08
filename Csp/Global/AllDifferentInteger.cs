@@ -15,12 +15,12 @@ public class AllDifferentInteger : IBacktrackableConstraint
 {
 	private readonly VariableInteger[] variableArray;
 	private readonly int[] generationArray;
-	private BipartiteGraph Graph { get; set; }
+	private BipartiteGraph? Graph { get; set; }
 	private readonly CycleDetection cycleDetection;
 	private readonly Stack<(int Depth, int?[] Matching)> matchingTrail;
-	private int?[] lastMatching;
+	private int?[]? lastMatching;
 
-	private IState<int> State { get; set; }
+	private IState<int>? State { get; set; }
 	private int Depth
 	{
 		get
@@ -28,7 +28,7 @@ public class AllDifferentInteger : IBacktrackableConstraint
 			if (this.State == null)
 				this.State = this.variableArray[0].State;
 
-			return this.State.Depth;
+			return this.State!.Depth;
 		}
 	}
 
@@ -113,7 +113,7 @@ public class AllDifferentInteger : IBacktrackableConstraint
 		for (var i = 0; i < this.variableArray.Length; ++i)
 		{
 			var variable = this.variableArray[i];
-			var varNode = this.Graph.Variables[i];
+			var varNode = this.Graph!.Variables[i];
 			var matchBroken = false;
 			var domainValues = new HashSet<int>(variable.Domain);
 
@@ -140,7 +140,7 @@ public class AllDifferentInteger : IBacktrackableConstraint
 
 		foreach (var varNode in brokenVariables)
 		{
-			if (!this.Graph.RepairMatching(varNode))
+			if (!this.Graph!.RepairMatching(varNode))
 				return false;
 		}
 
@@ -157,7 +157,7 @@ public class AllDifferentInteger : IBacktrackableConstraint
 		var matching = new int?[this.variableArray.Length];
 		for (var i = 0; i < this.variableArray.Length; ++i)
 		{
-			var paired = this.Graph.Pair[this.Graph.Variables[i]];
+			var paired = this.Graph!.Pair[this.Graph.Variables[i]];
 			if (paired != this.Graph.NullNode)
 				matching[i] = ((NodeValue) paired).Value;
 		}

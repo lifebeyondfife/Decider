@@ -16,7 +16,7 @@ internal class Node
 	internal bool OnStack { get; set; }
 	internal LinkedList<Node> AdjoiningNodes { get; set; }
 	internal LinkedList<Node> BipartiteEdges { get; set; }
-	internal string Label { get; private set; }
+	internal string Label { get; private set; } = string.Empty;
 	internal int CycleIndex { get; set; }
 
 	internal Node()
