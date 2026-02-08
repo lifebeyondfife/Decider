@@ -9,10 +9,9 @@
 */
 using System.Collections.Generic;
 
-namespace Decider.Csp.BaseTypes
+namespace Decider.Csp.BaseTypes;
+
+public interface IMetaExpression<T>
 {
-	public interface IMetaExpression<T>
-	{
-		IList<IVariable<T>> Support { get; }
-	}
+	IList<IVariable<T>> Support { get; }
 }

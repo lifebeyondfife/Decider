@@ -1,4 +1,4 @@
-﻿/*
+/*
   Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
@@ -10,61 +10,137 @@ using System.Linq;
 
 using Decider.Csp.BaseTypes;
 
-namespace Decider.Csp.Integer
+namespace Decider.Csp.Integer;
+
+public class StateInteger : IState<int>
 {
-	public class StateInteger : IState<int>
+	public IList<IConstraint> Constraints { get; private set; }
+	private IList<IBacktrackableConstraint> BacktrackableConstraints { get; set; }
+	public IList<IVariable<int>> Variables { get; private set; }
+
+	public int Depth { get; private set; }
+	public int Backtracks { get; private set; }
+	public TimeSpan Runtime { get; private set; }
+	public IDictionary<string, IVariable<int>> OptimalSolution { get; private set; }
+	public IList<IDictionary<string, IVariable<int>>> Solutions { get; private set; }
+
+	private IVariable<int>[] LastSolution { get; set; }
+
+	internal DomainTrail Trail { get; private set; }
+
+	public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints)
 	{
-		public IList<IConstraint> Constraints { get; private set; }
-		private IList<IBacktrackableConstraint> BacktrackableConstraints { get; set; }
-		public IList<IVariable<int>> Variables { get; private set; }
+		SetVariables(variables);
+		SetConstraints(constraints);
+		this.Depth = 0;
+		this.Backtracks = 0;
+		this.Runtime = new TimeSpan(0);
+		this.Solutions = new List<IDictionary<string, IVariable<int>>>();
 
-		public int Depth { get; private set; }
-		public int Backtracks { get; private set; }
-		public TimeSpan Runtime { get; private set; }
-		public IDictionary<string, IVariable<int>> OptimalSolution { get; private set; }
-		public IList<IDictionary<string, IVariable<int>>> Solutions { get; private set; }
+		this.Trail = new DomainTrail(this.Variables.Count, this.Variables.Count * 10000);
 
-		private IVariable<int>[] LastSolution { get; set; }
+		for (var i = 0; i < this.Variables.Count; ++i)
+			((VariableInteger)this.Variables[i]).SetVariableId(i);
+	}
 
-		internal DomainTrail Trail { get; private set; }
+	public void SetVariables(IEnumerable<IVariable<int>> variableList)
+	{
+		this.Variables = variableList.ToList();
 
-		public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints)
+		foreach (var variable in this.Variables)
+			variable.SetState(this);
+	}
+
+	public void SetConstraints(IEnumerable<IConstraint> constraints)
+	{
+		this.Constraints = constraints?.ToList() ?? new List<IConstraint>();
+		this.BacktrackableConstraints = this.Constraints.OfType<IBacktrackableConstraint>().ToList();
+	}
+
+	public StateOperationResult Search()
+	{
+		var unassignedVariables = this.LastSolution == null
+			? new LinkedList<IVariable<int>>(this.Variables)
+			: new LinkedList<IVariable<int>>();
+		var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
+		var stopwatch = Stopwatch.StartNew();
+		var searchResult = StateOperationResult.Unsatisfiable;
+
+		if (this.Depth == instantiatedVariables.Length)
 		{
-			SetVariables(variables);
-			SetConstraints(constraints);
-			this.Depth = 0;
-			this.Backtracks = 0;
-			this.Runtime = new TimeSpan(0);
-			this.Solutions = new List<IDictionary<string, IVariable<int>>>();
-
-			this.Trail = new DomainTrail(this.Variables.Count, this.Variables.Count * 10000);
-
-			for (var i = 0; i < this.Variables.Count; ++i)
-				((VariableInteger)this.Variables[i]).SetVariableId(i);
+			--this.Depth;
+			Backtrack(unassignedVariables, instantiatedVariables);
+			++this.Depth;
+		}
+		else if (ConstraintsViolated())
+		{
+			this.Runtime += stopwatch.Elapsed;
+			stopwatch.Stop();
+			return searchResult;
 		}
 
-		public void SetVariables(IEnumerable<IVariable<int>> variableList)
-		{
-			this.Variables = variableList.ToList();
+		if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
+			this.Solutions.Add(CloneLastSolution());
 
-			foreach (var variable in this.Variables)
-				variable.SetState(this);
+		this.Runtime += stopwatch.Elapsed;
+		stopwatch.Stop();
+		return searchResult;
+	}
+
+	public StateOperationResult Search(IVariable<int> optimiseVar, int timeOut)
+	{
+		var unassignedVariables = this.LastSolution == null
+			? new LinkedList<IVariable<int>>(this.Variables)
+			: new LinkedList<IVariable<int>>();
+		var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
+		var stopwatch = Stopwatch.StartNew();
+		var searchResult = StateOperationResult.Unsatisfiable;
+
+		this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > Int32.MinValue));
+
+		while (true)
+		{
+			if (this.Depth == instantiatedVariables.Length)
+			{
+				--this.Depth;
+				Backtrack(unassignedVariables, instantiatedVariables);
+				++this.Depth;
+			}
+			else if (ConstraintsViolated())
+				break;
+
+			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, timeOut))
+			{
+				this.Constraints.RemoveAt(this.Constraints.Count - 1);
+				this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
+				this.OptimalSolution = CloneLastSolution();
+			}
+			else if (searchResult == StateOperationResult.TimedOut)
+				break;
 		}
 
-		public void SetConstraints(IEnumerable<IConstraint> constraints)
-		{
-			this.Constraints = constraints?.ToList() ?? new List<IConstraint>();
-			this.BacktrackableConstraints = this.Constraints.OfType<IBacktrackableConstraint>().ToList();
-		}
+		if (this.LastSolution != null && searchResult == StateOperationResult.Unsatisfiable)
+			searchResult = StateOperationResult.Solved;
 
-		public StateOperationResult Search()
+		this.Runtime += stopwatch.Elapsed;
+		stopwatch.Stop();
+		return searchResult;
+	}
+
+	public StateOperationResult SearchAllSolutions()
+	{
+		var unassignedVariables = this.LastSolution == null
+			? new LinkedList<IVariable<int>>(this.Variables)
+			: new LinkedList<IVariable<int>>();
+		var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
+		var stopwatch = Stopwatch.StartNew();
+
+		var searchResult = StateOperationResult.Unsatisfiable;
+
+		while (true)
 		{
-			var unassignedVariables = this.LastSolution == null
-				? new LinkedList<IVariable<int>>(this.Variables)
-				: new LinkedList<IVariable<int>>();
-			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
-			var stopwatch = Stopwatch.StartNew();
-			var searchResult = StateOperationResult.Unsatisfiable;
+			if (this.Depth == -1)
+				break;
 
 			if (this.Depth == instantiatedVariables.Length)
 			{
@@ -76,244 +152,167 @@ namespace Decider.Csp.Integer
 			{
 				this.Runtime += stopwatch.Elapsed;
 				stopwatch.Stop();
-				return searchResult;
+				break;
 			}
 
 			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
 				this.Solutions.Add(CloneLastSolution());
-
-			this.Runtime += stopwatch.Elapsed;
-			stopwatch.Stop();
-			return searchResult;
 		}
 
-		public StateOperationResult Search(IVariable<int> optimiseVar, int timeOut)
+		this.Runtime += stopwatch.Elapsed;
+		stopwatch.Stop();
+		return Solutions.Any() ? StateOperationResult.Solved : StateOperationResult.Unsatisfiable;
+	}
+
+	private IDictionary<string, IVariable<int>> CloneLastSolution()
+	{
+		return this.LastSolution.Select(v => v.Clone())
+			.Cast<IVariable<int>>()
+			.Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
+			.OrderBy(kvp => kvp.Key)
+			.ToDictionary(k => k.Key, v => v.Value);
+	}
+
+	private bool Search(out StateOperationResult searchResult, LinkedList<IVariable<int>> unassignedVariables,
+		IList<IVariable<int>> instantiatedVariables, ref Stopwatch stopwatch, int timeOut = Int32.MaxValue)
+	{
+		searchResult = StateOperationResult.Unsatisfiable;
+		if (unassignedVariables.Any(x => x.Size() == 0))
 		{
-			var unassignedVariables = this.LastSolution == null
-				? new LinkedList<IVariable<int>>(this.Variables)
-				: new LinkedList<IVariable<int>>();
-			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
-			var stopwatch = Stopwatch.StartNew();
-			var searchResult = StateOperationResult.Unsatisfiable;
-
-			this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > Int32.MinValue));
-
-			while (true)
-			{
-				if (this.Depth == instantiatedVariables.Length)
-				{
-					--this.Depth;
-					Backtrack(unassignedVariables, instantiatedVariables);
-					++this.Depth;
-				}
-				else if (ConstraintsViolated())
-					break;
-
-				if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, timeOut))
-				{
-					this.Constraints.RemoveAt(this.Constraints.Count - 1);
-					this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
-					this.OptimalSolution = CloneLastSolution();
-				}
-				else if (searchResult == StateOperationResult.TimedOut)
-					break;
-			}
-
-			if (this.LastSolution != null && searchResult == StateOperationResult.Unsatisfiable)
-				searchResult = StateOperationResult.Solved;
-
-			this.Runtime += stopwatch.Elapsed;
-			stopwatch.Stop();
-			return searchResult;
-		}
-
-		public StateOperationResult SearchAllSolutions()
-		{
-			var unassignedVariables = this.LastSolution == null
-				? new LinkedList<IVariable<int>>(this.Variables)
-				: new LinkedList<IVariable<int>>();
-			var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
-			var stopwatch = Stopwatch.StartNew();
-
-			var searchResult = StateOperationResult.Unsatisfiable;
-
-			while (true)
-			{
-				if (this.Depth == -1)
-					break;
-
-				if (this.Depth == instantiatedVariables.Length)
-				{
-					--this.Depth;
-					Backtrack(unassignedVariables, instantiatedVariables);
-					++this.Depth;
-				}
-				else if (ConstraintsViolated())
-				{
-					this.Runtime += stopwatch.Elapsed;
-					stopwatch.Stop();
-					break;
-				}
-
-				if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
-					this.Solutions.Add(CloneLastSolution());
-			}
-
-			this.Runtime += stopwatch.Elapsed;
-			stopwatch.Stop();
-			return Solutions.Any() ? StateOperationResult.Solved : StateOperationResult.Unsatisfiable;
-		}
-
-		private IDictionary<string, IVariable<int>> CloneLastSolution()
-		{
-			return this.LastSolution.Select(v => v.Clone())
-				.Cast<IVariable<int>>()
-				.Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
-				.OrderBy(kvp => kvp.Key)
-				.ToDictionary(k => k.Key, v => v.Value);
-		}
-
-		private bool Search(out StateOperationResult searchResult, LinkedList<IVariable<int>> unassignedVariables,
-			IList<IVariable<int>> instantiatedVariables, ref Stopwatch stopwatch, int timeOut = Int32.MaxValue)
-		{
-			searchResult = StateOperationResult.Unsatisfiable;
-			if (unassignedVariables.Any(x => x.Size() == 0))
-			{
-				this.Depth = -1;
-				return false;
-			}
-
-			while (true)
-			{
-				if (this.Depth == this.Variables.Count)
-				{
-					searchResult = StateOperationResult.Solved;
-					this.Runtime += stopwatch.Elapsed;
-					stopwatch = Stopwatch.StartNew();
-
-					this.LastSolution = instantiatedVariables.ToArray();
-
-					return true;
-				}
-
-				instantiatedVariables[this.Depth] = GetMostConstrainedVariable(unassignedVariables);
-				instantiatedVariables[this.Depth].Instantiate(this.Depth, out DomainOperationResult instantiateResult);
-
-				if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
-					return false;
-
-				if (ConstraintsViolated() || unassignedVariables.Any(v => v.Size() == 0))
-				{
-					if (!Backtrack(unassignedVariables, instantiatedVariables))
-						return false;
-				}
-
-				if (stopwatch.Elapsed.TotalSeconds > timeOut)
-				{
-					searchResult = StateOperationResult.TimedOut;
-					return false;
-				}
-
-				++this.Depth;
-			}
-		}
-
-		private bool Backtrack(LinkedList<IVariable<int>> unassignedVariables, IList<IVariable<int>> instantiatedVariables)
-		{
-			DomainOperationResult removeResult;
-			do
-			{
-				if (this.Depth < 0)
-					return false;
-
-				unassignedVariables.AddFirst(instantiatedVariables[this.Depth]);
-				BackTrackVariable(instantiatedVariables[this.Depth], out removeResult);
-			} while (removeResult == DomainOperationResult.EmptyDomain);
-
-			return true;
-		}
-
-		private bool ConstraintsViolated()
-		{
-			for (var i = 0; i < this.Constraints.Count; ++i)
-			{
-				var constraint = this.Constraints[i];
-				if (!constraint.StateChanged())
-					continue;
-
-				constraint.Propagate(out ConstraintOperationResult result);
-				if ((result & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
-					return true;
-
-				constraint.Check(out result);
-				if ((result & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
-					return true;
-			}
-
+			this.Depth = -1;
 			return false;
 		}
 
-		private void BackTrackVariable(IVariable<int> variablePrune, out DomainOperationResult result)
+		while (true)
 		{
-			++this.Backtracks;
-			var value = variablePrune.InstantiatedValue;
-
-			foreach (var variable in this.Variables)
-				variable.Backtrack(this.Depth);
-
-			--this.Depth;
-
-			this.Trail.Backtrack(this.Depth, this.Variables);
-
-			foreach (var backtrackableConstraint in this.BacktrackableConstraints)
-				backtrackableConstraint.OnBacktrack(this.Depth);
-
-			variablePrune.Remove(value, this.Depth, out result);
-		}
-
-		private static IVariable<int> GetMostConstrainedVariable(LinkedList<IVariable<int>> list)
-		{
-			var temp = list.First;
-			var node = list.First;
-
-			while (node != null)
+			if (this.Depth == this.Variables.Count)
 			{
-				if (node.Value.Size() < temp.Value.Size())
-					temp = node;
+				searchResult = StateOperationResult.Solved;
+				this.Runtime += stopwatch.Elapsed;
+				stopwatch = Stopwatch.StartNew();
 
-				if (temp.Value.Size() == 1)
-					break;
+				this.LastSolution = instantiatedVariables.ToArray();
 
-				node = node.Next;
+				return true;
 			}
-			list.Remove(temp);
 
-			return temp.Value;
+			instantiatedVariables[this.Depth] = GetMostConstrainedVariable(unassignedVariables);
+			instantiatedVariables[this.Depth].Instantiate(this.Depth, out DomainOperationResult instantiateResult);
+
+			if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
+				return false;
+
+			if (ConstraintsViolated() || unassignedVariables.Any(v => v.Size() == 0))
+			{
+				if (!Backtrack(unassignedVariables, instantiatedVariables))
+					return false;
+			}
+
+			if (stopwatch.Elapsed.TotalSeconds > timeOut)
+			{
+				searchResult = StateOperationResult.TimedOut;
+				return false;
+			}
+
+			++this.Depth;
 		}
+	}
 
-		private readonly Random ran = new Random();
-		private IVariable<int> GetRandomVariable(LinkedList<IVariable<int>> list)
+	private bool Backtrack(LinkedList<IVariable<int>> unassignedVariables, IList<IVariable<int>> instantiatedVariables)
+	{
+		DomainOperationResult removeResult;
+		do
 		{
-			var index = ran.Next(0, list.Count - 1);
-			var node = list.First;
-			while (--index >= 0)
-				node = node.Next;
-			list.Remove(node);
-			return node.Value;
+			if (this.Depth < 0)
+				return false;
+
+			unassignedVariables.AddFirst(instantiatedVariables[this.Depth]);
+			BackTrackVariable(instantiatedVariables[this.Depth], out removeResult);
+		} while (removeResult == DomainOperationResult.EmptyDomain);
+
+		return true;
+	}
+
+	private bool ConstraintsViolated()
+	{
+		for (var i = 0; i < this.Constraints.Count; ++i)
+		{
+			var constraint = this.Constraints[i];
+			if (!constraint.StateChanged())
+				continue;
+
+			constraint.Propagate(out ConstraintOperationResult result);
+			if ((result & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
+				return true;
+
+			constraint.Check(out result);
+			if ((result & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
+				return true;
 		}
 
-		private IVariable<int> GetFirstVariable(LinkedList<IVariable<int>> list)
-		{
-			var first = list.First;
-			list.Remove(first);
-			return first.Value;
-		}
+		return false;
+	}
 
-		private IVariable<int> GetLastVariable(LinkedList<IVariable<int>> list)
+	private void BackTrackVariable(IVariable<int> variablePrune, out DomainOperationResult result)
+	{
+		++this.Backtracks;
+		var value = variablePrune.InstantiatedValue;
+
+		foreach (var variable in this.Variables)
+			variable.Backtrack(this.Depth);
+
+		--this.Depth;
+
+		this.Trail.Backtrack(this.Depth, this.Variables);
+
+		foreach (var backtrackableConstraint in this.BacktrackableConstraints)
+			backtrackableConstraint.OnBacktrack(this.Depth);
+
+		variablePrune.Remove(value, this.Depth, out result);
+	}
+
+	private static IVariable<int> GetMostConstrainedVariable(LinkedList<IVariable<int>> list)
+	{
+		var temp = list.First;
+		var node = list.First;
+
+		while (node != null)
 		{
-			var last = list.Last;
-			list.Remove(last);
-			return last.Value;
+			if (node.Value.Size() < temp.Value.Size())
+				temp = node;
+
+			if (temp.Value.Size() == 1)
+				break;
+
+			node = node.Next;
 		}
+		list.Remove(temp);
+
+		return temp.Value;
+	}
+
+	private readonly Random ran = new Random();
+	private IVariable<int> GetRandomVariable(LinkedList<IVariable<int>> list)
+	{
+		var index = ran.Next(0, list.Count - 1);
+		var node = list.First;
+		while (--index >= 0)
+			node = node.Next;
+		list.Remove(node);
+		return node.Value;
+	}
+
+	private IVariable<int> GetFirstVariable(LinkedList<IVariable<int>> list)
+	{
+		var first = list.First;
+		list.Remove(first);
+		return first.Value;
+	}
+
+	private IVariable<int> GetLastVariable(LinkedList<IVariable<int>> list)
+	{
+		var last = list.Last;
+		list.Remove(last);
+		return last.Value;
 	}
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
   Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
@@ -9,103 +9,101 @@ using System.Linq;
 
 using Decider.Csp.BaseTypes;
 
-namespace Decider.Csp.Integer
+namespace Decider.Csp.Integer;
+
+public class ConstraintInteger : ExpressionInteger, IConstraint
 {
-	public class ConstraintInteger : ExpressionInteger, IConstraint
+	private readonly IVariable<int>[] variableArray;
+	private readonly int[] generationArray;
+
+	public ConstraintInteger(Expression<int> expression)
 	{
-		private readonly IVariable<int>[] variableArray;
-		private readonly int[] generationArray;
+		var expressionInt = (ExpressionInteger) expression;
+		this.left = expressionInt.Left;
+		this.right = expressionInt.Right;
+		this.evaluate = expressionInt.Evaluate;
+		this.evaluateBounds = expressionInt.EvaluateBounds;
+		this.propagator = expressionInt.Propagator;
+		this.integer = expressionInt.Integer;
 
-		public ConstraintInteger(Expression<int> expression)
+		var variableSet = new HashSet<IVariable<int>>();
+		ConstructVariableList((ExpressionInteger) expression, variableSet);
+		this.variableArray = variableSet.ToArray();
+		this.generationArray = new int[this.variableArray.Length];
+	}
+
+	private static void ConstructVariableList(ExpressionInteger expression, ISet<IVariable<int>> variableSet)
+	{
+		if (expression.Left is VariableInteger)
 		{
-			var expressionInt = (ExpressionInteger) expression;
-			this.left = expressionInt.Left;
-			this.right = expressionInt.Right;
-			this.evaluate = expressionInt.Evaluate;
-			this.evaluateBounds = expressionInt.EvaluateBounds;
-			this.propagator = expressionInt.Propagator;
-			this.integer = expressionInt.Integer;
-
-			var variableSet = new HashSet<IVariable<int>>();
-			ConstructVariableList((ExpressionInteger) expression, variableSet);
-			this.variableArray = variableSet.ToArray();
-			this.generationArray = new int[this.variableArray.Length];
+			variableSet.Add((VariableInteger) expression.Left);
 		}
-
-		private static void ConstructVariableList(ExpressionInteger expression, ISet<IVariable<int>> variableSet)
+		else if (expression.Left is MetaExpressionInteger)
 		{
-			if (expression.Left is VariableInteger)
+			ConstructVariableList((ExpressionInteger) expression.Left, variableSet);
+			foreach (var variable in ((IMetaExpression<int>) expression.Left).Support)
 			{
-				variableSet.Add((VariableInteger) expression.Left);
-			}
-			else if (expression.Left is MetaExpressionInteger)
-			{
-				ConstructVariableList((ExpressionInteger) expression.Left, variableSet);
-				foreach (var variable in ((IMetaExpression<int>) expression.Left).Support)
-				{
-					variableSet.Add(variable);
-				}
-			}
-			else if (expression.Left is ExpressionInteger)
-			{
-				ConstructVariableList((ExpressionInteger) expression.Left, variableSet);
-			}
-
-
-			if (expression.Right is VariableInteger)
-			{
-				variableSet.Add((VariableInteger) expression.Right);
-			}
-			else if (expression.Right is MetaExpressionInteger)
-			{
-				ConstructVariableList((ExpressionInteger) expression.Right, variableSet);
-				foreach (var variable in ((IMetaExpression<int>) expression.Right).Support)
-				{
-					variableSet.Add(variable);
-				}
-			}
-			else if (expression.Right is ExpressionInteger)
-			{
-				ConstructVariableList((ExpressionInteger) expression.Right, variableSet);
+				variableSet.Add(variable);
 			}
 		}
-
-		public void Check(out ConstraintOperationResult result)
+		else if (expression.Left is ExpressionInteger)
 		{
-			for (var i = 0; i < this.variableArray.Length; ++i)
-				this.generationArray[i] = ((VariableInteger) variableArray[i]).Generation;
-
-			if (this.variableArray.Any(variable => !variable.Instantiated()))
-			{
-				result = ConstraintOperationResult.Undecided;
-				return;
-			}
-
-			try
-			{
-				result = this.Value != 0 ? ConstraintOperationResult.Satisfied : ConstraintOperationResult.Violated;
-			}
-			catch (DivideByZeroException)
-			{
-				result = ConstraintOperationResult.Violated;
-			}
+			ConstructVariableList((ExpressionInteger) expression.Left, variableSet);
 		}
 
-		public void Propagate(out ConstraintOperationResult result)
-		{
-			var enforce = new Bounds<int>(1, 1);
 
-			do
-			{
-				Propagate(enforce, out result);
-			} while ((result & ConstraintOperationResult.Propagated) == ConstraintOperationResult.Propagated);
+		if (expression.Right is VariableInteger)
+		{
+			variableSet.Add((VariableInteger) expression.Right);
 		}
-
-		public bool StateChanged()
+		else if (expression.Right is MetaExpressionInteger)
 		{
-			return this.variableArray.Where((variable, index) =>
-				((VariableInteger) variable).Generation != this.generationArray[index]).Any();
+			ConstructVariableList((ExpressionInteger) expression.Right, variableSet);
+			foreach (var variable in ((IMetaExpression<int>) expression.Right).Support)
+			{
+				variableSet.Add(variable);
+			}
+		}
+		else if (expression.Right is ExpressionInteger)
+		{
+			ConstructVariableList((ExpressionInteger) expression.Right, variableSet);
 		}
 	}
-}
 
+	public void Check(out ConstraintOperationResult result)
+	{
+		for (var i = 0; i < this.variableArray.Length; ++i)
+			this.generationArray[i] = ((VariableInteger) variableArray[i]).Generation;
+
+		if (this.variableArray.Any(variable => !variable.Instantiated()))
+		{
+			result = ConstraintOperationResult.Undecided;
+			return;
+		}
+
+		try
+		{
+			result = this.Value != 0 ? ConstraintOperationResult.Satisfied : ConstraintOperationResult.Violated;
+		}
+		catch (DivideByZeroException)
+		{
+			result = ConstraintOperationResult.Violated;
+		}
+	}
+
+	public void Propagate(out ConstraintOperationResult result)
+	{
+		var enforce = new Bounds<int>(1, 1);
+
+		do
+		{
+			Propagate(enforce, out result);
+		} while ((result & ConstraintOperationResult.Propagated) == ConstraintOperationResult.Propagated);
+	}
+
+	public bool StateChanged()
+	{
+		return this.variableArray.Where((variable, index) =>
+			((VariableInteger) variable).Generation != this.generationArray[index]).Any();
+	}
+}

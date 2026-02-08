@@ -72,7 +72,7 @@ All benchmarks track the following metrics in the summary table:
 ```
 | Method                | Mean     | Error   | StdDev  | Backtracks | Gen0        | Gen1      | Gen2      | Allocated |
 |---------------------- |---------:|--------:|--------:|-----------:|------------:|----------:|----------:|----------:|
-| SolveLeagueGeneration | 761.9 ms | 7.78 ms | 0.43 ms |      6,249 | 259000.0000 | 2000.0000 | 1000.0000 |   2.07 GB |
+| SolveLeagueGeneration | 362.2 ms | 6.14 ms | 0.34 ms |      6,249 | 132000.0000 | 2000.0000 | 1000.0000 |   1.07 GB |
 ```
 
 **OR-Tools NQueens:**
