@@ -1,6 +1,6 @@
 /*
-  Copyright © Iain McDonald 2010-2022
-  
+  Copyright © Iain McDonald 2010-2026
+
   This file is part of Decider.
 */
 using System;
@@ -40,10 +40,18 @@ public class NQueens
 			}
 	}
 
-	public void SearchAllSolutions()
+	public void SearchAllSolutions(bool progress = true)
 	{
 		//	Search
 		State = new StateInteger(Variables, Constraints);
+		if (progress)
+			State.OnProgress = progress =>
+			{
+				var filled = (int)(progress * 50);
+				Console.Write($"\r[{new string('#', filled)}{new string('-', 50 - filled)}] {progress:P1}  " +
+					$"{State.Backtracks} backtracks, {State.Solutions.Count} solutions");
+			};
+
 		if (State.SearchAllSolutions() == StateOperationResult.Solved)
 			Solutions = State.Solutions;
 		else

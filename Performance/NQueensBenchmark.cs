@@ -47,7 +47,7 @@ public class NQueensBenchmark
 			{
 				var boardSize = (int)parameters.Items[0].Value;
 				var nQueens = new NQueens(boardSize);
-				nQueens.SearchAllSolutions();
+				nQueens.SearchAllSolutions(false);
 				return nQueens.State.Backtracks.ToString("N0");
 			}
 			return "-";

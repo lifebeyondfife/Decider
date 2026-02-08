@@ -129,6 +129,30 @@ Which results in
 and a further ninety solutions.
 
 
+Progress Reporting
+------------------
+
+For long-running searches, track progress through the search space with a callback
+
+```csharp
+state.OnProgress = progress =>
+{
+    var filled = (int)(progress * 50);
+    Console.Write($"\r[{new string('#', filled)}{new string('-', 50 - filled)}] {progress:P1}  " +
+        $"{state.Backtracks} backtracks, {state.Solutions.Count} solutions");
+};
+
+state.SearchAllSolutions();
+Console.WriteLine();
+```
+
+Which displays a live updating progress bar
+
+    [####################------------------------------] 40.2%  15234 backtracks, 42 solutions
+
+The progress value represents the fraction of the combinatorial search space that has been explored. Progress reports occur every second by default, configurable via `ProgressInterval`.
+
+
 Optimise
 --------
 
