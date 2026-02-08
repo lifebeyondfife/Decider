@@ -1,6 +1,6 @@
 /*
   Copyright © Iain McDonald 2010-2026
-
+  
   This file is part of Decider.
 */
 using System;
