@@ -25,9 +25,16 @@ public class StateInteger : IState<int>
 	public IDictionary<string, IVariable<int>>? OptimalSolution { get; private set; }
 	public IList<IDictionary<string, IVariable<int>>> Solutions { get; private set; }
 
+	public Action<double>? OnProgress { get; set; }
+	public TimeSpan ProgressInterval { get; set; }
+
 	private IVariable<int>[]? LastSolution { get; set; }
 
 	internal DomainTrail Trail { get; private set; }
+
+	private int[] BranchFactor { get; set; }
+	private int[] Explored { get; set; }
+	private TimeSpan LastProgressReport { get; set; }
 
 	public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints)
 	{
@@ -38,7 +45,13 @@ public class StateInteger : IState<int>
 		this.Runtime = new TimeSpan(0);
 		this.Solutions = new List<IDictionary<string, IVariable<int>>>();
 
+		this.ProgressInterval = TimeSpan.FromSeconds(1);
+		this.LastProgressReport = TimeSpan.Zero;
+
 		this.Trail = new DomainTrail(this.Variables.Count, this.Variables.Count * 10000);
+
+		this.BranchFactor = new int[this.Variables.Count];
+		this.Explored = new int[this.Variables.Count];
 
 		for (var i = 0; i < this.Variables.Count; ++i)
 			((VariableInteger)this.Variables[i]).SetVariableId(i);
@@ -85,6 +98,9 @@ public class StateInteger : IState<int>
 
 		this.Runtime += stopwatch.Elapsed;
 		stopwatch.Stop();
+
+		this.OnProgress?.Invoke(1.0);
+
 		return searchResult;
 	}
 
@@ -125,6 +141,9 @@ public class StateInteger : IState<int>
 
 		this.Runtime += stopwatch.Elapsed;
 		stopwatch.Stop();
+
+		this.OnProgress?.Invoke(1.0);
+
 		return searchResult;
 	}
 
@@ -162,6 +181,9 @@ public class StateInteger : IState<int>
 
 		this.Runtime += stopwatch.Elapsed;
 		stopwatch.Stop();
+
+		this.OnProgress?.Invoke(1.0);
+
 		return Solutions.Any() ? StateOperationResult.Solved : StateOperationResult.Unsatisfiable;
 	}
 
@@ -198,6 +220,19 @@ public class StateInteger : IState<int>
 			}
 
 			instantiatedVariables[this.Depth] = GetMostConstrainedVariable(unassignedVariables);
+
+			if (this.BranchFactor[this.Depth] == 0)
+			{
+				this.BranchFactor[this.Depth] = instantiatedVariables[this.Depth].Size();
+				this.Explored[this.Depth] = 0;
+
+				for (var i = this.Depth + 1; i < this.Explored.Length; ++i)
+				{
+					this.BranchFactor[i] = 0;
+					this.Explored[i] = 0;
+				}
+			}
+
 			instantiatedVariables[this.Depth].Instantiate(this.Depth, out DomainOperationResult instantiateResult);
 
 			if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
@@ -215,6 +250,13 @@ public class StateInteger : IState<int>
 				return false;
 			}
 
+			var currentRuntime = this.Runtime + stopwatch.Elapsed;
+			if (this.OnProgress != null && currentRuntime - this.LastProgressReport >= this.ProgressInterval)
+			{
+				this.OnProgress(ComputeProgress());
+				this.LastProgressReport = currentRuntime;
+			}
+
 			++this.Depth;
 		}
 	}
@@ -229,6 +271,9 @@ public class StateInteger : IState<int>
 
 			unassignedVariables.AddFirst(instantiatedVariables[this.Depth]);
 			BackTrackVariable(instantiatedVariables[this.Depth], out removeResult);
+
+			if (removeResult == DomainOperationResult.EmptyDomain)
+				this.BranchFactor[this.Depth + 1] = 0;
 		} while (removeResult == DomainOperationResult.EmptyDomain);
 
 		return true;
@@ -263,6 +308,7 @@ public class StateInteger : IState<int>
 			variable.Backtrack(this.Depth);
 
 		--this.Depth;
+		++this.Explored[this.Depth + 1];
 
 		this.Trail.Backtrack(this.Depth, this.Variables);
 
@@ -315,5 +361,26 @@ public class StateInteger : IState<int>
 		var last = list.Last;
 		list.Remove(last!);
 		return last!.Value;
+	}
+
+	private double ComputeProgress()
+	{
+		var progress = 0.0;
+		var scale = 1.0;
+
+		for (var d = 0; d <= this.Depth && d < this.Variables.Count; ++d)
+		{
+			if (this.BranchFactor[d] == 0)
+				continue;
+
+			progress += scale * this.Explored[d] / this.BranchFactor[d];
+
+			if (this.Explored[d] >= this.BranchFactor[d])
+				break;
+
+			scale /= this.BranchFactor[d];
+		}
+
+		return progress;
 	}
 }

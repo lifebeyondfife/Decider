@@ -1,5 +1,5 @@
 /*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
 
   This file is part of Decider.
 */
@@ -12,20 +12,26 @@ public class Program
 {
 	public static void Main(string[] args)
 	{
-		var nQueens = new NQueens((args.Length >= 1) ? Int32.Parse(args[0]) : 8);
-		nQueens.SearchAllSolutions();
+		var n = (args.Length >= 1) ? Int32.Parse(args[0]) : 13;
+		var nQueens = new NQueens(n);
 
-		foreach (var solution in nQueens.Solutions)
+		nQueens.SearchAllSolutions();
+		Console.WriteLine();
+
+		if (n <= 10)
 		{
-			for (var i = 0; i < nQueens.State.Variables.Count; ++i)
+			foreach (var solution in nQueens.Solutions)
 			{
-				for (var j = 0; j < nQueens.State.Variables.Count; ++j)
-					Console.Write(solution[i.ToString(CultureInfo.CurrentCulture)].InstantiatedValue == j ? "Q " : ". ");
+				for (var i = 0; i < nQueens.State.Variables.Count; ++i)
+				{
+					for (var j = 0; j < nQueens.State.Variables.Count; ++j)
+						Console.Write(solution[i.ToString(CultureInfo.CurrentCulture)].InstantiatedValue == j ? "Q " : ". ");
+
+					Console.WriteLine();
+				}
 
 				Console.WriteLine();
 			}
-
-			Console.WriteLine();
 		}
 
 		Console.WriteLine($"Runtime:\t{nQueens.State.Runtime}");

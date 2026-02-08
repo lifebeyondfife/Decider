@@ -25,6 +25,9 @@ public interface IState<T>
 	IDictionary<string, IVariable<T>>? OptimalSolution { get; }
 	IList<IVariable<T>> Variables { get; }
 
+	Action<double>? OnProgress { get; set; }
+	TimeSpan ProgressInterval { get; set; }
+
 	void SetVariables(IEnumerable<IVariable<T>> variableList);
 	void SetConstraints(IEnumerable<IConstraint> constraintList);
 
