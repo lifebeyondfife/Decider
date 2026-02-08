@@ -22,4 +22,9 @@ namespace Decider.Csp.BaseTypes
 		void Propagate(out ConstraintOperationResult result);
 		bool StateChanged();
 	}
+
+	public interface IBacktrackableConstraint : IConstraint
+	{
+		void OnBacktrack(int toDepth);
+	}
 }

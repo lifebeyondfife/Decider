@@ -61,11 +61,11 @@ All benchmarks track the following metrics in the summary table:
 
 **Decider NQueens:**
 ```
-| Method       | BoardSize | Mean        | Error      | StdDev    | Backtracks | Gen0         | Gen1       | Gen2      | Allocated   |
-|------------- |---------- |------------:|-----------:|----------:|-----------:|-------------:|-----------:|----------:|------------:|
-| SolveNQueens | 8         |    11.36 ms |   1.951 ms |  0.107 ms |      1,029 |    4765.6250 |   515.6250 |  500.0000 |    36.36 MB |
-| SolveNQueens | 10        |   200.58 ms |   5.170 ms |  0.283 ms |     14,036 |   73666.6667 |  1666.6667 |  333.3333 |   589.75 MB |
-| SolveNQueens | 12        | 5,098.02 ms | 183.319 ms | 10.048 ms |    278,540 | 1841000.0000 | 30000.0000 | 5000.0000 | 14667.94 MB |
+| Method       | BoardSize | Mean         | Error      | StdDev     | Backtracks | Gen0         | Gen1       | Gen2      | Allocated   |
+|------------- |---------- |-------------:|-----------:|-----------:|-----------:|-------------:|-----------:|----------:|------------:|
+| SolveNQueens | 8         |     9.676 ms |  0.148 ms  |  0.139 ms  |      1,029 |    4046.8750 |   531.2500 |  500.0000 |     30.5 MB |
+| SolveNQueens | 10        |   181.635 ms |  1.037 ms  |  1.018 ms  |     14,036 |   60666.6667 |  1000.0000 |  333.3333 |   488.54 MB |
+| SolveNQueens | 12        | 4,226.159 ms | 12.264 ms  | 10.872 ms  |    278,540 | 1535000.0000 | 30000.0000 | 5000.0000 | 12226.68 MB |
 ```
 
 **Decider LeagueGeneration:**
