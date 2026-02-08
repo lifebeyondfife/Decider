@@ -15,17 +15,17 @@ namespace Decider.Csp.Integer;
 
 public class StateInteger : IState<int>
 {
-	public IList<IConstraint> Constraints { get; private set; }
-	private IList<IBacktrackableConstraint> BacktrackableConstraints { get; set; }
-	public IList<IVariable<int>> Variables { get; private set; }
+	public IList<IConstraint> Constraints { get; private set; } = new List<IConstraint>();
+	private IList<IBacktrackableConstraint> BacktrackableConstraints { get; set; } = new List<IBacktrackableConstraint>();
+	public IList<IVariable<int>> Variables { get; private set; } = new List<IVariable<int>>();
 
 	public int Depth { get; private set; }
 	public int Backtracks { get; private set; }
 	public TimeSpan Runtime { get; private set; }
-	public IDictionary<string, IVariable<int>> OptimalSolution { get; private set; }
+	public IDictionary<string, IVariable<int>>? OptimalSolution { get; private set; }
 	public IList<IDictionary<string, IVariable<int>>> Solutions { get; private set; }
 
-	private IVariable<int>[] LastSolution { get; set; }
+	private IVariable<int>[]? LastSolution { get; set; }
 
 	internal DomainTrail Trail { get; private set; }
 
@@ -167,7 +167,7 @@ public class StateInteger : IState<int>
 
 	private IDictionary<string, IVariable<int>> CloneLastSolution()
 	{
-		return this.LastSolution.Select(v => v.Clone())
+		return this.LastSolution!.Select(v => v.Clone())
 			.Cast<IVariable<int>>()
 			.Select(v => new KeyValuePair<string, IVariable<int>>(v.Name, v))
 			.OrderBy(kvp => kvp.Key)
@@ -279,7 +279,7 @@ public class StateInteger : IState<int>
 
 		while (node != null)
 		{
-			if (node.Value.Size() < temp.Value.Size())
+			if (node.Value.Size() < temp!.Value.Size())
 				temp = node;
 
 			if (temp.Value.Size() == 1)
@@ -287,9 +287,9 @@ public class StateInteger : IState<int>
 
 			node = node.Next;
 		}
-		list.Remove(temp);
+		list.Remove(temp!);
 
-		return temp.Value;
+		return temp!.Value;
 	}
 
 	private readonly Random ran = new Random();
@@ -298,22 +298,22 @@ public class StateInteger : IState<int>
 		var index = ran.Next(0, list.Count - 1);
 		var node = list.First;
 		while (--index >= 0)
-			node = node.Next;
-		list.Remove(node);
-		return node.Value;
+			node = node!.Next;
+		list.Remove(node!);
+		return node!.Value;
 	}
 
 	private IVariable<int> GetFirstVariable(LinkedList<IVariable<int>> list)
 	{
 		var first = list.First;
-		list.Remove(first);
-		return first.Value;
+		list.Remove(first!);
+		return first!.Value;
 	}
 
 	private IVariable<int> GetLastVariable(LinkedList<IVariable<int>> list)
 	{
 		var last = list.Last;
-		list.Remove(last);
-		return last.Value;
+		list.Remove(last!);
+		return last!.Value;
 	}
 }

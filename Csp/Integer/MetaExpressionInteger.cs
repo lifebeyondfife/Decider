@@ -1,5 +1,5 @@
 /*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
 
   This file is part of Decider.
 */
@@ -33,9 +33,9 @@ public class MetaExpressionInteger : ExpressionInteger, IMetaExpression<int>
 	}
 
 	internal MetaExpressionInteger(VariableInteger variable,
-		Func<ExpressionInteger, ExpressionInteger, int> evaluate,
-		Func<ExpressionInteger, ExpressionInteger, Bounds<int>> evaluateBounds,
-		Func<ExpressionInteger, ExpressionInteger, Bounds<int>, ConstraintOperationResult> propagator,
+		Func<ExpressionInteger, ExpressionInteger?, int> evaluate,
+		Func<ExpressionInteger, ExpressionInteger?, Bounds<int>> evaluateBounds,
+		Func<ExpressionInteger, ExpressionInteger?, Bounds<int>, ConstraintOperationResult> propagator,
 		IEnumerable<IVariable<int>> support)
 		: base(variable, evaluate, evaluateBounds, propagator)
 	{

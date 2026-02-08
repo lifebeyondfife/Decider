@@ -22,7 +22,7 @@ public interface IState<T>
 	TimeSpan Runtime { get; }
 	int Backtracks { get; }
 	IList<IDictionary<string, IVariable<T>>> Solutions { get; }
-	IDictionary<string, IVariable<T>> OptimalSolution { get; }
+	IDictionary<string, IVariable<T>>? OptimalSolution { get; }
 	IList<IVariable<T>> Variables { get; }
 
 	void SetVariables(IEnumerable<IVariable<T>> variableList);

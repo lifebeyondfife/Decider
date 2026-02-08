@@ -11,11 +11,11 @@ namespace Decider.Csp.Global;
 
 internal class CycleDetection
 {
-	private Stack<Node> nodeStack;
+	private Stack<Node> nodeStack = new Stack<Node>();
 	private int index;
 
-	internal List<List<Node>> StronglyConnectedComponents { get; set; }
-	internal Graph Graph { get; set; }
+	internal List<List<Node>> StronglyConnectedComponents { get; set; } = new List<List<Node>>();
+	internal Graph Graph { get; set; } = new Graph();
 
 	internal void DetectCycle()
 	{

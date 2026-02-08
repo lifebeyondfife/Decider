@@ -12,7 +12,7 @@ namespace Decider.Csp.BaseTypes;
 
 public class ConstrainedArray : ReadOnlyCollection<int>
 {
-	private VariableInteger Index { get; set; }
+	private VariableInteger? Index { get; set; }
 
 	public MetaExpressionInteger this[VariableInteger index]
 	{
@@ -31,12 +31,12 @@ public class ConstrainedArray : ReadOnlyCollection<int>
 
 	private VariableInteger GetVariableInteger()
 	{
-		return new VariableInteger(Index.Name + this.ToString(), Elements());
+		return new VariableInteger(Index!.Name + this.ToString(), Elements());
 	}
 
 	private List<int> Elements()
 	{
-		return Enumerable.Range(Index.Domain.LowerBound, Index.Domain.UpperBound - Index.Domain.LowerBound + 1).
+		return Enumerable.Range(Index!.Domain.LowerBound, Index.Domain.UpperBound - Index.Domain.LowerBound + 1).
 			Where(i => Index.Domain.Contains(i)).
 			Select(i => this[i]).
 			ToList();
@@ -44,7 +44,7 @@ public class ConstrainedArray : ReadOnlyCollection<int>
 
 	private SortedList<int, IList<int>> SortedElements()
 	{
-		var kvps = Enumerable.Range(Index.Domain.LowerBound, Index.Domain.UpperBound - Index.Domain.LowerBound + 1).
+		var kvps = Enumerable.Range(Index!.Domain.LowerBound, Index.Domain.UpperBound - Index.Domain.LowerBound + 1).
 			Where(i => Index.Domain.Contains(i)).
 			Select(i => new { Index = this[i], Value = i });
 
@@ -61,19 +61,19 @@ public class ConstrainedArray : ReadOnlyCollection<int>
 		return sortedList;
 	}
 
-	private int Evaluate(ExpressionInteger left, ExpressionInteger right)
+	private int Evaluate(ExpressionInteger left, ExpressionInteger? right)
 	{
-		return this[Index.Value];
+		return this[Index!.Value];
 	}
 
-	private Bounds<int> EvaluateBounds(ExpressionInteger left, ExpressionInteger right)
+	private Bounds<int> EvaluateBounds(ExpressionInteger left, ExpressionInteger? right)
 	{
 		var elements = Elements();
 
 		return new Bounds<int>(elements.DefaultIfEmpty().Min(), elements.DefaultIfEmpty().Max());
 	}
 
-    private ConstraintOperationResult Propagator(ExpressionInteger left, ExpressionInteger right, Bounds<int> enforce)
+    private ConstraintOperationResult Propagator(ExpressionInteger left, ExpressionInteger? right, Bounds<int> enforce)
 	{
 		var result = ConstraintOperationResult.Undecided;
 
@@ -98,7 +98,7 @@ public class ConstrainedArray : ReadOnlyCollection<int>
 
 			foreach (var value in remove)
 			{
-				Index.Remove(value, out DomainOperationResult domainOperation);
+				Index!.Remove(value, out DomainOperationResult domainOperation);
 
 				if (domainOperation == DomainOperationResult.EmptyDomain)
 					return ConstraintOperationResult.Violated;

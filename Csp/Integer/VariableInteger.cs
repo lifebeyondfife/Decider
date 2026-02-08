@@ -46,13 +46,13 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 
 	private static int nextGeneration;
 
-	private IDomain<int> baseDomain;
-	private Stack<InstantiationEntry> instantiationStack;
+	private IDomain<int> baseDomain = DomainBinaryInteger.CreateDomain(0, 0);
+	private Stack<InstantiationEntry> instantiationStack = new Stack<InstantiationEntry>();
 	private int variableId;
 	private int generation;
 
-	public IState<int> State { get; set; }
-	public string Name { get; private set; }
+	public IState<int>? State { get; set; }
+	public string Name { get; private set; } = string.Empty;
 	internal int Generation { get { return this.generation; } }
 
 	internal void RestoreGeneration(int oldGeneration)
@@ -154,7 +154,7 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 		var domainBinary = (DomainBinaryInteger)this.baseDomain;
 		var arrayIndex = domainBinary.GetArrayIndex(value);
 
-		((StateInteger)this.State).Trail.RecordChange(this.variableId, arrayIndex,
+		((StateInteger)this.State!).Trail.RecordChange(this.variableId, arrayIndex,
 			domainBinary.GetBits(arrayIndex), domainBinary.InternalLowerBound, domainBinary.InternalUpperBound, domainBinary.Size(), this.generation, depth);
 
 		this.generation = ++nextGeneration;
@@ -176,7 +176,8 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 
 	public void Remove(int value, out DomainOperationResult result)
 	{
-		if (Instantiated() || value > this.Domain.UpperBound || value < this.Domain.LowerBound)
+		if (Instantiated() || value > this.Domain.UpperBound ||
+			value < this.Domain.LowerBound || this.State == null)
 		{
 			result = DomainOperationResult.ElementNotInDomain;
 			return;
@@ -205,9 +206,9 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 		this.variableId = id;
 	}
 
-	public int CompareTo(IVariable<int> otherVariable)
+	public int CompareTo(IVariable<int>? otherVariable)
 	{
-		return Size() - otherVariable.Size();
+		return Size() - otherVariable!.Size();
 	}
 
 	public override int Value
