@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 
 using Decider.Csp.BaseTypes;
 
@@ -87,7 +88,7 @@ public class StateInteger : IState<int>
 		return searchResult;
 	}
 
-	public StateOperationResult Search(IVariable<int> optimiseVar, int timeOut)
+	public StateOperationResult Search(IVariable<int> optimiseVar, CancellationToken cancellationToken = default)
 	{
 		var unassignedVariables = this.LastSolution == null
 			? new LinkedList<IVariable<int>>(this.Variables)
@@ -109,13 +110,13 @@ public class StateInteger : IState<int>
 			else if (ConstraintsViolated())
 				break;
 
-			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, timeOut))
+			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, cancellationToken))
 			{
 				this.Constraints.RemoveAt(this.Constraints.Count - 1);
 				this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
 				this.OptimalSolution = CloneLastSolution();
 			}
-			else if (searchResult == StateOperationResult.TimedOut)
+			else if (searchResult == StateOperationResult.Cancelled)
 				break;
 		}
 
@@ -174,7 +175,7 @@ public class StateInteger : IState<int>
 	}
 
 	private bool Search(out StateOperationResult searchResult, LinkedList<IVariable<int>> unassignedVariables,
-		IList<IVariable<int>> instantiatedVariables, ref Stopwatch stopwatch, int timeOut = Int32.MaxValue)
+		IList<IVariable<int>> instantiatedVariables, ref Stopwatch stopwatch, CancellationToken cancellationToken = default)
 	{
 		searchResult = StateOperationResult.Unsatisfiable;
 		if (unassignedVariables.Any(x => x.Size() == 0))
@@ -208,9 +209,9 @@ public class StateInteger : IState<int>
 					return false;
 			}
 
-			if (stopwatch.Elapsed.TotalSeconds > timeOut)
+			if (cancellationToken.IsCancellationRequested)
 			{
-				searchResult = StateOperationResult.TimedOut;
+				searchResult = StateOperationResult.Cancelled;
 				return false;
 			}
 
