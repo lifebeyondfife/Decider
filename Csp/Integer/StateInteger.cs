@@ -32,8 +32,8 @@ public class StateInteger : IState<int>
 
 	internal DomainTrail Trail { get; private set; }
 
-	private int[] BranchFactor { get; set; }
-	private int[] Explored { get; set; }
+	private IList<int> BranchFactor { get; set; } = new List<int>();
+	private IList<int> Explored { get; set; } = new List<int>();
 	private TimeSpan LastProgressReport { get; set; }
 
 	public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints)
@@ -226,7 +226,7 @@ public class StateInteger : IState<int>
 				this.BranchFactor[this.Depth] = instantiatedVariables[this.Depth].Size();
 				this.Explored[this.Depth] = 0;
 
-				for (var i = this.Depth + 1; i < this.Explored.Length; ++i)
+				for (var i = this.Depth + 1; i < this.Explored.Count; ++i)
 				{
 					this.BranchFactor[i] = 0;
 					this.Explored[i] = 0;

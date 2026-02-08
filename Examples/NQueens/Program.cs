@@ -18,7 +18,7 @@ public class Program
 		nQueens.SearchAllSolutions();
 		Console.WriteLine();
 
-		if (n <= 10)
+		if (n <= 8)
 		{
 			foreach (var solution in nQueens.Solutions)
 			{

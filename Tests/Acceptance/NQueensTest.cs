@@ -16,7 +16,7 @@ public class NQueensTest
     public void TestCorrectSolution()
     {
         var nQueens = new NQueens(8);
-        nQueens.SearchAllSolutions();
+        nQueens.SearchAllSolutions(false);
         var solution = nQueens.Solutions.First();
 
         Assert.Equal(0, solution["0"].InstantiatedValue);
@@ -36,7 +36,7 @@ public class NQueensTest
     public void TestNumberOfSolutions(int boardSize, int expectedSolutions, int expectedBacktracks)
     {
         var nQueens = new NQueens(boardSize);
-        nQueens.SearchAllSolutions();
+        nQueens.SearchAllSolutions(false);
 
         Assert.Equal(expectedSolutions, nQueens.Solutions.Count);
         Assert.Equal(expectedBacktracks, nQueens.State.Backtracks);
