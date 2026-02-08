@@ -13,6 +13,7 @@ namespace Decider.Csp.Global
 	{
 		internal int Index { get; set; }
 		internal int Link { get; set; }
+		internal bool OnStack { get; set; }
 		internal LinkedList<Node> AdjoiningNodes { get; set; }
 		internal string Label { get; private set; }
 		internal int CycleIndex { get; set; }

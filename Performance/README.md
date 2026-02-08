@@ -57,24 +57,34 @@ All benchmarks track the following metrics in the summary table:
    - Distinguishes algorithmic improvements (fewer backtracks) from implementation optimizations
    - Flags fragile speedups (more backtracks but cheaper per-node cost)
 
-### Example Output
+### Latest Results
 
-**Decider Benchmarks:**
+**Decider NQueens:**
 ```
-| Method                | BoardSize | Mean     | Error   | StdDev  | Backtracks | Gen0     | Allocated |
-|---------------------- |---------- |---------:|--------:|--------:|-----------:|---------:|----------:|
-| SolveNQueens          | 8         | 12.34 ms | 0.12 ms | 0.11 ms |     15,720 | 500.0000 |   4.12 MB |
-| SolveNQueens          | 10        | 45.67 ms | 0.34 ms | 0.29 ms |    341,318 | 800.0000 |  12.45 MB |
-| SolveLeagueGeneration | -         | 745.9 ms | 2.35 ms | 2.09 ms |  1,234,567 | 270000.0 |   2.11 GB |
+| Method       | BoardSize | Mean        | Error      | StdDev    | Backtracks | Gen0         | Gen1       | Gen2      | Allocated   |
+|------------- |---------- |------------:|-----------:|----------:|-----------:|-------------:|-----------:|----------:|------------:|
+| SolveNQueens | 8         |    11.36 ms |   1.951 ms |  0.107 ms |      1,029 |    4765.6250 |   515.6250 |  500.0000 |    36.36 MB |
+| SolveNQueens | 10        |   200.58 ms |   5.170 ms |  0.283 ms |     14,036 |   73666.6667 |  1666.6667 |  333.3333 |   589.75 MB |
+| SolveNQueens | 12        | 5,098.02 ms | 183.319 ms | 10.048 ms |    278,540 | 1841000.0000 | 30000.0000 | 5000.0000 | 14667.94 MB |
 ```
 
-**OR-Tools Benchmarks:**
+**Decider LeagueGeneration:**
 ```
-| Method       | BoardSize | Mean     | Error   | StdDev  | Conflicts | Branches  | Gen0     | Allocated |
-|------------- |---------- |---------:|--------:|--------:|----------:|----------:|---------:|----------:|
-| SolveNQueens | 8         | 10.25 ms | 0.08 ms | 0.07 ms |    12,340 |    24,680 | 400.0000 |   3.45 MB |
-| SolveNQueens | 10        | 38.12 ms | 0.29 ms | 0.25 ms |   285,902 |   571,804 | 650.0000 |  10.23 MB |
+| Method                | Mean     | Error   | StdDev  | Backtracks | Gen0        | Gen1      | Gen2      | Allocated |
+|---------------------- |---------:|--------:|--------:|-----------:|------------:|----------:|----------:|----------:|
+| SolveLeagueGeneration | 761.9 ms | 7.78 ms | 0.43 ms |      6,249 | 259000.0000 | 2000.0000 | 1000.0000 |   2.07 GB |
 ```
+
+**OR-Tools NQueens:**
+```
+| Method       | BoardSize | Mean        | Error      | StdDev   | Conflicts | Branches | Allocated |
+|------------- |---------- |------------:|-----------:|---------:|----------:|---------:|----------:|
+| SolveNQueens | 8         |    12.75 ms |   0.111 ms | 0.006 ms |       650 |    7,238 |  40.68 KB |
+| SolveNQueens | 10        |   340.93 ms |  16.757 ms | 0.918 ms |    10,902 |   74,184 |  68.52 KB |
+| SolveNQueens | 12        | 4,979.17 ms | 125.127 ms | 6.859 ms |   133,379 |  669,397 |  96.77 KB |
+```
+
+> **Note:** OR-Tools allocation figures only reflect .NET managed heap usage (the C# interop layer). The solver itself is written in C++ and allocates on the native heap, which is not tracked by BenchmarkDotNet's `MemoryDiagnoser`. Direct memory comparisons between Decider and OR-Tools are therefore not meaningful.
 
 **Search Metrics Explained:**
 - **Backtracks** (Decider): Total backtracks during search - distinguishes algorithmic vs implementation improvements
