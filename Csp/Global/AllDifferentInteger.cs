@@ -45,12 +45,6 @@ namespace Decider.Csp.Global
 			for (var i = 0; i < this.variableArray.Length; ++i)
 				this.generationArray[i] = variableArray[i].Generation;
 
-			if (!FindMatching())
-			{
-				result = ConstraintOperationResult.Violated;
-				return;
-			}
-
 			if (this.variableArray.Any(variable => !variable.Instantiated()))
 			{
 				result = ConstraintOperationResult.Undecided;
@@ -60,16 +54,19 @@ namespace Decider.Csp.Global
 			result = ConstraintOperationResult.Satisfied;
 		}
 
-		private bool FindMatching()
-		{
-			return this.Graph.MaximalMatching(this.lastMatching) >= this.variableArray.Length;
-		}
-
 		public void Propagate(out ConstraintOperationResult result)
 		{
-			this.Graph = new BipartiteGraph(this.variableArray);
+			if (this.Graph == null)
+			{
+				this.Graph = new BipartiteGraph(this.variableArray);
 
-			if (!FindMatching())
+				if (this.Graph.MaximalMatching(this.lastMatching) < this.variableArray.Length)
+				{
+					result = ConstraintOperationResult.Violated;
+					return;
+				}
+			}
+			else if (!IncrementalUpdate())
 			{
 				result = ConstraintOperationResult.Violated;
 				return;
@@ -77,9 +74,11 @@ namespace Decider.Csp.Global
 
 			SaveMatching();
 
+			this.Graph.ResetSccState();
+			this.Graph.BuildDirectedForScc();
 			this.cycleDetection.Graph = this.Graph;
 			this.cycleDetection.DetectCycle();
-			
+
 			result = ConstraintOperationResult.Undecided;
 			foreach (var cycle in this.cycleDetection.StronglyConnectedComponents)
 			{
@@ -105,6 +104,47 @@ namespace Decider.Csp.Global
 					}
 				}
 			}
+		}
+
+		private bool IncrementalUpdate()
+		{
+			var brokenVariables = new List<NodeVariable>();
+
+			for (var i = 0; i < this.variableArray.Length; ++i)
+			{
+				var variable = this.variableArray[i];
+				var varNode = this.Graph.Variables[i];
+				var matchBroken = false;
+				var domainValues = new HashSet<int>(variable.Domain);
+
+				foreach (var adjNode in new List<Node>(varNode.BipartiteEdges))
+				{
+					var valNode = (NodeValue) adjNode;
+					if (domainValues.Contains(valNode.Value))
+						continue;
+
+					if (this.Graph.Pair[varNode] == valNode)
+						matchBroken = true;
+
+					this.Graph.RemoveEdge(varNode, valNode);
+				}
+
+				if (!matchBroken)
+					continue;
+
+				var matchedVal = this.Graph.Pair[varNode];
+				this.Graph.Pair[varNode] = this.Graph.NullNode;
+				this.Graph.Pair[matchedVal] = this.Graph.NullNode;
+				brokenVariables.Add(varNode);
+			}
+
+			foreach (var varNode in brokenVariables)
+			{
+				if (!this.Graph.RepairMatching(varNode))
+					return false;
+			}
+
+			return true;
 		}
 
 		public bool StateChanged()
@@ -134,6 +174,8 @@ namespace Decider.Csp.Global
 			this.lastMatching = this.matchingTrail.Count > 0
 				? this.matchingTrail.Peek().Matching
 				: null;
+
+			this.Graph = null;
 		}
 	}
 }

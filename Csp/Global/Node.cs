@@ -15,12 +15,14 @@ namespace Decider.Csp.Global
 		internal int Link { get; set; }
 		internal bool OnStack { get; set; }
 		internal LinkedList<Node> AdjoiningNodes { get; set; }
+		internal LinkedList<Node> BipartiteEdges { get; set; }
 		internal string Label { get; private set; }
 		internal int CycleIndex { get; set; }
 
 		internal Node()
 		{
 			this.AdjoiningNodes = new LinkedList<Node>();
+			this.BipartiteEdges = new LinkedList<Node>();
 			this.Index = -1;
 			this.Link = -1;
 			this.CycleIndex = -1;
