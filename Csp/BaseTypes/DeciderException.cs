@@ -1,22 +1,21 @@
 ﻿/*
   Copyright © Iain McDonald 2010-2022
-  
+
   This file is part of Decider.
 */
 using System;
 
-namespace Decider.Csp.BaseTypes
-{
-	public class DeciderException : Exception
-	{
-		public DeciderException()
-			: base()
-		{
-		}
+namespace Decider.Csp.BaseTypes;
 
-		public DeciderException(string message)
-			: base(message)
-		{
-		}
+public class DeciderException : Exception
+{
+	public DeciderException()
+		: base()
+	{
+	}
+
+	public DeciderException(string message)
+		: base(message)
+	{
 	}
 }
