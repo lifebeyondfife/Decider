@@ -138,7 +138,6 @@ public class StateInteger : IState<int>
 
 		this.Runtime += stopwatch.Elapsed;
 		stopwatch.Stop();
-
 		return searchResult;
 	}
 
