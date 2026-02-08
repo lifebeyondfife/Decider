@@ -11,12 +11,14 @@ using Decider.Csp.Integer;
 
 namespace Decider.Csp.Global
 {
-	public class AllDifferentInteger : IConstraint
+	public class AllDifferentInteger : IBacktrackableConstraint
 	{
 		private readonly VariableInteger[] variableArray;
 		private readonly int[] generationArray;
 		private BipartiteGraph Graph { get; set; }
 		private readonly CycleDetection cycleDetection;
+		private readonly Stack<(int Depth, int?[] Matching)> matchingTrail;
+		private int?[] lastMatching;
 
 		private IState<int> State { get; set; }
 		private int Depth
@@ -35,6 +37,7 @@ namespace Decider.Csp.Global
 			this.variableArray = variables.ToArray();
 			this.generationArray = new int[this.variableArray.Length];
 			this.cycleDetection = new CycleDetection();
+			this.matchingTrail = new Stack<(int Depth, int?[] Matching)>();
 		}
 
 		public void Check(out ConstraintOperationResult result)
@@ -59,7 +62,7 @@ namespace Decider.Csp.Global
 
 		private bool FindMatching()
 		{
-			return this.Graph.MaximalMatching() >= this.variableArray.Length;
+			return this.Graph.MaximalMatching(this.lastMatching) >= this.variableArray.Length;
 		}
 
 		public void Propagate(out ConstraintOperationResult result)
@@ -71,6 +74,8 @@ namespace Decider.Csp.Global
 				result = ConstraintOperationResult.Violated;
 				return;
 			}
+
+			SaveMatching();
 
 			this.cycleDetection.Graph = this.Graph;
 			this.cycleDetection.DetectCycle();
@@ -105,6 +110,30 @@ namespace Decider.Csp.Global
 		public bool StateChanged()
 		{
 			return this.variableArray.Where((t, i) => t.Generation != this.generationArray[i]).Any();
+		}
+
+		private void SaveMatching()
+		{
+			var matching = new int?[this.variableArray.Length];
+			for (var i = 0; i < this.variableArray.Length; ++i)
+			{
+				var paired = this.Graph.Pair[this.Graph.Variables[i]];
+				if (paired != this.Graph.NullNode)
+					matching[i] = ((NodeValue) paired).Value;
+			}
+
+			this.matchingTrail.Push((this.Depth, matching));
+			this.lastMatching = matching;
+		}
+
+		public void OnBacktrack(int toDepth)
+		{
+			while (this.matchingTrail.Count > 0 && this.matchingTrail.Peek().Depth > toDepth)
+				this.matchingTrail.Pop();
+
+			this.lastMatching = this.matchingTrail.Count > 0
+				? this.matchingTrail.Peek().Matching
+				: null;
 		}
 	}
 }

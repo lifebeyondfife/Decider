@@ -55,7 +55,7 @@ namespace Decider.Csp.Global
 			this.Nodes = new List<Node>(linkedList);
 		}
 
-		internal int MaximalMatching()
+		internal int MaximalMatching(int?[] seedMatching = null)
 		{
 			var matching = 0;
 			this.NullNode = new Node("NULL");
@@ -65,12 +65,33 @@ namespace Decider.Csp.Global
 			foreach (var node in this.Nodes)
 				this.Pair[node] = this.NullNode;
 
+			if (seedMatching != null)
+			{
+				for (var i = 0; i < seedMatching.Length; ++i)
+				{
+					if (!seedMatching[i].HasValue)
+						continue;
+
+					var value = seedMatching[i].Value;
+					if (!this.Variables.ContainsKey(i) || !this.Values.ContainsKey(value))
+						continue;
+
+					var varNode = this.Variables[i];
+					var valNode = this.Values[value];
+
+					if (!varNode.AdjoiningNodes.Contains(valNode))
+						continue;
+
+					this.Pair[varNode] = valNode;
+					this.Pair[valNode] = varNode;
+					++matching;
+				}
+			}
+
 			while (BreadthFirstSearch())
 			{
 				matching += this.Variables.Values.Count(node => this.Pair[node] == this.NullNode && DepthFirstSearch(node));
 			}
-
-			//--- store current graph in stack
 
 			UndirectedToDirected();
 

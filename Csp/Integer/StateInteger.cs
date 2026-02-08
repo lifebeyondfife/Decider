@@ -15,6 +15,7 @@ namespace Decider.Csp.Integer
 	public class StateInteger : IState<int>
 	{
 		public IList<IConstraint> Constraints { get; private set; }
+		private IBacktrackableConstraint[] backtrackableConstraints;
 		public IList<IVariable<int>> Variables { get; private set; }
 
 		public int Depth { get; private set; }
@@ -53,6 +54,7 @@ namespace Decider.Csp.Integer
 		public void SetConstraints(IEnumerable<IConstraint> constraints)
 		{
 			this.Constraints = constraints?.ToList() ?? new List<IConstraint>();
+			this.backtrackableConstraints = this.Constraints.OfType<IBacktrackableConstraint>().ToArray();
 		}
 
 		public StateOperationResult Search()
@@ -262,6 +264,9 @@ namespace Decider.Csp.Integer
 			--this.Depth;
 
 			this.Trail.Backtrack(this.Depth, this.Variables);
+
+			for (var i = 0; i < this.backtrackableConstraints.Length; ++i)
+				this.backtrackableConstraints[i].OnBacktrack(this.Depth);
 
 			variablePrune.Remove(value, this.Depth, out result);
 		}
