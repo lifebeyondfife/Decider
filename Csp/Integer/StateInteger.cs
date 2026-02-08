@@ -98,9 +98,6 @@ public class StateInteger : IState<int>
 
 		this.Runtime += stopwatch.Elapsed;
 		stopwatch.Stop();
-
-		this.OnProgress?.Invoke(1.0);
-
 		return searchResult;
 	}
 
