@@ -1,10 +1,11 @@
 /*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
 */
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 using Decider.Csp.BaseTypes;
 using Decider.Csp.Integer;
@@ -42,7 +43,8 @@ public static class Optimisation
 		var variables = new[] { a, b, c, d, e, f, g, h, optimise };
 		var state = new StateInteger(variables, constraints);
 
-		if (state.Search(optimise, 10) == StateOperationResult.Unsatisfiable)
+		using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+		if (state.Search(optimise, cts.Token) == StateOperationResult.Unsatisfiable)
 			throw new ApplicationException("Cannot find a solution to constraint problem.");
 
 		Console.WriteLine($"a: {state.OptimalSolution["a"]}");

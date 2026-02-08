@@ -1,10 +1,11 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
 
   This file is part of Decider.
 */
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Decider.Csp.BaseTypes;
 
@@ -12,7 +13,7 @@ public enum StateOperationResult
 {
 	Solved,
 	Unsatisfiable,
-	TimedOut
+	Cancelled
 }
 
 public interface IState<T>
@@ -28,6 +29,6 @@ public interface IState<T>
 	void SetConstraints(IEnumerable<IConstraint> constraintList);
 
 	StateOperationResult Search();
-	StateOperationResult Search(IVariable<int> optimiseVariable, int timeOut = Int32.MaxValue);
+	StateOperationResult Search(IVariable<int> optimiseVariable, CancellationToken cancellationToken = default);
 	StateOperationResult SearchAllSolutions();
 }
