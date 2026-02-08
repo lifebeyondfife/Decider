@@ -33,6 +33,7 @@ namespace Decider.Csp.Global
 			node.Index = index;
 			node.Link = index;
 			index++;
+			node.OnStack = true;
 			nodeStack.Push(node);
 
 			foreach (var adjoiningNode in node.AdjoiningNodes)
@@ -42,7 +43,7 @@ namespace Decider.Csp.Global
 					Connection(adjoiningNode, ref cycles);
 					node.Link = Math.Min(node.Link, adjoiningNode.Link);
 				}
-				else if (nodeStack.Contains(adjoiningNode))
+				else if (adjoiningNode.OnStack)
 				{
 					node.Link = Math.Min(node.Link, adjoiningNode.Index);
 				}
@@ -56,6 +57,7 @@ namespace Decider.Csp.Global
 			do
 			{
 				lastNode = nodeStack.Pop();
+				lastNode.OnStack = false;
 				lastNode.CycleIndex = cycles;
 				stronglyConnectedComponent.Add(lastNode);
 			} while (node != lastNode);
