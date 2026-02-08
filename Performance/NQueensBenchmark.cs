@@ -18,7 +18,7 @@ public class NQueensBenchmark
 	public void SolveNQueens()
 	{
 		var nQueens = new NQueens(BoardSize);
-		nQueens.SearchAllSolutions();
+		nQueens.SearchAllSolutions(false);
 	}
 
 	private class BacktracksConfig : ManualConfig
