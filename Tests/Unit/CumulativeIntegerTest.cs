@@ -244,4 +244,103 @@ public class CumulativeIntegerTest
 		Assert.False(starts[1].Domain.Contains(3));
 		Assert.False(starts[1].Domain.Contains(4));
 	}
+
+	[Fact]
+	public void TestEdgeFindingThreeTasksSerialized()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 1),
+			new("s1", 0, 2),
+			new("s2", 0, 10)
+		};
+		var durations = new List<int> { 2, 2, 2 };
+		var demands = new List<int> { 5, 5, 5 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger(starts, durations, demands, capacity: 5)
+		};
+
+		var state = new StateInteger(starts, constraints);
+
+		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
+		Assert.True(starts[2].Domain.LowerBound >= 4);
+	}
+
+	[Fact]
+	public void TestEdgeFindingBoundTightening()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 0),
+			new("s1", 2, 2),
+			new("s2", 0, 5)
+		};
+		var durations = new List<int> { 2, 2, 2 };
+		var demands = new List<int> { 5, 5, 5 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger(starts, durations, demands, capacity: 5)
+		};
+
+		var state = new StateInteger(starts, constraints);
+
+		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
+		Assert.Equal(4, starts[2].Domain.LowerBound);
+	}
+
+	[Fact]
+	public void TestEdgeFindingDetectsInfeasibility()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 1),
+			new("s1", 0, 1),
+			new("s2", 0, 1)
+		};
+		var durations = new List<int> { 2, 2, 2 };
+		var demands = new List<int> { 3, 3, 3 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger(starts, durations, demands, capacity: 3)
+		};
+
+		var state = new StateInteger(starts, constraints);
+
+		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
+	}
+
+	[Fact]
+	public void TestEdgeFindingUpperBoundPropagation()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 5, 5),
+			new("s1", 7, 7),
+			new("s2", 0, 6)
+		};
+		var durations = new List<int> { 2, 2, 2 };
+		var demands = new List<int> { 5, 5, 5 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger(starts, durations, demands, capacity: 5)
+		};
+
+		var state = new StateInteger(starts, constraints);
+
+		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
+		Assert.Equal(3, starts[2].Domain.UpperBound);
+	}
 }
