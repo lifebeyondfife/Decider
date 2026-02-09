@@ -14,7 +14,7 @@
     <PackageDescription>An Open Source .Net Constraint Programming Solver</PackageDescription>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/lifebeyondfife/Decider</RepositoryUrl>
-    <Version>3.0.0</Version>
+    <Version>4.0.0</Version>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <Deterministic>true</Deterministic>
   </PropertyGroup>

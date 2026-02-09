@@ -54,7 +54,6 @@ internal class NodeVariable : Node
 	{
 		this.Variable = variable;
 	}
-
 }
 
 internal class NodeValue : Node

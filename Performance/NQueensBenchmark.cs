@@ -1,3 +1,8 @@
+/*
+  Copyright © Iain McDonald 2026
+
+  This file is part of Decider.
+*/
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;

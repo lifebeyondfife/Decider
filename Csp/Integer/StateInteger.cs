@@ -110,7 +110,7 @@ public class StateInteger : IState<int>
 		var stopwatch = Stopwatch.StartNew();
 		var searchResult = StateOperationResult.Unsatisfiable;
 
-		this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > Int32.MinValue));
+		this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar < Int32.MaxValue));
 
 		while (true)
 		{
@@ -126,7 +126,7 @@ public class StateInteger : IState<int>
 			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, cancellationToken))
 			{
 				this.Constraints.RemoveAt(this.Constraints.Count - 1);
-				this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar > optimiseVar.InstantiatedValue));
+				this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar < optimiseVar.InstantiatedValue));
 				this.OptimalSolution = CloneLastSolution();
 			}
 			else if (searchResult == StateOperationResult.Cancelled)
