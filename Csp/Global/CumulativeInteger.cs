@@ -231,23 +231,26 @@ public class CumulativeInteger : IConstraint
 			var taskEarliestStart = this.Starts[i].Domain.LowerBound;
 			var taskEnergy = this.Durations[i] * this.Demands[i];
 
-			for (var omegaSize = 1; omegaSize <= tasksByLatestCompletion.Count; ++omegaSize)
+			var cumulativeEnergy = 0;
+			var minEarliestStart = int.MaxValue;
+			var maxLatestCompletion = int.MinValue;
+
+			foreach (var j in tasksByLatestCompletion)
 			{
-				var omega = tasksByLatestCompletion.Take(omegaSize).Where(j => j != i).ToList();
-				if (omega.Count == 0)
+				if (j == i)
 					continue;
 
-				var omegaEarliestStart = omega.Min(j => this.Starts[j].Domain.LowerBound);
-				var omegaLatestCompletion = omega.Max(j => this.Starts[j].Domain.UpperBound + this.Durations[j]);
-				var omegaEnergy = omega.Sum(j => this.Durations[j] * this.Demands[j]);
+				cumulativeEnergy += this.Durations[j] * this.Demands[j];
+				minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
+				maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
 
-				var windowStart = Math.Min(omegaEarliestStart, taskEarliestStart);
-				var windowEnd = omegaLatestCompletion;
+				var windowStart = Math.Min(minEarliestStart, taskEarliestStart);
+				var windowEnd = maxLatestCompletion;
 				var windowCapacity = (windowEnd - windowStart) * this.Capacity;
 
-				if (omegaEnergy + taskEnergy > windowCapacity)
+				if (cumulativeEnergy + taskEnergy > windowCapacity)
 				{
-					var newLowerBound = omegaLatestCompletion;
+					var newLowerBound = maxLatestCompletion;
 
 					if (newLowerBound > this.Starts[i].Domain.UpperBound)
 					{
@@ -296,23 +299,26 @@ public class CumulativeInteger : IConstraint
 			var taskLatestCompletion = this.Starts[i].Domain.UpperBound + this.Durations[i];
 			var taskEnergy = this.Durations[i] * this.Demands[i];
 
-			for (var omegaSize = 1; omegaSize <= tasksByEarliestStart.Count; ++omegaSize)
+			var cumulativeEnergy = 0;
+			var minEarliestStart = int.MaxValue;
+			var maxLatestCompletion = int.MinValue;
+
+			foreach (var j in tasksByEarliestStart)
 			{
-				var omega = tasksByEarliestStart.Take(omegaSize).Where(j => j != i).ToList();
-				if (omega.Count == 0)
+				if (j == i)
 					continue;
 
-				var omegaEarliestStart = omega.Min(j => this.Starts[j].Domain.LowerBound);
-				var omegaLatestCompletion = omega.Max(j => this.Starts[j].Domain.UpperBound + this.Durations[j]);
-				var omegaEnergy = omega.Sum(j => this.Durations[j] * this.Demands[j]);
+				cumulativeEnergy += this.Durations[j] * this.Demands[j];
+				minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
+				maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
 
-				var windowStart = omegaEarliestStart;
-				var windowEnd = Math.Max(omegaLatestCompletion, taskLatestCompletion);
+				var windowStart = minEarliestStart;
+				var windowEnd = Math.Max(maxLatestCompletion, taskLatestCompletion);
 				var windowCapacity = (windowEnd - windowStart) * this.Capacity;
 
-				if (omegaEnergy + taskEnergy > windowCapacity)
+				if (cumulativeEnergy + taskEnergy > windowCapacity)
 				{
-					var newUpperBound = omegaEarliestStart - this.Durations[i];
+					var newUpperBound = minEarliestStart - this.Durations[i];
 
 					if (newUpperBound < this.Starts[i].Domain.LowerBound)
 					{
