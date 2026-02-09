@@ -15,6 +15,11 @@
     <ProjectReference Include="..\Csp\Csp.csproj" />
     <ProjectReference Include="..\Examples\NQueens\NQueens.csproj" />
     <ProjectReference Include="..\Examples\LeagueGeneration\LeagueGeneration.csproj" />
+    <ProjectReference Include="..\Examples\Rcpsp\Rcpsp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Data\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -15,6 +15,7 @@ dotnet run -c Release
 ```bash
 dotnet run -c Release -- --filter "*NQueensBenchmark*"
 dotnet run -c Release -- --filter "*LeagueGenerationBenchmark*"
+dotnet run -c Release -- --filter "*RcpspBenchmark*"
 dotnet run -c Release -- --filter "*OrToolsNQueensBenchmark*"
 ```
 
@@ -37,6 +38,13 @@ dotnet run -c Release -- --filter "*NQueensBenchmark*" --job short --warmupCount
 - **Search**: `Search()` - finds first solution
 - **Parameters**: Fixed league size of 20 (~1.5s runtime)
 - **Metrics**: Execution time, memory allocations, backtracks
+
+### RcpspBenchmark
+- **Problem**: Resource-Constrained Project Scheduling Problem (RCPSP) using `Cumulative` constraint + precedence constraints
+- **Search**: `Search()` - finds first solution for PSPLib j30 instance (j3010_1)
+- **Parameters**: Real PSPLib j30 instance loaded from `Data/j3010_1.sm`
+- **Metrics**: Execution time, memory allocations, backtracks
+- **Note**: Instance files use standard PSPLib format and can be swapped for other instances
 
 ### OrToolsNQueensBenchmark
 - **Problem**: N-Queens using Google OR-Tools CP-SAT solver

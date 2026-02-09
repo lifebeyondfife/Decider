@@ -33,8 +33,9 @@ public static class Optimisation
 			{
 				new AllDifferentInteger(new [] { a, b, c, d }),
 				new AllDifferentInteger(new [] { e, f, g, h }),
-				new ConstraintInteger(a + b < 10),
+				new ConstraintInteger(a + b > 12),
 				new ConstraintInteger(c + d > 15),
+				new ConstraintInteger(f + g > 10),
 				new ConstraintInteger(h > e),
 				new ConstraintInteger(array[a] < 40),
 				new ConstraintInteger(optimise == a + b + c + d + e + f + g + h)

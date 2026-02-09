@@ -156,20 +156,20 @@ The progress value represents the fraction of the combinatorial search space tha
 Optimise
 --------
 
-Create an integer variable to optimise i.e. make as large as possible
+Create an integer variable to optimise i.e. make as small as possible
 
 ```csharp
-var optimise = new VariableInteger("optimalAnswer");
+var optimise = new VariableInteger("optimise");
 new ConstraintInteger(optimise == a + b + c + d + e + f + g + h)
 ```
 
 
-Specify an upper time bound on how long you search, say, five minutes
+Specify an upper time bound on how long you search using a CancellationToken
 
 ```csharp
-var timeout = 60 * 5;
-var searchResult = state.Search(optimise, timeout);
-Console.WriteLine($"Optimal answer found is ${state.OptimalSolution["optimalAnswer"]}");
+using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+var searchResult = state.Search(optimise, cts.Token);
+Console.WriteLine($"Optimal answer found is {state.OptimalSolution["optimise"]}");
 ```
 
 
@@ -181,8 +181,23 @@ Index integer arrays with constrained integer variables
 ```csharp
 var a = new VariableInteger("a", 0, 9);
 var array = new ConstrainedArray(new int[] { 0, 23, 52, 62, 75, 73, 47, 20, 87, 27 });
-    
+
 var constraint = new ConstraintInteger(array[a] < 40)
+```
+
+
+Cumulative Constraint
+---------------------
+
+Schedule tasks with limited resources using start times, durations, demands and capacity
+
+```csharp
+var starts = new List<VariableInteger> { task1, task2, task3 };
+var durations = new List<int> { 3, 2, 4 };
+var demands = new List<int> { 2, 1, 2 };
+var capacity = 3;
+
+var constraint = new CumulativeInteger(starts, durations, demands, capacity)
 ```
 
 
