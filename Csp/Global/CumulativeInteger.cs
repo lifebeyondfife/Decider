@@ -275,7 +275,9 @@ public class CumulativeInteger : IConstraint
 
 				if (cumulativeEnergy + taskEnergy > windowCapacity)
 				{
-					var newLowerBound = maxLatestCompletion;
+					var naiveBound = maxLatestCompletion;
+					var energeticBound = minEarliestStart + (int)Math.Ceiling((double)cumulativeEnergy / this.Capacity);
+					var newLowerBound = Math.Max(naiveBound, energeticBound);
 
 					if (newLowerBound > this.Starts[i].Domain.UpperBound)
 						return ConstraintOperationResult.Violated;
@@ -333,7 +335,9 @@ public class CumulativeInteger : IConstraint
 
 				if (cumulativeEnergy + taskEnergy > windowCapacity)
 				{
-					var newUpperBound = minEarliestStart - this.Durations[i];
+					var naiveBound = minEarliestStart - Durations[i];
+					var energeticBound = maxLatestCompletion - (int)Math.Ceiling((double)cumulativeEnergy / Capacity) - Durations[i];
+					var newUpperBound = Math.Min(naiveBound, energeticBound);
 
 					if (newUpperBound < this.Starts[i].Domain.LowerBound)
 						return ConstraintOperationResult.Violated;
