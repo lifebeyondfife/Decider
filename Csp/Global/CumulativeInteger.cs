@@ -86,11 +86,11 @@ public class CumulativeInteger : IConstraint
 	public void Propagate(out ConstraintOperationResult result)
 	{
 		result = ConstraintOperationResult.Undecided;
-		var changed = true;
+		var propagationOccurred = true;
 
-		while (changed)
+		while (propagationOccurred)
 		{
-			changed = false;
+			propagationOccurred = false;
 
 			var profile = BuildCompulsoryProfile();
 
@@ -129,53 +129,57 @@ public class CumulativeInteger : IConstraint
 					if (domainResult == DomainOperationResult.RemoveSuccessful)
 					{
 						result = ConstraintOperationResult.Propagated;
-						changed = true;
+						propagationOccurred = true;
 					}
 				}
 			}
 
-			if (EdgeFindingLeftToRight(out var leftToRightResult))
+			var leftToRightResult = EdgeFindingLeftToRight();
+			if (leftToRightResult == ConstraintOperationResult.Violated)
 			{
-				if (leftToRightResult == ConstraintOperationResult.Violated)
-				{
-					result = ConstraintOperationResult.Violated;
-					return;
-				}
-				changed = true;
+				result = ConstraintOperationResult.Violated;
+				return;
+			}
+			if (leftToRightResult == ConstraintOperationResult.Propagated)
+			{
 				result = ConstraintOperationResult.Propagated;
+				propagationOccurred = true;
 			}
 
-			if (EdgeFindingRightToLeft(out var rightToLeftResult))
+			var rightToLeftResult = EdgeFindingRightToLeft();
+			if (rightToLeftResult == ConstraintOperationResult.Violated)
 			{
-				if (rightToLeftResult == ConstraintOperationResult.Violated)
-				{
-					result = ConstraintOperationResult.Violated;
-					return;
-				}
-				changed = true;
+				result = ConstraintOperationResult.Violated;
+				return;
+			}
+			if (rightToLeftResult == ConstraintOperationResult.Propagated)
+			{
 				result = ConstraintOperationResult.Propagated;
+				propagationOccurred = true;
 			}
 
-			if (NotFirstRule(out var notFirstResult))
+			var notFirstResult = NotFirstRule();
+			if (notFirstResult == ConstraintOperationResult.Violated)
 			{
-				if (notFirstResult == ConstraintOperationResult.Violated)
-				{
-					result = ConstraintOperationResult.Violated;
-					return;
-				}
-				changed = true;
+				result = ConstraintOperationResult.Violated;
+				return;
+			}
+			if (notFirstResult == ConstraintOperationResult.Propagated)
+			{
 				result = ConstraintOperationResult.Propagated;
+				propagationOccurred = true;
 			}
 
-			if (NotLastRule(out var notLastResult))
+			var notLastResult = NotLastRule();
+			if (notLastResult == ConstraintOperationResult.Violated)
 			{
-				if (notLastResult == ConstraintOperationResult.Violated)
-				{
-					result = ConstraintOperationResult.Violated;
-					return;
-				}
-				changed = true;
+				result = ConstraintOperationResult.Violated;
+				return;
+			}
+			if (notLastResult == ConstraintOperationResult.Propagated)
+			{
 				result = ConstraintOperationResult.Propagated;
+				propagationOccurred = true;
 			}
 		}
 	}
@@ -236,10 +240,9 @@ public class CumulativeInteger : IConstraint
 		return false;
 	}
 
-	private bool EdgeFindingLeftToRight(out ConstraintOperationResult result)
+	private ConstraintOperationResult EdgeFindingLeftToRight()
 	{
-		result = ConstraintOperationResult.Undecided;
-		var updated = false;
+		var result = ConstraintOperationResult.Undecided;
 
 		var tasksByLatestCompletion = Enumerable.Range(0, this.Starts.Count)
 			.OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i])
@@ -275,10 +278,7 @@ public class CumulativeInteger : IConstraint
 					var newLowerBound = maxLatestCompletion;
 
 					if (newLowerBound > this.Starts[i].Domain.UpperBound)
-					{
-						result = ConstraintOperationResult.Violated;
-						return true;
-					}
+						return ConstraintOperationResult.Violated;
 
 					if (newLowerBound > this.Starts[i].Domain.LowerBound)
 					{
@@ -286,28 +286,21 @@ public class CumulativeInteger : IConstraint
 						this.Starts[i].Propagate(bounds, out var propagateResult);
 
 						if (propagateResult == ConstraintOperationResult.Violated)
-						{
-							result = ConstraintOperationResult.Violated;
-							return true;
-						}
+							return ConstraintOperationResult.Violated;
 
 						if (propagateResult == ConstraintOperationResult.Propagated)
-						{
 							result = ConstraintOperationResult.Propagated;
-							updated = true;
-						}
 					}
 				}
 			}
 		}
 
-		return updated;
+		return result;
 	}
 
-	private bool EdgeFindingRightToLeft(out ConstraintOperationResult result)
+	private ConstraintOperationResult EdgeFindingRightToLeft()
 	{
-		result = ConstraintOperationResult.Undecided;
-		var updated = false;
+		var result = ConstraintOperationResult.Undecided;
 
 		var tasksByEarliestStart = Enumerable.Range(0, this.Starts.Count)
 			.OrderByDescending(i => this.Starts[i].Domain.LowerBound)
@@ -343,10 +336,7 @@ public class CumulativeInteger : IConstraint
 					var newUpperBound = minEarliestStart - this.Durations[i];
 
 					if (newUpperBound < this.Starts[i].Domain.LowerBound)
-					{
-						result = ConstraintOperationResult.Violated;
-						return true;
-					}
+						return ConstraintOperationResult.Violated;
 
 					if (newUpperBound < this.Starts[i].Domain.UpperBound)
 					{
@@ -354,28 +344,21 @@ public class CumulativeInteger : IConstraint
 						this.Starts[i].Propagate(bounds, out var propagateResult);
 
 						if (propagateResult == ConstraintOperationResult.Violated)
-						{
-							result = ConstraintOperationResult.Violated;
-							return true;
-						}
+							return ConstraintOperationResult.Violated;
 
 						if (propagateResult == ConstraintOperationResult.Propagated)
-						{
 							result = ConstraintOperationResult.Propagated;
-							updated = true;
-						}
 					}
 				}
 			}
 		}
 
-		return updated;
+		return result;
 	}
 
-	private bool NotFirstRule(out ConstraintOperationResult result)
+	private ConstraintOperationResult NotFirstRule()
 	{
-		result = ConstraintOperationResult.Undecided;
-		var updated = false;
+		var result = ConstraintOperationResult.Undecided;
 
 		var tasksByLatestCompletion = Enumerable.Range(0, this.Starts.Count)
 			.OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i])
@@ -413,10 +396,7 @@ public class CumulativeInteger : IConstraint
 					var newLowerBound = minEarliestCompletion;
 
 					if (newLowerBound > this.Starts[i].Domain.UpperBound)
-					{
-						result = ConstraintOperationResult.Violated;
-						return true;
-					}
+						return ConstraintOperationResult.Violated;
 
 					if (newLowerBound > this.Starts[i].Domain.LowerBound)
 					{
@@ -424,28 +404,21 @@ public class CumulativeInteger : IConstraint
 						this.Starts[i].Propagate(bounds, out var propagateResult);
 
 						if (propagateResult == ConstraintOperationResult.Violated)
-						{
-							result = ConstraintOperationResult.Violated;
-							return true;
-						}
+							return ConstraintOperationResult.Violated;
 
 						if (propagateResult == ConstraintOperationResult.Propagated)
-						{
 							result = ConstraintOperationResult.Propagated;
-							updated = true;
-						}
 					}
 				}
 			}
 		}
 
-		return updated;
+		return result;
 	}
 
-	private bool NotLastRule(out ConstraintOperationResult result)
+	private ConstraintOperationResult NotLastRule()
 	{
-		result = ConstraintOperationResult.Undecided;
-		var updated = false;
+		var result = ConstraintOperationResult.Undecided;
 
 		var tasksByEarliestStart = Enumerable.Range(0, this.Starts.Count)
 			.OrderByDescending(i => this.Starts[i].Domain.LowerBound)
@@ -483,10 +456,7 @@ public class CumulativeInteger : IConstraint
 					var newUpperBound = maxLatestStart - this.Durations[i];
 
 					if (newUpperBound < this.Starts[i].Domain.LowerBound)
-					{
-						result = ConstraintOperationResult.Violated;
-						return true;
-					}
+						return ConstraintOperationResult.Violated;
 
 					if (newUpperBound < this.Starts[i].Domain.UpperBound)
 					{
@@ -494,22 +464,16 @@ public class CumulativeInteger : IConstraint
 						this.Starts[i].Propagate(bounds, out var propagateResult);
 
 						if (propagateResult == ConstraintOperationResult.Violated)
-						{
-							result = ConstraintOperationResult.Violated;
-							return true;
-						}
+							return ConstraintOperationResult.Violated;
 
 						if (propagateResult == ConstraintOperationResult.Propagated)
-						{
 							result = ConstraintOperationResult.Propagated;
-							updated = true;
-						}
 					}
 				}
 			}
 		}
 
-		return updated;
+		return result;
 	}
 
 	public bool StateChanged()
