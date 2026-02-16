@@ -494,4 +494,30 @@ public class CumulativeIntegerTest
 		var boundsTightened = starts[2].Domain.LowerBound > originalLower || starts[2].Domain.UpperBound < originalUpper;
 		Assert.True(boundsTightened || propagateResult == ConstraintOperationResult.Undecided);
 	}
+
+	[Fact]
+	public void TestEnergeticReasoningIntegration()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 1),
+			new("s1", 0, 3),
+			new("s2", 0, 5),
+			new("s3", 0, 10)
+		};
+		var durations = new List<int> { 2, 2, 2, 2 };
+		var demands = new List<int> { 5, 5, 5, 5 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger(starts, durations, demands, capacity: 5)
+		};
+
+		var state = new StateInteger(starts, constraints);
+
+		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
+		Assert.True(starts[3].Domain.LowerBound >= 6);
+	}
 }
