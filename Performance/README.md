@@ -16,7 +16,9 @@ dotnet run -c Release
 dotnet run -c Release -- --filter "*NQueensBenchmark*"
 dotnet run -c Release -- --filter "*LeagueGenerationBenchmark*"
 dotnet run -c Release -- --filter "*RcpspBenchmark*"
+dotnet run -c Release -- --filter "*FurnitureMovingBenchmark*"
 dotnet run -c Release -- --filter "*OrToolsNQueensBenchmark*"
+dotnet run -c Release -- --filter "*OrToolsFurnitureMovingBenchmark*"
 ```
 
 ### Run with specific board size
@@ -46,6 +48,13 @@ dotnet run -c Release -- --filter "*NQueensBenchmark*" --job short --warmupCount
 - **Metrics**: Execution time, memory allocations, backtracks
 - **Note**: Instance files use standard PSPLib format and can be swapped for other instances
 
+### FurnitureMovingBenchmark
+- **Problem**: Furniture moving scheduling using `Cumulative` constraint, based on Marriott & Stukey: 'Programming with constraints', page 112f
+- **Search**: `Search(makespan)` - finds optimal (minimum makespan) solution
+- **Parameters**: 7 tasks with varying durations (10-30) and demands (1-4), capacity 4, horizon 160
+- **Metrics**: Execution time, memory allocations, backtracks
+- **Purpose**: Direct comparison with OrToolsFurnitureMovingBenchmark
+
 ### OrToolsNQueensBenchmark
 - **Problem**: N-Queens using Google OR-Tools CP-SAT solver
 - **Search**: Enumerate all solutions
@@ -54,6 +63,14 @@ dotnet run -c Release -- --filter "*NQueensBenchmark*" --job short --warmupCount
 - **Purpose**: Direct competitive comparison with Decider
   - **Conflicts**: Analogous to Decider's backtracks
   - **Branches**: Total search nodes explored
+
+### OrToolsFurnitureMovingBenchmark
+- **Problem**: Furniture moving scheduling using OR-Tools ConstraintSolver `Cumulative` constraint
+- **Search**: Minimize makespan using general-purpose search (`CHOOSE_FIRST_UNBOUND` / `ASSIGN_MIN_VALUE`)
+- **Parameters**: Same 7 tasks as FurnitureMovingBenchmark
+- **Metrics**: Execution time, memory allocations, failures, branches
+- **Purpose**: Direct competitive comparison with Decider's `Cumulative` constraint
+  - **Note**: Uses a general-purpose search strategy (not `INTERVAL_DEFAULT`) for a fair comparison, as Decider does not have scheduling-specific search heuristics
 
 ## Metrics Tracked
 
@@ -83,6 +100,13 @@ All benchmarks track the following metrics in the summary table:
 | SolveLeagueGeneration | 362.2 ms | 6.14 ms | 0.34 ms |      6,249 | 132000.0000 | 2000.0000 | 1000.0000 |   1.07 GB |
 ```
 
+**Decider FurnitureMoving:**
+```
+| Method               | Mean     | Error    | StdDev  | Backtracks | Gen0        | Gen1      | Allocated |
+|--------------------- |---------:|---------:|--------:|-----------:|------------:|----------:|----------:|
+| SolveFurnitureMoving | 877.8 ms | 27.85 ms | 1.53 ms |    222,817 | 169000.0000 | 1000.0000 |   1.32 GB |
+```
+
 **OR-Tools NQueens:**
 ```
 | Method       | BoardSize | Mean        | Error      | StdDev   | Conflicts | Branches | Allocated |
@@ -90,6 +114,13 @@ All benchmarks track the following metrics in the summary table:
 | SolveNQueens | 8         |    12.75 ms |   0.111 ms | 0.006 ms |       650 |    7,238 |  40.68 KB |
 | SolveNQueens | 10        |   340.93 ms |  16.757 ms | 0.918 ms |    10,902 |   74,184 |  68.52 KB |
 | SolveNQueens | 12        | 4,979.17 ms | 125.127 ms | 6.859 ms |   133,379 |  669,397 |  96.77 KB |
+```
+
+**OR-Tools FurnitureMoving:**
+```
+| Method               | Mean    | Error    | StdDev   | Failures | Branches | Allocated |
+|--------------------- |--------:|---------:|---------:|---------:|---------:|----------:|
+| SolveFurnitureMoving | 1.176 s | 0.0335 s | 0.0018 s |  431,760 |  863,518 |         - |
 ```
 
 > **Note:** OR-Tools allocation figures only reflect .NET managed heap usage (the C# interop layer). The solver itself is written in C++ and allocates on the native heap, which is not tracked by BenchmarkDotNet's `MemoryDiagnoser`. Direct memory comparisons between Decider and OR-Tools are therefore not meaningful.
