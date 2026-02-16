@@ -155,6 +155,28 @@ public class CumulativeInteger : IConstraint
 				changed = true;
 				result = ConstraintOperationResult.Propagated;
 			}
+
+			if (NotFirstRule(out var notFirstResult))
+			{
+				if (notFirstResult == ConstraintOperationResult.Violated)
+				{
+					result = ConstraintOperationResult.Violated;
+					return;
+				}
+				changed = true;
+				result = ConstraintOperationResult.Propagated;
+			}
+
+			if (NotLastRule(out var notLastResult))
+			{
+				if (notLastResult == ConstraintOperationResult.Violated)
+				{
+					result = ConstraintOperationResult.Violated;
+					return;
+				}
+				changed = true;
+				result = ConstraintOperationResult.Propagated;
+			}
 		}
 	}
 
@@ -319,6 +341,146 @@ public class CumulativeInteger : IConstraint
 				if (cumulativeEnergy + taskEnergy > windowCapacity)
 				{
 					var newUpperBound = minEarliestStart - this.Durations[i];
+
+					if (newUpperBound < this.Starts[i].Domain.LowerBound)
+					{
+						result = ConstraintOperationResult.Violated;
+						return true;
+					}
+
+					if (newUpperBound < this.Starts[i].Domain.UpperBound)
+					{
+						var bounds = new Bounds<int>(this.Starts[i].Domain.LowerBound, newUpperBound);
+						this.Starts[i].Propagate(bounds, out var propagateResult);
+
+						if (propagateResult == ConstraintOperationResult.Violated)
+						{
+							result = ConstraintOperationResult.Violated;
+							return true;
+						}
+
+						if (propagateResult == ConstraintOperationResult.Propagated)
+						{
+							result = ConstraintOperationResult.Propagated;
+							updated = true;
+						}
+					}
+				}
+			}
+		}
+
+		return updated;
+	}
+
+	private bool NotFirstRule(out ConstraintOperationResult result)
+	{
+		result = ConstraintOperationResult.Undecided;
+		var updated = false;
+
+		var tasksByLatestCompletion = Enumerable.Range(0, this.Starts.Count)
+			.OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i])
+			.ToList();
+
+		for (var i = 0; i < this.Starts.Count; ++i)
+		{
+			if (this.Starts[i].Instantiated())
+				continue;
+
+			var taskEarliestStart = this.Starts[i].Domain.LowerBound;
+			var taskEarliestCompletion = taskEarliestStart + this.Durations[i];
+
+			var setEnergy = 0;
+			var maxLatestCompletion = int.MinValue;
+			var minEarliestCompletion = int.MaxValue;
+
+			foreach (var j in tasksByLatestCompletion)
+			{
+				if (j == i)
+					continue;
+
+				setEnergy += this.Durations[j] * this.Demands[j];
+				maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
+				minEarliestCompletion = Math.Min(minEarliestCompletion, this.Starts[j].Domain.LowerBound + this.Durations[j]);
+
+				if (maxLatestCompletion <= taskEarliestCompletion)
+					continue;
+
+				var availableWindow = maxLatestCompletion - taskEarliestCompletion;
+				var availableCapacity = availableWindow * this.Capacity;
+
+				if (setEnergy > availableCapacity)
+				{
+					var newLowerBound = minEarliestCompletion;
+
+					if (newLowerBound > this.Starts[i].Domain.UpperBound)
+					{
+						result = ConstraintOperationResult.Violated;
+						return true;
+					}
+
+					if (newLowerBound > this.Starts[i].Domain.LowerBound)
+					{
+						var bounds = new Bounds<int>(newLowerBound, this.Starts[i].Domain.UpperBound);
+						this.Starts[i].Propagate(bounds, out var propagateResult);
+
+						if (propagateResult == ConstraintOperationResult.Violated)
+						{
+							result = ConstraintOperationResult.Violated;
+							return true;
+						}
+
+						if (propagateResult == ConstraintOperationResult.Propagated)
+						{
+							result = ConstraintOperationResult.Propagated;
+							updated = true;
+						}
+					}
+				}
+			}
+		}
+
+		return updated;
+	}
+
+	private bool NotLastRule(out ConstraintOperationResult result)
+	{
+		result = ConstraintOperationResult.Undecided;
+		var updated = false;
+
+		var tasksByEarliestStart = Enumerable.Range(0, this.Starts.Count)
+			.OrderByDescending(i => this.Starts[i].Domain.LowerBound)
+			.ToList();
+
+		for (var i = 0; i < this.Starts.Count; ++i)
+		{
+			if (this.Starts[i].Instantiated())
+				continue;
+
+			var taskLatestCompletion = this.Starts[i].Domain.UpperBound + this.Durations[i];
+			var taskLatestStart = this.Starts[i].Domain.UpperBound;
+
+			var setEnergy = 0;
+			var minEarliestStart = int.MaxValue;
+			var maxLatestStart = int.MinValue;
+
+			foreach (var j in tasksByEarliestStart)
+			{
+				if (j == i)
+					continue;
+
+				setEnergy += this.Durations[j] * this.Demands[j];
+				minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
+				maxLatestStart = Math.Max(maxLatestStart, this.Starts[j].Domain.UpperBound);
+
+				if (minEarliestStart >= taskLatestStart)
+					continue;
+
+				var availableWindow = taskLatestStart - minEarliestStart;
+				var availableCapacity = availableWindow * this.Capacity;
+
+				if (setEnergy > availableCapacity)
+				{
+					var newUpperBound = maxLatestStart - this.Durations[i];
 
 					if (newUpperBound < this.Starts[i].Domain.LowerBound)
 					{
