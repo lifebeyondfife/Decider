@@ -66,11 +66,11 @@ dotnet run -c Release -- --filter "*NQueensBenchmark*" --job short --warmupCount
 
 ### OrToolsFurnitureMovingBenchmark
 - **Problem**: Furniture moving scheduling using OR-Tools ConstraintSolver `Cumulative` constraint
-- **Search**: Minimize makespan using general-purpose search (`CHOOSE_FIRST_UNBOUND` / `ASSIGN_MIN_VALUE`)
+- **Search**: Minimize makespan using most-constrained variable heuristic (`CHOOSE_MIN_SIZE` / `CHOOSE_MIN_SIZE_LOWEST_MIN`)
 - **Parameters**: Same 7 tasks as FurnitureMovingBenchmark
 - **Metrics**: Execution time, memory allocations, failures, branches
 - **Purpose**: Direct competitive comparison with Decider's `Cumulative` constraint
-  - **Note**: Uses a general-purpose search strategy (not `INTERVAL_DEFAULT`) for a fair comparison, as Decider does not have scheduling-specific search heuristics
+  - **Note**: Uses equivalent variable ordering heuristic to Decider's `GetMostConstrainedVariable` for fair comparison
 
 ## Metrics Tracked
 
@@ -104,7 +104,7 @@ All benchmarks track the following metrics in the summary table:
 ```
 | Method               | Mean     | Error    | StdDev  | Backtracks | Gen0        | Gen1      | Allocated |
 |--------------------- |---------:|---------:|--------:|-----------:|------------:|----------:|----------:|
-| SolveFurnitureMoving | 877.8 ms | 27.85 ms | 1.53 ms |    222,817 | 169000.0000 | 1000.0000 |   1.32 GB |
+| SolveFurnitureMoving | 894.4 ms | 13.98 ms | 0.77 ms |    222,817 | 169000.0000 | 1000.0000 |   1.32 GB |
 ```
 
 **OR-Tools NQueens:**
@@ -118,9 +118,9 @@ All benchmarks track the following metrics in the summary table:
 
 **OR-Tools FurnitureMoving:**
 ```
-| Method               | Mean    | Error    | StdDev   | Failures | Branches | Allocated |
-|--------------------- |--------:|---------:|---------:|---------:|---------:|----------:|
-| SolveFurnitureMoving | 1.176 s | 0.0335 s | 0.0018 s |  431,760 |  863,518 |         - |
+| Method               | Mean     | Error    | StdDev   | Failures | Branches | Allocated |
+|--------------------- |---------:|---------:|---------:|---------:|---------:|----------:|
+| SolveFurnitureMoving | 14.23 ms | 0.921 ms | 0.050 ms |   13,567 |   27,119 |   5.66 KB |
 ```
 
 > **Note:** OR-Tools allocation figures only reflect .NET managed heap usage (the C# interop layer). The solver itself is written in C++ and allocates on the native heap, which is not tracked by BenchmarkDotNet's `MemoryDiagnoser`. Direct memory comparisons between Decider and OR-Tools are therefore not meaningful.

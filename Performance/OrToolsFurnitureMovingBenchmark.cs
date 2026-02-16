@@ -60,7 +60,7 @@ public class OrToolsFurnitureMovingBenchmark
 
 		var obj = endTime.Minimize(1);
 
-		var db = solver.MakePhase(startVars, Solver.CHOOSE_FIRST_UNBOUND, Solver.ASSIGN_MIN_VALUE);
+		var db = solver.MakePhase(startVars, Solver.CHOOSE_MIN_SIZE, Solver.CHOOSE_MIN_SIZE_LOWEST_MIN);
 		solver.NewSearch(db, obj);
 
 		while (solver.NextSolution())
