@@ -5,6 +5,7 @@
 - DO NOT run Performance tests yourself; instruct me when they are ready to be run
 
 ## Coding Conventions
+- Avoid nested code as much as possible; return early
 - Always use explicit visibility identifiers (`private`, `public`, `internal`, `protected`) for all members
 - For list collections of type T, prefer the type declaration IList<T>, and the implementation List<T>, over arrays i.e. T[]
 - Use properties rather that fields and accessors e.g. `public int MyInteger { get; private set; }` rather than `private int myInteger` and `public int MyInteger { get { return this.myInteger; } }`
