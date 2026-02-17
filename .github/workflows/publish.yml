@@ -9,20 +9,41 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      version: ${{steps.package_version.outputs.version}}
+      publish: ${{steps.version_check.outputs.publish}}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-tags: true
+    - name: Get Version
+      id: package_version
+      run: |
+        version=$(grep -oP '(?<=<Version>).*(?=</Version>)' Csp/Csp.csproj)
+        echo "version=$version" >> $GITHUB_OUTPUT
+    - name: Check if version already published
+      id: version_check
+      run: |
+        if git tag -l "v${{steps.package_version.outputs.version}}" | grep -q .; then
+          echo "publish=false" >> $GITHUB_OUTPUT
+        else
+          echo "publish=true" >> $GITHUB_OUTPUT
+        fi
+
   publish-nuget:
+    needs: check-version
+    if: needs.check-version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Setup .Net Core
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'
-    - name: Get Version
-      id: package_version
-      uses: KageKirin/get-csproj-version@v1.0.0
-      with:
-        file: Csp/Csp.csproj
     - name: Install Dependencies
       run: dotnet restore
     - name: Build
@@ -35,5 +56,5 @@ jobs:
       run: dotnet nuget push *.nupkg --api-key ${{secrets.NUGET_TOKEN}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
     - name: Create Tag
       run: |
-        git tag v${{steps.package_version.outputs.version}}
-        git push origin v${{steps.package_version.outputs.version}}
+        git tag v${{needs.check-version.outputs.version}}
+        git push origin v${{needs.check-version.outputs.version}}
