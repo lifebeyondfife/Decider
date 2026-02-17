@@ -30,6 +30,7 @@ public interface IState<T>
 
 	void SetVariables(IEnumerable<IVariable<T>> variableList);
 	void SetConstraints(IEnumerable<IConstraint> constraintList);
+	void SetVariableOrderingHeuristic(IVariableOrderingHeuristic<T> variableOrdering);
 
 	StateOperationResult Search();
 	StateOperationResult Search(IVariable<int> optimiseVariable, CancellationToken cancellationToken = default);
