@@ -76,6 +76,11 @@ public class StateInteger : IState<int>
 		this.BacktrackableConstraints = this.Constraints.OfType<IBacktrackableConstraint>().ToList();
 	}
 
+	public void SetVariableOrderingHeuristic(IVariableOrderingHeuristic<int> variableOrdering)
+	{
+		this.VariableOrdering = variableOrdering;
+	}
+
 	public StateOperationResult Search()
 	{
 		var unassignedVariables = this.LastSolution == null

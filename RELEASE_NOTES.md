@@ -1,10 +1,18 @@
 # Decider v5.0.0
 
+## Breaking Changes
+
+### ⚠️ `IState<T>` Interface Extended
+
+**This is a breaking change that affects any custom implementations of `IState<T>`.**
+
+`IState<T>` now requires a `SetVariableOrderingHeuristic(IVariableOrderingHeuristic<T>)` method. Any class implementing `IState<T>` must add this method.
+
 ## New Features
 
 ### Configurable Variable Ordering (`IVariableOrderingHeuristic<T>`)
 
-`StateInteger` now accepts an optional `IVariableOrderingHeuristic<int>` as a third constructor argument:
+`StateInteger` now accepts an optional `IVariableOrderingHeuristic<int>` as a third constructor argument, or via `SetVariableOrderingHeuristic`:
 
 ```csharp
 var state = new StateInteger(variables, constraints, new FirstVariableOrdering());
