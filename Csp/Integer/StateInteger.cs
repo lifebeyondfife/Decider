@@ -36,7 +36,10 @@ public class StateInteger : IState<int>
 	private IList<int> Explored { get; set; } = new List<int>();
 	private TimeSpan LastProgressReport { get; set; }
 
-	public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints)
+	public IVariableOrderingHeuristic<int> VariableOrdering { get; private set; }
+
+	public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints,
+		IVariableOrderingHeuristic<int>? ordering = null)
 	{
 		SetVariables(variables);
 		SetConstraints(constraints);
@@ -52,6 +55,8 @@ public class StateInteger : IState<int>
 
 		this.BranchFactor = new int[this.Variables.Count];
 		this.Explored = new int[this.Variables.Count];
+
+		this.VariableOrdering = ordering ?? new MostConstrainedOrdering();
 
 		for (var i = 0; i < this.Variables.Count; ++i)
 			((VariableInteger)this.Variables[i]).SetVariableId(i);
@@ -213,7 +218,7 @@ public class StateInteger : IState<int>
 				return true;
 			}
 
-			instantiatedVariables[this.Depth] = GetMostConstrainedVariable(unassignedVariables);
+			instantiatedVariables[this.Depth] = this.VariableOrdering.SelectVariable(unassignedVariables);
 
 			if (this.BranchFactor[this.Depth] == 0)
 			{
@@ -310,51 +315,6 @@ public class StateInteger : IState<int>
 			backtrackableConstraint.OnBacktrack(this.Depth);
 
 		variablePrune.Remove(value, this.Depth, out result);
-	}
-
-	private static IVariable<int> GetMostConstrainedVariable(LinkedList<IVariable<int>> list)
-	{
-		var temp = list.First;
-		var node = list.First;
-
-		while (node != null)
-		{
-			if (node.Value.Size() < temp!.Value.Size())
-				temp = node;
-
-			if (temp.Value.Size() == 1)
-				break;
-
-			node = node.Next;
-		}
-		list.Remove(temp!);
-
-		return temp!.Value;
-	}
-
-	private readonly Random ran = new Random();
-	private IVariable<int> GetRandomVariable(LinkedList<IVariable<int>> list)
-	{
-		var index = ran.Next(0, list.Count - 1);
-		var node = list.First;
-		while (--index >= 0)
-			node = node!.Next;
-		list.Remove(node!);
-		return node!.Value;
-	}
-
-	private IVariable<int> GetFirstVariable(LinkedList<IVariable<int>> list)
-	{
-		var first = list.First;
-		list.Remove(first!);
-		return first!.Value;
-	}
-
-	private IVariable<int> GetLastVariable(LinkedList<IVariable<int>> list)
-	{
-		var last = list.Last;
-		list.Remove(last!);
-		return last!.Value;
 	}
 
 	private double ComputeProgress()

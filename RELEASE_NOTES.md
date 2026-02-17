@@ -1,3 +1,27 @@
+# Decider v5.0.0
+
+## New Features
+
+### Configurable Variable Ordering (`IVariableOrderingHeuristic<T>`)
+
+`StateInteger` now accepts an optional `IVariableOrderingHeuristic<int>` as a third constructor argument:
+
+```csharp
+var state = new StateInteger(variables, constraints, new FirstVariableOrdering());
+```
+
+Four built-in implementations are provided in `Decider.Csp.Integer`: `MostConstrainedOrdering` (default, unchanged behaviour), `RandomOrdering`, `FirstVariableOrdering`, `LastVariableOrdering`. Custom heuristics can be implemented against the `IVariableOrderingHeuristic<T>` interface in `Decider.Csp.BaseTypes`.
+
+### `CumulativeInteger` Propagation Improvements
+
+Stronger propagation with significantly reduced search space on scheduling problems:
+
+- **Edge-finding** — detects and prunes based on ordering infeasibility at resource capacity
+- **Not-first/not-last** — eliminates positions where a task cannot be scheduled first or last among a set
+- **Energetic reasoning** — filters start times based on energy consumption in time windows
+
+---
+
 # Decider v4.0.0 - Major Release
 
 ## Breaking Changes

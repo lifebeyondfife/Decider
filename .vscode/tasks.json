@@ -50,6 +50,18 @@
             "problemMatcher": "$msCompile"
         },
         {
+            "label": "build-rcpsp",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/Examples/Rcpsp/Rcpsp.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
             "label": "build-send-more-money",
             "command": "dotnet",
             "type": "process",

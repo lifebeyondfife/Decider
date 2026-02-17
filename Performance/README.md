@@ -102,9 +102,9 @@ All benchmarks track the following metrics in the summary table:
 
 **Decider FurnitureMoving:**
 ```
-| Method               | Mean     | Error    | StdDev  | Backtracks | Gen0        | Allocated |
-|--------------------- |---------:|---------:|--------:|-----------:|------------:|----------:|
-| SolveFurnitureMoving | 518.5 ms | 72.72 ms | 3.99 ms |    114,513 | 104000.0000 | 838.26 MB |
+| Method               | Mean     | Error   | StdDev  | Backtracks | Gen0        | Allocated |
+|--------------------- |---------:|--------:|--------:|-----------:|------------:|----------:|
+| SolveFurnitureMoving | 534.5 ms | 2.26 ms | 1.88 ms |    114,513 | 104000.0000 | 838.26 MB |
 ```
 
 **OR-Tools NQueens:**
@@ -120,7 +120,7 @@ All benchmarks track the following metrics in the summary table:
 ```
 | Method               | Mean     | Error    | StdDev   | Failures | Branches | Allocated |
 |--------------------- |---------:|---------:|---------:|---------:|---------:|----------:|
-| SolveFurnitureMoving | 14.23 ms | 0.921 ms | 0.050 ms |   13,567 |   27,119 |   5.66 KB |
+| SolveFurnitureMoving | 14.82 ms | 0.106 ms | 0.094 ms |   13,567 |   27,119 |   5.66 KB |
 ```
 
 > **Note:** OR-Tools allocation figures only reflect .NET managed heap usage (the C# interop layer). The solver itself is written in C++ and allocates on the native heap, which is not tracked by BenchmarkDotNet's `MemoryDiagnoser`. Direct memory comparisons between Decider and OR-Tools are therefore not meaningful.

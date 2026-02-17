@@ -49,6 +49,17 @@
              "console": "internalConsole"
          },
          {
+             "name": "Resource Constrained Project Scheduling Problem",
+             "type": "coreclr",
+             "request": "launch",
+             "preLaunchTask": "build-rcpsp",
+             "program": "${workspaceFolder}/Examples/Rcpsp/bin/Debug/net10.0/Rcpsp.dll",
+             "args": [],
+             "cwd": "${workspaceFolder}/Examples/Rcpsp",
+             "stopAtEntry": false,
+             "console": "internalConsole"
+         },
+         {
              "name": "Send More Money",
              "type": "coreclr",
              "request": "launch",
