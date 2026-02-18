@@ -13,10 +13,10 @@ namespace Decider.Csp.Integer;
 
 public class ConstraintInteger : ExpressionInteger, IConstraint<int>
 {
-	private IList<VariableInteger> VariableList { get; set; }
-	private IList<int> GenerationList { get; set; } 
+	private VariableInteger[] VariableList { get; set; } = Array.Empty<VariableInteger>();
+	private IList<int> GenerationList { get; set; }
 
-	public IReadOnlyList<IVariable<int>> Variables => this.VariableList.ToList();
+	public IReadOnlyList<IVariable<int>> Variables => this.VariableList;
 
 	public ConstraintInteger(Expression<int> expression)
 	{
@@ -31,7 +31,7 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>
 		var variableSet = new HashSet<VariableInteger>();
 		ConstructVariableList((ExpressionInteger) expression, variableSet);
 		this.VariableList = variableSet.ToArray();
-		this.GenerationList = new int[this.VariableList.Count];
+		this.GenerationList = new int[this.VariableList.Length];
 	}
 
 	private static void ConstructVariableList(ExpressionInteger expression, ISet<VariableInteger> variableSet)
@@ -69,7 +69,7 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>
 
 	public void Check(out ConstraintOperationResult result)
 	{
-		for (var i = 0; i < this.Variables.Count; ++i)
+		for (var i = 0; i < this.VariableList.Length; ++i)
 			this.GenerationList[i] = this.VariableList[i].Generation;
 
 		if (this.VariableList.Any(variable => !variable.Instantiated()))

@@ -3,6 +3,7 @@
   
   This file is part of Decider.
 */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,9 +14,9 @@ namespace Decider.Csp.Global;
 
 public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>
 {
-	private IList<VariableInteger> VariableList { get; set; }
+	private VariableInteger[] VariableList { get; set; } = Array.Empty<VariableInteger>();
 
-	public IReadOnlyList<IVariable<int>> Variables => this.VariableList.ToList();
+	public IReadOnlyList<IVariable<int>> Variables => this.VariableList;
 	private IList<int> GenerationList { get; set; }
 	private BipartiteGraph? Graph { get; set; }
 	private readonly CycleDetection cycleDetection;
@@ -37,14 +38,14 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>
 	public AllDifferentInteger(IEnumerable<VariableInteger> variables)
 	{
 		this.VariableList = variables.ToArray();
-		this.GenerationList = new int[this.VariableList.Count];
+		this.GenerationList = new int[this.VariableList.Length];
 		this.cycleDetection = new CycleDetection();
 		this.matchingTrail = new Stack<(int Depth, int?[] Matching)>();
 	}
 
 	public void Check(out ConstraintOperationResult result)
 	{
-		for (var i = 0; i < this.VariableList.Count; ++i)
+		for (var i = 0; i < this.VariableList.Length; ++i)
 			this.GenerationList[i] = VariableList[i].Generation;
 
 		if (this.VariableList.Any(variable => !variable.Instantiated()))
@@ -62,7 +63,7 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>
 		{
 			this.Graph = new BipartiteGraph(this.VariableList);
 
-			if (this.Graph.MaximalMatching(this.lastMatching) < this.VariableList.Count)
+			if (this.Graph.MaximalMatching(this.lastMatching) < this.VariableList.Length)
 			{
 				result = ConstraintOperationResult.Violated;
 				return;
@@ -112,7 +113,7 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>
 	{
 		var brokenVariables = new List<NodeVariable>();
 
-		for (var i = 0; i < this.VariableList.Count; ++i)
+		for (var i = 0; i < this.VariableList.Length; ++i)
 		{
 			var variable = this.VariableList[i];
 			var varNode = this.Graph!.Variables[i];
@@ -151,13 +152,19 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>
 
 	public bool StateChanged()
 	{
-		return this.VariableList.Where((t, i) => t.Generation != this.GenerationList[i]).Any();
+		for (var i = 0; i < this.VariableList.Length; ++i)
+		{
+			if (this.VariableList[i].Generation != this.GenerationList[i])
+				return true;
+		}
+
+		return false;
 	}
 
 	private void SaveMatching()
 	{
-		var matching = new int?[this.VariableList.Count];
-		for (var i = 0; i < this.VariableList.Count; ++i)
+		var matching = new int?[this.VariableList.Length];
+		for (var i = 0; i < this.VariableList.Length; ++i)
 		{
 			var paired = this.Graph!.Pair[this.Graph.Variables[i]];
 			if (paired != this.Graph.NullNode)

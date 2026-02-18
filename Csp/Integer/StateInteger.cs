@@ -42,6 +42,10 @@ public class StateInteger : IState<int>
 	public IValueOrderingHeuristic<int> ValueOrdering { get; private set; }
 
 	private IList<int>[] VariableConstraintIndices { get; set; } = Array.Empty<IList<int>>();
+	private IList<int> VariableLastSeenGenerations { get; set; } = new List<int>();
+	private bool[] InDirtyConstraintSet { get; set; } = Array.Empty<bool>();
+	private Queue<int> DirtyConstraintQueue { get; set; } = new Queue<int>();
+	private int[] PropagationSnapshotBuffer { get; set; } = Array.Empty<int>();
 
 	public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints,
 		IVariableOrderingHeuristic<int>? ordering = null, IValueOrderingHeuristic<int>? valueOrdering = null)
@@ -75,6 +79,10 @@ public class StateInteger : IState<int>
 
 		foreach (var variable in this.Variables)
 			variable.SetState(this);
+
+		this.VariableLastSeenGenerations = new int[this.Variables.Count];
+		for (var i = 0; i < this.VariableLastSeenGenerations.Count; ++i)
+			this.VariableLastSeenGenerations[i] = -1;
 	}
 
 	public void SetConstraints(IEnumerable<IConstraint> constraints)
@@ -90,6 +98,7 @@ public class StateInteger : IState<int>
 		for (var i = 0; i < this.VariableConstraintIndices.Length; ++i)
 			this.VariableConstraintIndices[i] = new List<int>();
 
+		var maxConstraintVariables = 0;
 		for (var ci = 0; ci < this.Constraints.Count; ++ci)
 		{
 			if (this.Constraints[ci] is not IConstraint<int> constraintInt)
@@ -97,7 +106,19 @@ public class StateInteger : IState<int>
 
 			foreach (var variable in constraintInt.Variables)
 				this.VariableConstraintIndices[variable.VariableId].Add(ci);
+
+			var count = constraintInt.Variables.Count;
+			if (count > maxConstraintVariables)
+				maxConstraintVariables = count;
 		}
+
+		this.VariableLastSeenGenerations = new int[this.Variables.Count];
+		for (var i = 0; i < this.VariableLastSeenGenerations.Count; ++i)
+			this.VariableLastSeenGenerations[i] = -1;
+
+		this.InDirtyConstraintSet = new bool[this.Constraints.Count];
+		this.DirtyConstraintQueue = new Queue<int>(this.Constraints.Count);
+		this.PropagationSnapshotBuffer = new int[maxConstraintVariables];
 	}
 
 	public void SetVariableOrderingHeuristic(IVariableOrderingHeuristic<int> variableOrdering)
@@ -167,6 +188,7 @@ public class StateInteger : IState<int>
 			{
 				this.Constraints.RemoveAt(this.Constraints.Count - 1);
 				this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar < optimiseVar.InstantiatedValue));
+				BuildVariableConstraintIndex();
 				this.OptimalSolution = CloneLastSolution();
 			}
 			else if (searchResult == StateOperationResult.Cancelled)
@@ -322,30 +344,124 @@ public class StateInteger : IState<int>
 
 	private bool ConstraintsViolated()
 	{
-		var propagated = true;
-		while (propagated)
+		BuildInitialDirtySet();
+
+		if (ProcessDirtyQueue())
 		{
-			propagated = false;
-			for (var i = 0; i < this.Constraints.Count; ++i)
+			ClearDirtySet();
+			return true;
+		}
+
+		SyncVariableGenerations();
+		return false;
+	}
+
+	private void BuildInitialDirtySet()
+	{
+		for (var varIndex = 0; varIndex < this.Variables.Count; ++varIndex)
+		{
+			if (this.Variables[varIndex].Generation == this.VariableLastSeenGenerations[varIndex])
+				continue;
+
+			foreach (var conIndex in this.VariableConstraintIndices[varIndex])
 			{
-				var constraint = this.Constraints[i];
-				if (!constraint.StateChanged())
+				if (this.InDirtyConstraintSet[conIndex])
 					continue;
 
-				constraint.Propagate(out ConstraintOperationResult propagateResult);
-				if ((propagateResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
-					return true;
-
-				if ((propagateResult & ConstraintOperationResult.Propagated) == ConstraintOperationResult.Propagated)
-					propagated = true;
-
-				constraint.Check(out ConstraintOperationResult checkResult);
-				if ((checkResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
-					return true;
+				this.InDirtyConstraintSet[conIndex] = true;
+				this.DirtyConstraintQueue.Enqueue(conIndex);
 			}
+		}
+	}
+
+	private bool ProcessDirtyQueue()
+	{
+		while (this.DirtyConstraintQueue.Count > 0)
+		{
+			var conIndex = this.DirtyConstraintQueue.Dequeue();
+			this.InDirtyConstraintSet[conIndex] = false;
+
+			if (PropagateConstraint(conIndex))
+				return true;
 		}
 
 		return false;
+	}
+
+	private bool PropagateConstraint(int conIndex)
+	{
+		var constraint = this.Constraints[conIndex];
+		var constraintVariables = (constraint as IConstraint<int>)?.Variables;
+
+		SnapshotGenerations(constraintVariables);
+
+		constraint.Propagate(out ConstraintOperationResult propagateResult);
+		if ((propagateResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
+			return true;
+
+		EnqueueChangedConstraints(constraintVariables);
+
+		if (!AllInstantiated(constraintVariables))
+			return false;
+
+		constraint.Check(out ConstraintOperationResult checkResult);
+		return (checkResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated;
+	}
+
+	private void SnapshotGenerations(IReadOnlyList<IVariable<int>>? constraintVariables)
+	{
+		if (constraintVariables == null)
+			return;
+
+		for (var j = 0; j < constraintVariables.Count; ++j)
+			this.PropagationSnapshotBuffer[j] = constraintVariables[j].Generation;
+	}
+
+	private void EnqueueChangedConstraints(IReadOnlyList<IVariable<int>>? constraintVariables)
+	{
+		if (constraintVariables == null)
+			return;
+
+		for (var j = 0; j < constraintVariables.Count; ++j)
+		{
+			if (constraintVariables[j].Generation == this.PropagationSnapshotBuffer[j])
+				continue;
+
+			foreach (var otherConIndex in this.VariableConstraintIndices[constraintVariables[j].VariableId])
+			{
+				if (this.InDirtyConstraintSet[otherConIndex])
+					continue;
+
+				this.InDirtyConstraintSet[otherConIndex] = true;
+				this.DirtyConstraintQueue.Enqueue(otherConIndex);
+			}
+		}
+	}
+
+	private static bool AllInstantiated(IReadOnlyList<IVariable<int>>? constraintVariables)
+	{
+		if (constraintVariables == null)
+			return true;
+
+		foreach (var variable in constraintVariables)
+		{
+			if (!variable.Instantiated())
+				return false;
+		}
+
+		return true;
+	}
+
+	private void SyncVariableGenerations()
+	{
+		for (var varIndex = 0; varIndex < this.Variables.Count; ++varIndex)
+			this.VariableLastSeenGenerations[varIndex] = this.Variables[varIndex].Generation;
+	}
+
+	private void ClearDirtySet()
+	{
+		while (this.DirtyConstraintQueue.Count > 0)
+			this.InDirtyConstraintSet[this.DirtyConstraintQueue.Dequeue()] = false;
 	}
 
 	private void BackTrackVariable(IVariable<int> variablePrune, out DomainOperationResult result)

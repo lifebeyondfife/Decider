@@ -32,7 +32,7 @@ public class NQueensTest
     [Theory]
     [InlineData(4, 2, 14)]
     [InlineData(8, 92, 889)]
-    [InlineData(10, 724, 10784)]
+    [InlineData(10, 724, 10770)]
     public void TestNumberOfSolutions(int boardSize, int expectedSolutions, int expectedBacktracks)
     {
         var nQueens = new NQueens(boardSize);
