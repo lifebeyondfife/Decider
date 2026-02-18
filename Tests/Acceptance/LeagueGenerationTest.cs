@@ -22,9 +22,9 @@ public class LeagueGenerationTest
         Assert.Equal(11, leagueGeneration.FixtureWeeks[0][2]);
         Assert.Equal(12, leagueGeneration.FixtureWeeks[0][3]);
 
-        Assert.Equal(11, leagueGeneration.FixtureWeeks[5][6]);
-        Assert.Equal(12, leagueGeneration.FixtureWeeks[5][7]);
-        Assert.Equal(13, leagueGeneration.FixtureWeeks[5][8]);
+        Assert.Equal(10, leagueGeneration.FixtureWeeks[5][6]);
+        Assert.Equal(11, leagueGeneration.FixtureWeeks[5][7]);
+        Assert.Equal(12, leagueGeneration.FixtureWeeks[5][8]);
 
         Assert.Equal(0, leagueGeneration.State.Backtracks);
         Assert.Single(leagueGeneration.State.Solutions);
@@ -49,7 +49,7 @@ public class LeagueGenerationTest
         Assert.Equal(18, leagueGeneration.FixtureWeeks[17][1]);
         Assert.Equal(19, leagueGeneration.FixtureWeeks[17][2]);
 
-        Assert.Equal(6249, leagueGeneration.State.Backtracks);
+        Assert.Equal(0, leagueGeneration.State.Backtracks);
         Assert.Single(leagueGeneration.State.Solutions);
     }
 }

@@ -9,5 +9,5 @@ namespace Decider.Csp.BaseTypes;
 
 public interface IVariableOrderingHeuristic<T>
 {
-	IVariable<T> SelectVariable(LinkedList<IVariable<T>> unassignedVariables);
+	int SelectVariableIndex(IList<IVariable<T>> variables);
 }

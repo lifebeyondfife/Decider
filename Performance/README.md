@@ -88,23 +88,23 @@ All benchmarks track the following metrics in the summary table:
 ```
 | Method       | BoardSize | Mean         | Error     | StdDev    | Backtracks | Gen0         | Gen1       | Gen2      | Allocated  |
 |------------- |---------- |-------------:|----------:|----------:|-----------:|-------------:|-----------:|----------:|-----------:|
-| SolveNQueens | 8         |     7.729 ms | 0.0399 ms | 0.0333 ms |      1,029 |    3210.9375 |   546.8750 |  500.0000 |   23.86 MB |
-| SolveNQueens | 10        |   147.826 ms | 0.8239 ms | 0.7303 ms |     14,036 |   47750.0000 |   750.0000 |  250.0000 |  384.86 MB |
-| SolveNQueens | 12        | 3,581.210 ms | 9.7312 ms | 9.1026 ms |    278,540 | 1229000.0000 | 31000.0000 | 5000.0000 | 9784.61 MB |
+| SolveNQueens | 8         |     8.178 ms | 0.0230 ms | 0.0204 ms |      1,071 |    3234.3750 |   687.5000 |  500.0000 |   24.28 MB |
+| SolveNQueens | 10        |   135.542 ms | 0.4931 ms | 0.4612 ms |     14,240 |   48500.0000 |  1250.0000 |  500.0000 |  386.96 MB |
+| SolveNQueens | 12        | 3,416.299 ms | 7.2193 ms | 6.7530 ms |    283,446 | 1238000.0000 | 31000.0000 | 5000.0000 | 9857.69 MB |
 ```
 
 **Decider LeagueGeneration:**
 ```
-| Method                | Mean     | Error   | StdDev  | Backtracks | Gen0        | Gen1      | Gen2      | Allocated |
-|---------------------- |---------:|--------:|--------:|-----------:|------------:|----------:|----------:|----------:|
-| SolveLeagueGeneration | 362.2 ms | 6.14 ms | 0.34 ms |      6,249 | 132000.0000 | 2000.0000 | 1000.0000 |   1.07 GB |
+| Method                | Mean     | Error     | StdDev    | Backtracks | Gen0      | Gen1      | Gen2     | Allocated |
+|---------------------- |---------:|----------:|----------:|-----------:|----------:|----------:|---------:|----------:|
+| SolveLeagueGeneration | 9.060 ms | 0.0662 ms | 0.0619 ms |          0 | 2968.7500 | 1218.7500 | 953.1250 |  68.65 MB |
 ```
 
 **Decider FurnitureMoving:**
 ```
 | Method               | Mean     | Error   | StdDev  | Backtracks | Gen0        | Allocated |
 |--------------------- |---------:|--------:|--------:|-----------:|------------:|----------:|
-| SolveFurnitureMoving | 534.5 ms | 2.26 ms | 1.88 ms |    114,513 | 104000.0000 | 838.26 MB |
+| SolveFurnitureMoving | 582.0 ms | 0.81 ms | 0.72 ms |    119,062 | 112000.0000 | 898.94 MB |
 ```
 
 **OR-Tools NQueens:**

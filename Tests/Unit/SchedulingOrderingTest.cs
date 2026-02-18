@@ -26,12 +26,11 @@ public class SchedulingOrderingTest
 		var demands = new List<int> { 1, 1, 1 };
 
 		var ordering = new SchedulingOrdering(starts, durations, demands, 3);
-		var list = new LinkedList<IVariable<int>>(starts);
+		var list = new List<IVariable<int>>(starts);
 
-		var selected = ordering.SelectVariable(list);
+		var selected = list[ordering.SelectVariableIndex(list)];
 
 		Assert.Same(s1, selected);
-		Assert.Equal(2, list.Count);
 	}
 
 	[Fact]
@@ -45,9 +44,9 @@ public class SchedulingOrderingTest
 		var demands = new List<int> { 2, 5, 3 };
 
 		var ordering = new SchedulingOrdering(starts, durations, demands, 5);
-		var list = new LinkedList<IVariable<int>>(starts);
+		var list = new List<IVariable<int>>(starts);
 
-		var selected = ordering.SelectVariable(list);
+		var selected = list[ordering.SelectVariableIndex(list)];
 
 		Assert.Same(s1, selected);
 	}
@@ -63,9 +62,9 @@ public class SchedulingOrderingTest
 		var demands = new List<int> { 3, 3, 3 };
 
 		var ordering = new SchedulingOrdering(starts, durations, demands, 5);
-		var list = new LinkedList<IVariable<int>>(starts);
+		var list = new List<IVariable<int>>(starts);
 
-		var selected = ordering.SelectVariable(list);
+		var selected = list[ordering.SelectVariableIndex(list)];
 
 		Assert.Same(s1, selected);
 	}
@@ -80,9 +79,9 @@ public class SchedulingOrderingTest
 		var demands = new List<int> { 3 };
 
 		var ordering = new SchedulingOrdering(starts, durations, demands, 5);
-		var list = new LinkedList<IVariable<int>>(new IVariable<int>[] { makespan, s0 });
+		var list = new List<IVariable<int>>(new IVariable<int>[] { makespan, s0 });
 
-		var selected = ordering.SelectVariable(list);
+		var selected = list[ordering.SelectVariableIndex(list)];
 
 		Assert.Same(s0, selected);
 	}
@@ -97,9 +96,9 @@ public class SchedulingOrderingTest
 		var demands = new List<int>();
 
 		var ordering = new SchedulingOrdering(starts, durations, demands, 5);
-		var list = new LinkedList<IVariable<int>>(new IVariable<int>[] { extra1, extra2 });
+		var list = new List<IVariable<int>>(new IVariable<int>[] { extra1, extra2 });
 
-		var selected = ordering.SelectVariable(list);
+		var selected = list[ordering.SelectVariableIndex(list)];
 
 		Assert.Same(extra2, selected);
 	}
@@ -115,16 +114,18 @@ public class SchedulingOrderingTest
 		var demands = new List<int> { 1, 1, 1 };
 
 		var ordering = new SchedulingOrdering(starts, durations, demands, 3);
-		var list = new LinkedList<IVariable<int>>(starts);
+		var list = new List<IVariable<int>>(starts);
 
-		var first = ordering.SelectVariable(list);
-		Assert.Same(s0, first);
+		var firstIdx = ordering.SelectVariableIndex(list);
+		Assert.Same(s0, list[firstIdx]);
+		list.RemoveAt(firstIdx);
 
-		var second = ordering.SelectVariable(list);
-		Assert.Same(s2, second);
+		var secondIdx = ordering.SelectVariableIndex(list);
+		Assert.Same(s2, list[secondIdx]);
+		list.RemoveAt(secondIdx);
 
-		var third = ordering.SelectVariable(list);
-		Assert.Same(s1, third);
+		var thirdIdx = ordering.SelectVariableIndex(list);
+		Assert.Same(s1, list[thirdIdx]);
 	}
 
 	[Fact]
