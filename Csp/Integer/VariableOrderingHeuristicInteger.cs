@@ -12,24 +12,19 @@ namespace Decider.Csp.Integer;
 
 public class MostConstrainedOrdering : IVariableOrderingHeuristic<int>
 {
-	public IVariable<int> SelectVariable(LinkedList<IVariable<int>> list)
+	public int SelectVariableIndex(IList<IVariable<int>> variables)
 	{
-		var temp = list.First;
-		var node = list.First;
-
-		while (node != null)
+		var bestIndex = 0;
+		for (var i = 1; i < variables.Count; ++i)
 		{
-			if (node.Value.Size() < temp!.Value.Size())
-				temp = node;
+			if (variables[i].Size() < variables[bestIndex].Size())
+				bestIndex = i;
 
-			if (temp.Value.Size() == 1)
+			if (variables[bestIndex].Size() == 1)
 				break;
-
-			node = node.Next;
 		}
-		list.Remove(temp!);
 
-		return temp!.Value;
+		return bestIndex;
 	}
 }
 
@@ -37,33 +32,24 @@ public class RandomOrdering : IVariableOrderingHeuristic<int>
 {
 	private readonly Random ran = new Random();
 
-	public IVariable<int> SelectVariable(LinkedList<IVariable<int>> list)
+	public int SelectVariableIndex(IList<IVariable<int>> variables)
 	{
-		var index = ran.Next(0, list.Count - 1);
-		var node = list.First;
-		while (--index >= 0)
-			node = node!.Next;
-		list.Remove(node!);
-		return node!.Value;
+		return ran.Next(0, variables.Count);
 	}
 }
 
 public class FirstVariableOrdering : IVariableOrderingHeuristic<int>
 {
-	public IVariable<int> SelectVariable(LinkedList<IVariable<int>> list)
+	public int SelectVariableIndex(IList<IVariable<int>> variables)
 	{
-		var first = list.First;
-		list.Remove(first!);
-		return first!.Value;
+		return 0;
 	}
 }
 
 public class LastVariableOrdering : IVariableOrderingHeuristic<int>
 {
-	public IVariable<int> SelectVariable(LinkedList<IVariable<int>> list)
+	public int SelectVariableIndex(IList<IVariable<int>> variables)
 	{
-		var last = list.Last;
-		list.Remove(last!);
-		return last!.Value;
+		return variables.Count - 1;
 	}
 }

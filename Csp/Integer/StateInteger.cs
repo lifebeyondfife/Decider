@@ -1,6 +1,6 @@
 /*
   Copyright © Iain McDonald 2010-2026
-  
+
   This file is part of Decider.
 */
 using System;
@@ -35,6 +35,8 @@ public class StateInteger : IState<int>
 	private IList<int> BranchFactor { get; set; } = new List<int>();
 	private IList<int> Explored { get; set; } = new List<int>();
 	private TimeSpan LastProgressReport { get; set; }
+
+	private List<IVariable<int>> AssignmentCandidates { get; set; } = new List<IVariable<int>>();
 
 	public IVariableOrderingHeuristic<int> VariableOrdering { get; private set; }
 	public IValueOrderingHeuristic<int> ValueOrdering { get; private set; }
@@ -90,9 +92,9 @@ public class StateInteger : IState<int>
 
 	public StateOperationResult Search()
 	{
-		var unassignedVariables = this.LastSolution == null
-			? new LinkedList<IVariable<int>>(this.Variables)
-			: new LinkedList<IVariable<int>>();
+		this.AssignmentCandidates = this.LastSolution == null
+			? new List<IVariable<int>>(this.Variables)
+			: new List<IVariable<int>>();
 		var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
 		var stopwatch = Stopwatch.StartNew();
 		var searchResult = StateOperationResult.Unsatisfiable;
@@ -100,7 +102,7 @@ public class StateInteger : IState<int>
 		if (this.Depth == instantiatedVariables.Length)
 		{
 			--this.Depth;
-			Backtrack(unassignedVariables, instantiatedVariables);
+			Backtrack(instantiatedVariables);
 			++this.Depth;
 		}
 		else if (ConstraintsViolated())
@@ -110,7 +112,7 @@ public class StateInteger : IState<int>
 			return searchResult;
 		}
 
-		if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
+		if (Search(out searchResult, instantiatedVariables, ref stopwatch))
 			this.Solutions.Add(CloneLastSolution());
 
 		this.Runtime += stopwatch.Elapsed;
@@ -120,9 +122,9 @@ public class StateInteger : IState<int>
 
 	public StateOperationResult Search(IVariable<int> optimiseVar, CancellationToken cancellationToken = default)
 	{
-		var unassignedVariables = this.LastSolution == null
-			? new LinkedList<IVariable<int>>(this.Variables)
-			: new LinkedList<IVariable<int>>();
+		this.AssignmentCandidates = this.LastSolution == null
+			? new List<IVariable<int>>(this.Variables)
+			: new List<IVariable<int>>();
 		var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
 		var stopwatch = Stopwatch.StartNew();
 		var searchResult = StateOperationResult.Unsatisfiable;
@@ -134,19 +136,21 @@ public class StateInteger : IState<int>
 			if (this.Depth == instantiatedVariables.Length)
 			{
 				--this.Depth;
-				Backtrack(unassignedVariables, instantiatedVariables);
+				Backtrack(instantiatedVariables);
 				++this.Depth;
 			}
 			else if (ConstraintsViolated())
 				break;
 
-			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch, cancellationToken))
+			if (Search(out searchResult, instantiatedVariables, ref stopwatch, cancellationToken))
 			{
 				this.Constraints.RemoveAt(this.Constraints.Count - 1);
 				this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar < optimiseVar.InstantiatedValue));
 				this.OptimalSolution = CloneLastSolution();
 			}
 			else if (searchResult == StateOperationResult.Cancelled)
+				break;
+			else
 				break;
 		}
 
@@ -160,9 +164,9 @@ public class StateInteger : IState<int>
 
 	public StateOperationResult SearchAllSolutions()
 	{
-		var unassignedVariables = this.LastSolution == null
-			? new LinkedList<IVariable<int>>(this.Variables)
-			: new LinkedList<IVariable<int>>();
+		this.AssignmentCandidates = this.LastSolution == null
+			? new List<IVariable<int>>(this.Variables)
+			: new List<IVariable<int>>();
 		var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
 		var stopwatch = Stopwatch.StartNew();
 
@@ -176,7 +180,7 @@ public class StateInteger : IState<int>
 			if (this.Depth == instantiatedVariables.Length)
 			{
 				--this.Depth;
-				Backtrack(unassignedVariables, instantiatedVariables);
+				Backtrack(instantiatedVariables);
 				++this.Depth;
 			}
 			else if (ConstraintsViolated())
@@ -186,7 +190,7 @@ public class StateInteger : IState<int>
 				break;
 			}
 
-			if (Search(out searchResult, unassignedVariables, instantiatedVariables, ref stopwatch))
+			if (Search(out searchResult, instantiatedVariables, ref stopwatch))
 				this.Solutions.Add(CloneLastSolution());
 		}
 
@@ -207,11 +211,11 @@ public class StateInteger : IState<int>
 			.ToDictionary(k => k.Key, v => v.Value);
 	}
 
-	private bool Search(out StateOperationResult searchResult, LinkedList<IVariable<int>> unassignedVariables,
+	private bool Search(out StateOperationResult searchResult,
 		IList<IVariable<int>> instantiatedVariables, ref Stopwatch stopwatch, CancellationToken cancellationToken = default)
 	{
 		searchResult = StateOperationResult.Unsatisfiable;
-		if (unassignedVariables.Any(x => x.Size() == 0))
+		if (this.AssignmentCandidates.Any(v => v.Size() == 0))
 		{
 			this.Depth = -1;
 			return false;
@@ -230,7 +234,11 @@ public class StateInteger : IState<int>
 				return true;
 			}
 
-			instantiatedVariables[this.Depth] = this.VariableOrdering.SelectVariable(unassignedVariables);
+			var selectedIndex = this.VariableOrdering.SelectVariableIndex(this.AssignmentCandidates);
+			instantiatedVariables[this.Depth] = this.AssignmentCandidates[selectedIndex];
+			var lastIndex = this.AssignmentCandidates.Count - 1;
+			this.AssignmentCandidates[selectedIndex] = this.AssignmentCandidates[lastIndex];
+			this.AssignmentCandidates.RemoveAt(lastIndex);
 
 			if (this.BranchFactor[this.Depth] == 0)
 			{
@@ -250,9 +258,9 @@ public class StateInteger : IState<int>
 			if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
 				return false;
 
-			if (ConstraintsViolated() || unassignedVariables.Any(v => v.Size() == 0))
+			if (ConstraintsViolated() || this.AssignmentCandidates.Any(v => v.Size() == 0))
 			{
-				if (!Backtrack(unassignedVariables, instantiatedVariables))
+				if (!Backtrack(instantiatedVariables))
 					return false;
 			}
 
@@ -273,7 +281,7 @@ public class StateInteger : IState<int>
 		}
 	}
 
-	private bool Backtrack(LinkedList<IVariable<int>> unassignedVariables, IList<IVariable<int>> instantiatedVariables)
+	private bool Backtrack(IList<IVariable<int>> instantiatedVariables)
 	{
 		DomainOperationResult removeResult;
 		do
@@ -281,7 +289,7 @@ public class StateInteger : IState<int>
 			if (this.Depth < 0)
 				return false;
 
-			unassignedVariables.AddFirst(instantiatedVariables[this.Depth]);
+			this.AssignmentCandidates.Add(instantiatedVariables[this.Depth]);
 			BackTrackVariable(instantiatedVariables[this.Depth], out removeResult);
 
 			if (removeResult == DomainOperationResult.EmptyDomain)

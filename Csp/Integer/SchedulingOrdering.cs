@@ -29,37 +29,31 @@ public class SchedulingOrdering : IVariableOrderingHeuristic<int>, IValueOrderin
 			this.demandByVariable[starts[i]] = demands[i];
 	}
 
-	public IVariable<int> SelectVariable(LinkedList<IVariable<int>> list)
+	public int SelectVariableIndex(IList<IVariable<int>> variables)
 	{
-		LinkedListNode<IVariable<int>>? best = null;
-		var bestIsScheduling = false;
-		var bestEst = int.MaxValue;
-		var bestDemand = -1;
-		var bestSize = int.MaxValue;
+		var bestIndex = 0;
+		var bestIsScheduling = this.demandByVariable.TryGetValue(variables[0], out var bestDemand);
+		var bestEst = ((VariableInteger) variables[0]).Domain.LowerBound;
+		var bestSize = variables[0].Size();
 
-		var node = list.First;
-		while (node != null)
+		for (var i = 1; i < variables.Count; ++i)
 		{
-			var isScheduling = this.demandByVariable.TryGetValue(node.Value, out var demand);
-			var vi = (VariableInteger) node.Value;
-			var est = vi.Domain.LowerBound;
-			var size = vi.Size();
+			var isScheduling = this.demandByVariable.TryGetValue(variables[i], out var demand);
+			var candidate = (VariableInteger) variables[i];
+			var est = candidate.Domain.LowerBound;
+			var size = candidate.Size();
 
-			if (best == null || IsBetter(isScheduling, est, demand, size,
-				bestIsScheduling, bestEst, bestDemand, bestSize))
-			{
-				best = node;
-				bestIsScheduling = isScheduling;
-				bestEst = est;
-				bestDemand = demand;
-				bestSize = size;
-			}
+			if (!IsBetter(isScheduling, est, demand, size, bestIsScheduling, bestEst, bestDemand, bestSize))
+				continue;
 
-			node = node.Next;
+			bestIndex = i;
+			bestIsScheduling = isScheduling;
+			bestEst = est;
+			bestDemand = demand;
+			bestSize = size;
 		}
 
-		list.Remove(best!);
-		return best!.Value;
+		return bestIndex;
 	}
 
 	public int SelectValue(IVariable<int> variable)
