@@ -20,6 +20,8 @@ public interface IVariable<T> : IComparable<IVariable<T>>
 
 	string ToString();
 	string Name { get; }
+	int VariableId { get; }
+	int Generation { get; }
 	T InstantiatedValue { get; }
 	bool Instantiated();
 	int Size();

@@ -4,6 +4,7 @@
   This file is part of Decider.
 */
 using System;
+using System.Collections.Generic;
 
 namespace Decider.Csp.BaseTypes;
 
@@ -21,6 +22,11 @@ public interface IConstraint
 	void Check(out ConstraintOperationResult result);
 	void Propagate(out ConstraintOperationResult result);
 	bool StateChanged();
+}
+
+public interface IConstraint<T> : IConstraint
+{
+	IReadOnlyList<IVariable<T>> Variables { get; }
 }
 
 public interface IBacktrackableConstraint : IConstraint

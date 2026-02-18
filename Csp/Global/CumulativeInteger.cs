@@ -12,9 +12,11 @@ using Decider.Csp.Integer;
 
 namespace Decider.Csp.Global;
 
-public class CumulativeInteger : IConstraint
+public class CumulativeInteger : IConstraint<int>
 {
 	private IList<VariableInteger> Starts { get; set; }
+
+	public IReadOnlyList<IVariable<int>> Variables => (IReadOnlyList<VariableInteger>)this.Starts;
 	private IList<int> Durations { get; set; }
 	private IList<int> Demands { get; set; }
 	private int Capacity { get; set; }

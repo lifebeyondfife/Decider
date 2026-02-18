@@ -11,10 +11,12 @@ using Decider.Csp.BaseTypes;
 
 namespace Decider.Csp.Integer;
 
-public class ConstraintInteger : ExpressionInteger, IConstraint
+public class ConstraintInteger : ExpressionInteger, IConstraint<int>
 {
-	private readonly IVariable<int>[] variableArray;
-	private readonly int[] generationArray;
+	private IList<VariableInteger> VariableList { get; set; }
+	private IList<int> GenerationList { get; set; } 
+
+	public IReadOnlyList<IVariable<int>> Variables => this.VariableList.ToList();
 
 	public ConstraintInteger(Expression<int> expression)
 	{
@@ -26,43 +28,38 @@ public class ConstraintInteger : ExpressionInteger, IConstraint
 		this.propagator = expressionInt.Propagator;
 		this.integer = expressionInt.Integer;
 
-		var variableSet = new HashSet<IVariable<int>>();
+		var variableSet = new HashSet<VariableInteger>();
 		ConstructVariableList((ExpressionInteger) expression, variableSet);
-		this.variableArray = variableSet.ToArray();
-		this.generationArray = new int[this.variableArray.Length];
+		this.VariableList = variableSet.ToArray();
+		this.GenerationList = new int[this.VariableList.Count];
 	}
 
-	private static void ConstructVariableList(ExpressionInteger expression, ISet<IVariable<int>> variableSet)
+	private static void ConstructVariableList(ExpressionInteger expression, ISet<VariableInteger> variableSet)
 	{
-		if (expression.Left is VariableInteger)
+		if (expression.Left is VariableInteger leftVar)
 		{
-			variableSet.Add((VariableInteger) expression.Left);
+			variableSet.Add(leftVar);
 		}
 		else if (expression.Left is MetaExpressionInteger)
 		{
 			ConstructVariableList((ExpressionInteger) expression.Left, variableSet);
 			foreach (var variable in ((IMetaExpression<int>) expression.Left).Support)
-			{
-				variableSet.Add(variable);
-			}
+				variableSet.Add((VariableInteger) variable);
 		}
 		else if (expression.Left is ExpressionInteger)
 		{
 			ConstructVariableList((ExpressionInteger) expression.Left, variableSet);
 		}
 
-
-		if (expression.Right is VariableInteger)
+		if (expression.Right is VariableInteger rightVar)
 		{
-			variableSet.Add((VariableInteger) expression.Right);
+			variableSet.Add(rightVar);
 		}
 		else if (expression.Right is MetaExpressionInteger)
 		{
 			ConstructVariableList((ExpressionInteger) expression.Right, variableSet);
 			foreach (var variable in ((IMetaExpression<int>) expression.Right).Support)
-			{
-				variableSet.Add(variable);
-			}
+				variableSet.Add((VariableInteger) variable);
 		}
 		else if (expression.Right is ExpressionInteger)
 		{
@@ -72,10 +69,10 @@ public class ConstraintInteger : ExpressionInteger, IConstraint
 
 	public void Check(out ConstraintOperationResult result)
 	{
-		for (var i = 0; i < this.variableArray.Length; ++i)
-			this.generationArray[i] = ((VariableInteger) variableArray[i]).Generation;
+		for (var i = 0; i < this.Variables.Count; ++i)
+			this.GenerationList[i] = this.VariableList[i].Generation;
 
-		if (this.variableArray.Any(variable => !variable.Instantiated()))
+		if (this.VariableList.Any(variable => !variable.Instantiated()))
 		{
 			result = ConstraintOperationResult.Undecided;
 			return;
@@ -103,7 +100,7 @@ public class ConstraintInteger : ExpressionInteger, IConstraint
 
 	public bool StateChanged()
 	{
-		return this.variableArray.Where((variable, index) =>
-			((VariableInteger) variable).Generation != this.generationArray[index]).Any();
+		return this.VariableList.Where((variable, index) =>
+			variable.Generation != this.GenerationList[index]).Any();
 	}
 }
