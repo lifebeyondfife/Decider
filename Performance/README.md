@@ -86,11 +86,11 @@ All benchmarks track the following metrics in the summary table:
 
 **Decider NQueens:**
 ```
-| Method       | BoardSize | Mean         | Error       | StdDev     | Backtracks | Gen0         | Gen1       | Gen2      | Allocated  |
-|------------- |---------- |-------------:|------------:|-----------:|-----------:|-------------:|-----------:|----------:|-----------:|
-| SolveNQueens | 8         |     7.371 ms |   0.0315 ms |  0.0017 ms |      1,029 |    3203.1250 |   546.8750 |  500.0000 |   23.77 MB |
-| SolveNQueens | 10        |   142.575 ms |  43.8319 ms |  2.4026 ms |     14,036 |   47750.0000 |   750.0000 |  250.0000 |  383.65 MB |
-| SolveNQueens | 12        | 3,580.313 ms | 791.2047 ms | 43.3686 ms |    278,540 | 1225000.0000 | 31000.0000 | 5000.0000 | 9758.46 MB |
+| Method       | BoardSize | Mean         | Error     | StdDev    | Backtracks | Gen0         | Gen1       | Gen2      | Allocated  |
+|------------- |---------- |-------------:|----------:|----------:|-----------:|-------------:|-----------:|----------:|-----------:|
+| SolveNQueens | 8         |     7.729 ms | 0.0399 ms | 0.0333 ms |      1,029 |    3210.9375 |   546.8750 |  500.0000 |   23.86 MB |
+| SolveNQueens | 10        |   147.826 ms | 0.8239 ms | 0.7303 ms |     14,036 |   47750.0000 |   750.0000 |  250.0000 |  384.86 MB |
+| SolveNQueens | 12        | 3,581.210 ms | 9.7312 ms | 9.1026 ms |    278,540 | 1229000.0000 | 31000.0000 | 5000.0000 | 9784.61 MB |
 ```
 
 **Decider LeagueGeneration:**
@@ -109,11 +109,11 @@ All benchmarks track the following metrics in the summary table:
 
 **OR-Tools NQueens:**
 ```
-| Method       | BoardSize | Mean        | Error      | StdDev   | Conflicts | Branches | Allocated |
-|------------- |---------- |------------:|-----------:|---------:|----------:|---------:|----------:|
-| SolveNQueens | 8         |    12.75 ms |   0.111 ms | 0.006 ms |       650 |    7,238 |  40.68 KB |
-| SolveNQueens | 10        |   340.93 ms |  16.757 ms | 0.918 ms |    10,902 |   74,184 |  68.52 KB |
-| SolveNQueens | 12        | 4,979.17 ms | 125.127 ms | 6.859 ms |   133,379 |  669,397 |  96.77 KB |
+| Method       | BoardSize | Mean        | Error     | StdDev   | Conflicts | Branches | Allocated |
+|------------- |---------- |------------:|----------:|---------:|----------:|---------:|----------:|
+| SolveNQueens | 8         |    13.78 ms |  0.069 ms | 0.064 ms |       650 |    7,238 |  40.68 KB |
+| SolveNQueens | 10        |   368.35 ms |  2.463 ms | 2.304 ms |    10,902 |   74,184 |  68.52 KB |
+| SolveNQueens | 12        | 5,357.23 ms | 11.495 ms | 9.599 ms |   133,379 |  669,397 |  96.77 KB |
 ```
 
 **OR-Tools FurnitureMoving:**

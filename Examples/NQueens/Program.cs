@@ -12,7 +12,7 @@ public class Program
 {
 	public static void Main(string[] args)
 	{
-		var n = (args.Length >= 1) ? Int32.Parse(args[0]) : 13;
+		var n = (args.Length >= 1) ? Int32.Parse(args[0]) : 12;
 		var nQueens = new NQueens(n);
 
 		nQueens.SearchAllSolutions();
