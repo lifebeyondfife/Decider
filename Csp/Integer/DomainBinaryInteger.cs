@@ -137,7 +137,7 @@ public class DomainBinaryInteger : IDomain<int>
 		}
 
 		this.size = 1;
-		this.lowerBound = this.upperBound = value - offset;
+		this.lowerBound = this.upperBound = value + offset;
 		result = DomainOperationResult.InstantiateSuccessful;
 	}
 

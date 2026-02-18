@@ -37,9 +37,10 @@ public class StateInteger : IState<int>
 	private TimeSpan LastProgressReport { get; set; }
 
 	public IVariableOrderingHeuristic<int> VariableOrdering { get; private set; }
+	public IValueOrderingHeuristic<int> ValueOrdering { get; private set; }
 
 	public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints,
-		IVariableOrderingHeuristic<int>? ordering = null)
+		IVariableOrderingHeuristic<int>? ordering = null, IValueOrderingHeuristic<int>? valueOrdering = null)
 	{
 		SetVariables(variables);
 		SetConstraints(constraints);
@@ -57,6 +58,7 @@ public class StateInteger : IState<int>
 		this.Explored = new int[this.Variables.Count];
 
 		this.VariableOrdering = ordering ?? new MostConstrainedOrdering();
+		this.ValueOrdering = valueOrdering ?? new LowestValueOrdering();
 
 		for (var i = 0; i < this.Variables.Count; ++i)
 			((VariableInteger)this.Variables[i]).SetVariableId(i);
@@ -79,6 +81,11 @@ public class StateInteger : IState<int>
 	public void SetVariableOrderingHeuristic(IVariableOrderingHeuristic<int> variableOrdering)
 	{
 		this.VariableOrdering = variableOrdering;
+	}
+
+	public void SetValueOrderingHeuristic(IValueOrderingHeuristic<int> valueOrdering)
+	{
+		this.ValueOrdering = valueOrdering;
 	}
 
 	public StateOperationResult Search()
@@ -237,7 +244,8 @@ public class StateInteger : IState<int>
 				}
 			}
 
-			instantiatedVariables[this.Depth].Instantiate(this.Depth, out DomainOperationResult instantiateResult);
+			var selectedValue = this.ValueOrdering.SelectValue(instantiatedVariables[this.Depth]);
+			instantiatedVariables[this.Depth].Instantiate(selectedValue, this.Depth, out DomainOperationResult instantiateResult);
 
 			if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
 				return false;
