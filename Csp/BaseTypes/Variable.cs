@@ -1,5 +1,5 @@
 ﻿/*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
 
   This file is part of Decider.
 */
@@ -20,6 +20,8 @@ public interface IVariable<T> : IComparable<IVariable<T>>
 
 	string ToString();
 	string Name { get; }
+	int VariableId { get; }
+	int Generation { get; }
 	T InstantiatedValue { get; }
 	bool Instantiated();
 	int Size();

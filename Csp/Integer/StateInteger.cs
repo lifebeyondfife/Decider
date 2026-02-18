@@ -41,11 +41,12 @@ public class StateInteger : IState<int>
 	public IVariableOrderingHeuristic<int> VariableOrdering { get; private set; }
 	public IValueOrderingHeuristic<int> ValueOrdering { get; private set; }
 
+	private IList<int>[] VariableConstraintIndices { get; set; } = Array.Empty<IList<int>>();
+
 	public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints,
 		IVariableOrderingHeuristic<int>? ordering = null, IValueOrderingHeuristic<int>? valueOrdering = null)
 	{
 		SetVariables(variables);
-		SetConstraints(constraints);
 		this.Depth = 0;
 		this.Backtracks = 0;
 		this.Runtime = new TimeSpan(0);
@@ -64,6 +65,8 @@ public class StateInteger : IState<int>
 
 		for (var i = 0; i < this.Variables.Count; ++i)
 			((VariableInteger)this.Variables[i]).SetVariableId(i);
+
+		SetConstraints(constraints);
 	}
 
 	public void SetVariables(IEnumerable<IVariable<int>> variableList)
@@ -78,6 +81,23 @@ public class StateInteger : IState<int>
 	{
 		this.Constraints = constraints?.ToList() ?? new List<IConstraint>();
 		this.BacktrackableConstraints = this.Constraints.OfType<IBacktrackableConstraint>().ToList();
+		BuildVariableConstraintIndex();
+	}
+
+	private void BuildVariableConstraintIndex()
+	{
+		this.VariableConstraintIndices = new IList<int>[this.Variables.Count];
+		for (var i = 0; i < this.VariableConstraintIndices.Length; ++i)
+			this.VariableConstraintIndices[i] = new List<int>();
+
+		for (var ci = 0; ci < this.Constraints.Count; ++ci)
+		{
+			if (this.Constraints[ci] is not IConstraint<int> constraintInt)
+				continue;
+
+			foreach (var variable in constraintInt.Variables)
+				this.VariableConstraintIndices[variable.VariableId].Add(ci);
+		}
 	}
 
 	public void SetVariableOrderingHeuristic(IVariableOrderingHeuristic<int> variableOrdering)
@@ -130,6 +150,7 @@ public class StateInteger : IState<int>
 		var searchResult = StateOperationResult.Unsatisfiable;
 
 		this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar < Int32.MaxValue));
+		BuildVariableConstraintIndex();
 
 		while (true)
 		{
@@ -301,19 +322,27 @@ public class StateInteger : IState<int>
 
 	private bool ConstraintsViolated()
 	{
-		for (var i = 0; i < this.Constraints.Count; ++i)
+		var propagated = true;
+		while (propagated)
 		{
-			var constraint = this.Constraints[i];
-			if (!constraint.StateChanged())
-				continue;
+			propagated = false;
+			for (var i = 0; i < this.Constraints.Count; ++i)
+			{
+				var constraint = this.Constraints[i];
+				if (!constraint.StateChanged())
+					continue;
 
-			constraint.Propagate(out ConstraintOperationResult result);
-			if ((result & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
-				return true;
+				constraint.Propagate(out ConstraintOperationResult propagateResult);
+				if ((propagateResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
+					return true;
 
-			constraint.Check(out result);
-			if ((result & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
-				return true;
+				if ((propagateResult & ConstraintOperationResult.Propagated) == ConstraintOperationResult.Propagated)
+					propagated = true;
+
+				constraint.Check(out ConstraintOperationResult checkResult);
+				if ((checkResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
+					return true;
+			}
 		}
 
 		return false;

@@ -40,7 +40,7 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 				instantiationStack = clonedStack,
 				State = State,
 				Name = Name,
-				variableId = variableId
+				VariableId = this.VariableId
 			};
 	}
 
@@ -48,16 +48,15 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 
 	private IDomain<int> baseDomain = DomainBinaryInteger.CreateDomain(0, 0);
 	private Stack<InstantiationEntry> instantiationStack = new Stack<InstantiationEntry>();
-	private int variableId;
-	private int generation;
+	public int VariableId { get; private set; }
 
 	public IState<int>? State { get; set; }
 	public string Name { get; private set; } = string.Empty;
-	internal int Generation { get { return this.generation; } }
+	public int Generation { get; private set; }
 
 	internal void RestoreGeneration(int oldGeneration)
 	{
-		this.generation = oldGeneration;
+		this.Generation = oldGeneration;
 	}
 
 	public IDomain<int> Domain
@@ -122,8 +121,8 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 		if (result != DomainOperationResult.InstantiateSuccessful)
 			return;
 
-		this.instantiationStack.Push(new InstantiationEntry(instantiatedDomain, depth, this.generation));
-		this.generation = ++nextGeneration;
+		this.instantiationStack.Push(new InstantiationEntry(instantiatedDomain, depth, this.Generation));
+		this.Generation = ++nextGeneration;
 	}
 
 	public void Instantiate(int value, int depth, out DomainOperationResult result)
@@ -133,8 +132,8 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 		if (result != DomainOperationResult.InstantiateSuccessful)
 			return;
 
-		this.instantiationStack.Push(new InstantiationEntry(instantiatedDomain, depth, this.generation));
-		this.generation = ++nextGeneration;
+		this.instantiationStack.Push(new InstantiationEntry(instantiatedDomain, depth, this.Generation));
+		this.Generation = ++nextGeneration;
 	}
 
 	public void Backtrack(int fromDepth)
@@ -142,7 +141,7 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 		while (this.instantiationStack.Count > 0 &&
 		       this.instantiationStack.Peek().Depth >= fromDepth)
 		{
-			this.generation = this.instantiationStack.Pop().OldGeneration;
+			this.Generation = this.instantiationStack.Pop().OldGeneration;
 		}
 	}
 
@@ -154,10 +153,10 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 		var domainBinary = (DomainBinaryInteger)this.baseDomain;
 		var arrayIndex = domainBinary.GetArrayIndex(value);
 
-		((StateInteger)this.State!).Trail.RecordChange(this.variableId, arrayIndex,
-			domainBinary.GetBits(arrayIndex), domainBinary.InternalLowerBound, domainBinary.InternalUpperBound, domainBinary.Size(), this.generation, depth);
+		((StateInteger)this.State!).Trail.RecordChange(this.VariableId, arrayIndex,
+			domainBinary.GetBits(arrayIndex), domainBinary.InternalLowerBound, domainBinary.InternalUpperBound, domainBinary.Size(), this.Generation, depth);
 
-		this.generation = ++nextGeneration;
+		this.Generation = ++nextGeneration;
 	}
 
 	public void Remove(int value, int depth, out DomainOperationResult result)
@@ -203,7 +202,7 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 
 	internal void SetVariableId(int id)
 	{
-		this.variableId = id;
+		this.VariableId = id;
 	}
 
 	public int CompareTo(IVariable<int>? otherVariable)

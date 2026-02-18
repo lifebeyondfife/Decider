@@ -11,10 +11,12 @@ using Decider.Csp.Integer;
 
 namespace Decider.Csp.Global;
 
-public class AllDifferentInteger : IBacktrackableConstraint
+public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>
 {
-	private readonly VariableInteger[] variableArray;
-	private readonly int[] generationArray;
+	private IList<VariableInteger> VariableList { get; set; }
+
+	public IReadOnlyList<IVariable<int>> Variables => this.VariableList.ToList();
+	private IList<int> GenerationList { get; set; }
 	private BipartiteGraph? Graph { get; set; }
 	private readonly CycleDetection cycleDetection;
 	private readonly Stack<(int Depth, int?[] Matching)> matchingTrail;
@@ -26,7 +28,7 @@ public class AllDifferentInteger : IBacktrackableConstraint
 		get
 		{
 			if (this.State == null)
-				this.State = this.variableArray[0].State;
+				this.State = this.VariableList[0].State;
 
 			return this.State!.Depth;
 		}
@@ -34,18 +36,18 @@ public class AllDifferentInteger : IBacktrackableConstraint
 
 	public AllDifferentInteger(IEnumerable<VariableInteger> variables)
 	{
-		this.variableArray = variables.ToArray();
-		this.generationArray = new int[this.variableArray.Length];
+		this.VariableList = variables.ToArray();
+		this.GenerationList = new int[this.VariableList.Count];
 		this.cycleDetection = new CycleDetection();
 		this.matchingTrail = new Stack<(int Depth, int?[] Matching)>();
 	}
 
 	public void Check(out ConstraintOperationResult result)
 	{
-		for (var i = 0; i < this.variableArray.Length; ++i)
-			this.generationArray[i] = variableArray[i].Generation;
+		for (var i = 0; i < this.VariableList.Count; ++i)
+			this.GenerationList[i] = VariableList[i].Generation;
 
-		if (this.variableArray.Any(variable => !variable.Instantiated()))
+		if (this.VariableList.Any(variable => !variable.Instantiated()))
 		{
 			result = ConstraintOperationResult.Undecided;
 			return;
@@ -58,9 +60,9 @@ public class AllDifferentInteger : IBacktrackableConstraint
 	{
 		if (this.Graph == null)
 		{
-			this.Graph = new BipartiteGraph(this.variableArray);
+			this.Graph = new BipartiteGraph(this.VariableList);
 
-			if (this.Graph.MaximalMatching(this.lastMatching) < this.variableArray.Length)
+			if (this.Graph.MaximalMatching(this.lastMatching) < this.VariableList.Count)
 			{
 				result = ConstraintOperationResult.Violated;
 				return;
@@ -110,9 +112,9 @@ public class AllDifferentInteger : IBacktrackableConstraint
 	{
 		var brokenVariables = new List<NodeVariable>();
 
-		for (var i = 0; i < this.variableArray.Length; ++i)
+		for (var i = 0; i < this.VariableList.Count; ++i)
 		{
-			var variable = this.variableArray[i];
+			var variable = this.VariableList[i];
 			var varNode = this.Graph!.Variables[i];
 			var matchBroken = false;
 			var domainValues = new HashSet<int>(variable.Domain);
@@ -149,13 +151,13 @@ public class AllDifferentInteger : IBacktrackableConstraint
 
 	public bool StateChanged()
 	{
-		return this.variableArray.Where((t, i) => t.Generation != this.generationArray[i]).Any();
+		return this.VariableList.Where((t, i) => t.Generation != this.GenerationList[i]).Any();
 	}
 
 	private void SaveMatching()
 	{
-		var matching = new int?[this.variableArray.Length];
-		for (var i = 0; i < this.variableArray.Length; ++i)
+		var matching = new int?[this.VariableList.Count];
+		for (var i = 0; i < this.VariableList.Count; ++i)
 		{
 			var paired = this.Graph!.Pair[this.Graph.Variables[i]];
 			if (paired != this.Graph.NullNode)
