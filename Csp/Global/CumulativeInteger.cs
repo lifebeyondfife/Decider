@@ -12,7 +12,7 @@ using Decider.Csp.Integer;
 
 namespace Decider.Csp.Global;
 
-public class CumulativeInteger : IConstraint<int>
+public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 {
 	private IList<VariableInteger> Starts { get; set; }
 
@@ -21,6 +21,9 @@ public class CumulativeInteger : IConstraint<int>
 	private IList<int> Demands { get; set; }
 	private int Capacity { get; set; }
 	private IList<int> GenerationArray { get; set; }
+
+	public bool GenerateReasons { get; set; }
+	public IList<BoundReason>? LastReason { get; private set; }
 
 	private IState<int>? State { get; set; }
 	private int Depth
@@ -88,6 +91,10 @@ public class CumulativeInteger : IConstraint<int>
 	public void Propagate(out ConstraintOperationResult result)
 	{
 		result = ConstraintOperationResult.Undecided;
+
+		if (this.GenerateReasons)
+			this.LastReason = null;
+
 		var propagationOccurred = true;
 
 		while (propagationOccurred)
@@ -96,13 +103,16 @@ public class CumulativeInteger : IConstraint<int>
 
 			var profile = BuildCompulsoryProfile();
 
-			foreach (var demand in profile.Values)
+			foreach (var time in profile.Keys)
 			{
-				if (demand > this.Capacity)
-				{
-					result = ConstraintOperationResult.Violated;
-					return;
-				}
+				if (profile[time] <= this.Capacity)
+					continue;
+
+				if (this.GenerateReasons)
+					this.LastReason = ReasonForProfileOverload(time);
+
+				result = ConstraintOperationResult.Violated;
+				return;
 			}
 
 			for (var i = 0; i < this.Starts.Count; ++i)
@@ -124,6 +134,9 @@ public class CumulativeInteger : IConstraint<int>
 
 					if (domainResult == DomainOperationResult.EmptyDomain)
 					{
+						if (this.GenerateReasons)
+							this.LastReason = ReasonForTimetableFilter(i, value, profile);
+
 						result = ConstraintOperationResult.Violated;
 						return;
 					}
@@ -136,54 +149,101 @@ public class CumulativeInteger : IConstraint<int>
 				}
 			}
 
-			var leftToRightResult = EdgeFindingLeftToRight();
-			if (leftToRightResult == ConstraintOperationResult.Violated)
-			{
-				result = ConstraintOperationResult.Violated;
+			if (ApplySubResult(EdgeFinding(true), ref result, ref propagationOccurred))
 				return;
-			}
-			if (leftToRightResult == ConstraintOperationResult.Propagated)
-			{
-				result = ConstraintOperationResult.Propagated;
-				propagationOccurred = true;
-			}
 
-			var rightToLeftResult = EdgeFindingRightToLeft();
-			if (rightToLeftResult == ConstraintOperationResult.Violated)
-			{
-				result = ConstraintOperationResult.Violated;
+			if (ApplySubResult(EdgeFinding(false), ref result, ref propagationOccurred))
 				return;
-			}
-			if (rightToLeftResult == ConstraintOperationResult.Propagated)
-			{
-				result = ConstraintOperationResult.Propagated;
-				propagationOccurred = true;
-			}
 
-			var notFirstResult = NotFirstRule();
-			if (notFirstResult == ConstraintOperationResult.Violated)
-			{
-				result = ConstraintOperationResult.Violated;
+			if (ApplySubResult(NotFirstOrLastRule(true), ref result, ref propagationOccurred))
 				return;
-			}
-			if (notFirstResult == ConstraintOperationResult.Propagated)
-			{
-				result = ConstraintOperationResult.Propagated;
-				propagationOccurred = true;
-			}
 
-			var notLastResult = NotLastRule();
-			if (notLastResult == ConstraintOperationResult.Violated)
-			{
-				result = ConstraintOperationResult.Violated;
+			if (ApplySubResult(NotFirstOrLastRule(false), ref result, ref propagationOccurred))
 				return;
-			}
-			if (notLastResult == ConstraintOperationResult.Propagated)
-			{
-				result = ConstraintOperationResult.Propagated;
-				propagationOccurred = true;
-			}
 		}
+	}
+
+	private bool GetCompulsoryPart(int taskIndex, out int compulsoryStart, out int compulsoryEnd)
+	{
+		var earliestStartTime = this.Starts[taskIndex].Domain.LowerBound;
+		var lastStartTime = this.Starts[taskIndex].Domain.UpperBound;
+		var duration = this.Durations[taskIndex];
+
+		if (lastStartTime >= earliestStartTime + duration)
+		{
+			compulsoryStart = int.MaxValue;
+			compulsoryEnd = int.MinValue;
+			return false;
+		}
+
+		compulsoryStart = lastStartTime;
+		compulsoryEnd = earliestStartTime + duration;
+		return true;
+	}
+
+	private bool ApplyNewLowerBound(int taskIndex, int newLowerBound, ref ConstraintOperationResult result)
+	{
+		if (newLowerBound > this.Starts[taskIndex].Domain.UpperBound)
+			return true;
+
+		if (newLowerBound <= this.Starts[taskIndex].Domain.LowerBound)
+			return false;
+
+		var bounds = new Bounds<int>(newLowerBound, this.Starts[taskIndex].Domain.UpperBound);
+		this.Starts[taskIndex].Propagate(bounds, out var propagateResult);
+
+		if (propagateResult == ConstraintOperationResult.Violated)
+			return true;
+
+		if (propagateResult == ConstraintOperationResult.Propagated)
+			result = ConstraintOperationResult.Propagated;
+
+		return false;
+	}
+
+	private bool ApplyNewUpperBound(int taskIndex, int newUpperBound, ref ConstraintOperationResult result)
+	{
+		if (newUpperBound < this.Starts[taskIndex].Domain.LowerBound)
+			return true;
+
+		if (newUpperBound >= this.Starts[taskIndex].Domain.UpperBound)
+			return false;
+
+		var bounds = new Bounds<int>(this.Starts[taskIndex].Domain.LowerBound, newUpperBound);
+		this.Starts[taskIndex].Propagate(bounds, out var propagateResult);
+
+		if (propagateResult == ConstraintOperationResult.Violated)
+			return true;
+
+		if (propagateResult == ConstraintOperationResult.Propagated)
+			result = ConstraintOperationResult.Propagated;
+
+		return false;
+	}
+
+	private static bool ApplySubResult(ConstraintOperationResult subResult, ref ConstraintOperationResult result, ref bool propagationOccurred)
+	{
+		if (subResult == ConstraintOperationResult.Violated)
+		{
+			result = ConstraintOperationResult.Violated;
+			return true;
+		}
+
+		if (subResult == ConstraintOperationResult.Propagated)
+		{
+			result = ConstraintOperationResult.Propagated;
+			propagationOccurred = true;
+		}
+
+		return false;
+	}
+
+	private void SetReasonIfEnabled(IList<int>? contributors, int taskIndex)
+	{
+		if (!this.GenerateReasons || contributors == null)
+			return;
+
+		this.LastReason = CollectReasonForTasks(contributors.Concat(new[] { taskIndex }));
 	}
 
 	private Dictionary<int, int> BuildCompulsoryProfile()
@@ -192,15 +252,8 @@ public class CumulativeInteger : IConstraint<int>
 
 		for (var i = 0; i < this.Starts.Count; ++i)
 		{
-			var est = this.Starts[i].Domain.LowerBound;
-			var lst = this.Starts[i].Domain.UpperBound;
-			var duration = this.Durations[i];
-
-			if (lst >= est + duration)
+			if (!GetCompulsoryPart(i, out var compulsoryStart, out var compulsoryEnd))
 				continue;
-
-			var compulsoryStart = lst;
-			var compulsoryEnd = est + duration;
 
 			for (var t = compulsoryStart; t < compulsoryEnd; ++t)
 			{
@@ -219,13 +272,7 @@ public class CumulativeInteger : IConstraint<int>
 		var end = candidateStart + this.Durations[taskIndex];
 		var demand = this.Demands[taskIndex];
 
-		var est = this.Starts[taskIndex].Domain.LowerBound;
-		var lst = this.Starts[taskIndex].Domain.UpperBound;
-		var duration = this.Durations[taskIndex];
-		var hasCompulsoryPart = lst < est + duration;
-
-		var compulsoryStart = hasCompulsoryPart ? lst : int.MaxValue;
-		var compulsoryEnd = hasCompulsoryPart ? est + duration : int.MinValue;
+		GetCompulsoryPart(taskIndex, out var compulsoryStart, out var compulsoryEnd);
 
 		for (var t = candidateStart; t < end; ++t)
 		{
@@ -242,59 +289,114 @@ public class CumulativeInteger : IConstraint<int>
 		return false;
 	}
 
-	private ConstraintOperationResult EdgeFindingLeftToRight()
+	private IList<BoundReason> ReasonForProfileOverload(int time)
+	{
+		var reasons = new List<BoundReason>();
+
+		for (var j = 0; j < this.Starts.Count; ++j)
+		{
+			if (!GetCompulsoryPart(j, out var compulsoryStart, out var compulsoryEnd))
+				continue;
+
+			if (time < compulsoryStart || time >= compulsoryEnd)
+				continue;
+
+			reasons.Add(new BoundReason(this.Starts[j].VariableId, true, this.Starts[j].Domain.LowerBound));
+			reasons.Add(new BoundReason(this.Starts[j].VariableId, false, this.Starts[j].Domain.UpperBound));
+		}
+
+		return reasons;
+	}
+
+	private IList<BoundReason> ReasonForTimetableFilter(int taskIndex, int candidateStart, Dictionary<int, int> profile)
+	{
+		var end = candidateStart + this.Durations[taskIndex];
+		var demand = this.Demands[taskIndex];
+
+		GetCompulsoryPart(taskIndex, out var compulsoryStart, out var compulsoryEnd);
+
+		for (var t = candidateStart; t < end; ++t)
+		{
+			profile.TryGetValue(t, out var profileDemand);
+
+			var taskInCompulsory = t >= compulsoryStart && t < compulsoryEnd;
+			var totalDemand = taskInCompulsory ? profileDemand : profileDemand + demand;
+
+			if (totalDemand <= this.Capacity)
+				continue;
+
+			return ReasonForProfileOverload(t);
+		}
+
+		return new List<BoundReason>();
+	}
+
+	private IList<BoundReason> CollectReasonForTasks(IEnumerable<int> taskIndices)
+	{
+		var reasons = new List<BoundReason>();
+
+		foreach (var j in taskIndices)
+		{
+			reasons.Add(new BoundReason(this.Starts[j].VariableId, true, this.Starts[j].Domain.LowerBound));
+			reasons.Add(new BoundReason(this.Starts[j].VariableId, false, this.Starts[j].Domain.UpperBound));
+		}
+
+		return reasons;
+	}
+
+	private ConstraintOperationResult EdgeFinding(bool forward)
 	{
 		var result = ConstraintOperationResult.Undecided;
 
-		var tasksByLatestCompletion = Enumerable.Range(0, this.Starts.Count)
-			.OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i])
-			.ToList();
+		var orderedTasks = forward
+			? Enumerable.Range(0, this.Starts.Count).OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i]).ToList()
+			: Enumerable.Range(0, this.Starts.Count).OrderByDescending(i => this.Starts[i].Domain.LowerBound).ToList();
 
 		for (var i = 0; i < this.Starts.Count; ++i)
 		{
 			if (this.Starts[i].Instantiated())
 				continue;
 
-			var taskEarliestStart = this.Starts[i].Domain.LowerBound;
+			var taskBound = forward
+				? this.Starts[i].Domain.LowerBound
+				: this.Starts[i].Domain.UpperBound + this.Durations[i];
 			var taskEnergy = this.Durations[i] * this.Demands[i];
 
 			var cumulativeEnergy = 0;
 			var minEarliestStart = int.MaxValue;
 			var maxLatestCompletion = int.MinValue;
 
-			foreach (var j in tasksByLatestCompletion)
+			var contributors = this.GenerateReasons ? new List<int>() : null;
+
+			foreach (var j in orderedTasks)
 			{
 				if (j == i)
 					continue;
 
+				contributors?.Add(j);
 				cumulativeEnergy += this.Durations[j] * this.Demands[j];
 				minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
 				maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
 
-				var windowStart = Math.Min(minEarliestStart, taskEarliestStart);
-				var windowEnd = maxLatestCompletion;
-				var windowCapacity = (windowEnd - windowStart) * this.Capacity;
+				var windowStart = forward ? Math.Min(minEarliestStart, taskBound) : minEarliestStart;
+				var windowEnd = forward ? maxLatestCompletion : Math.Max(maxLatestCompletion, taskBound);
 
-				if (cumulativeEnergy + taskEnergy > windowCapacity)
+				if (cumulativeEnergy + taskEnergy <= (windowEnd - windowStart) * this.Capacity)
+					continue;
+
+				SetReasonIfEnabled(contributors, i);
+
+				if (forward)
 				{
-					var naiveBound = maxLatestCompletion;
-					var energeticBound = minEarliestStart + (int)Math.Ceiling((double)cumulativeEnergy / this.Capacity);
-					var newLowerBound = Math.Max(naiveBound, energeticBound);
-
-					if (newLowerBound > this.Starts[i].Domain.UpperBound)
+					var newLowerBound = Math.Max(maxLatestCompletion, minEarliestStart + (int)Math.Ceiling((double)cumulativeEnergy / this.Capacity));
+					if (ApplyNewLowerBound(i, newLowerBound, ref result))
 						return ConstraintOperationResult.Violated;
-
-					if (newLowerBound > this.Starts[i].Domain.LowerBound)
-					{
-						var bounds = new Bounds<int>(newLowerBound, this.Starts[i].Domain.UpperBound);
-						this.Starts[i].Propagate(bounds, out var propagateResult);
-
-						if (propagateResult == ConstraintOperationResult.Violated)
-							return ConstraintOperationResult.Violated;
-
-						if (propagateResult == ConstraintOperationResult.Propagated)
-							result = ConstraintOperationResult.Propagated;
-					}
+				}
+				else
+				{
+					var newUpperBound = Math.Min(minEarliestStart, maxLatestCompletion - (int)Math.Ceiling((double)cumulativeEnergy / this.Capacity)) - this.Durations[i];
+					if (ApplyNewUpperBound(i, newUpperBound, ref result))
+						return ConstraintOperationResult.Violated;
 				}
 			}
 		}
@@ -302,179 +404,64 @@ public class CumulativeInteger : IConstraint<int>
 		return result;
 	}
 
-	private ConstraintOperationResult EdgeFindingRightToLeft()
+	private ConstraintOperationResult NotFirstOrLastRule(bool notFirst)
 	{
 		var result = ConstraintOperationResult.Undecided;
 
-		var tasksByEarliestStart = Enumerable.Range(0, this.Starts.Count)
-			.OrderByDescending(i => this.Starts[i].Domain.LowerBound)
-			.ToList();
+		var orderedTasks = notFirst
+			? Enumerable.Range(0, this.Starts.Count).OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i]).ToList()
+			: Enumerable.Range(0, this.Starts.Count).OrderByDescending(i => this.Starts[i].Domain.LowerBound).ToList();
 
 		for (var i = 0; i < this.Starts.Count; ++i)
 		{
 			if (this.Starts[i].Instantiated())
 				continue;
 
-			var taskLatestCompletion = this.Starts[i].Domain.UpperBound + this.Durations[i];
-			var taskEnergy = this.Durations[i] * this.Demands[i];
-
-			var cumulativeEnergy = 0;
-			var minEarliestStart = int.MaxValue;
-			var maxLatestCompletion = int.MinValue;
-
-			foreach (var j in tasksByEarliestStart)
-			{
-				if (j == i)
-					continue;
-
-				cumulativeEnergy += this.Durations[j] * this.Demands[j];
-				minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
-				maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
-
-				var windowStart = minEarliestStart;
-				var windowEnd = Math.Max(maxLatestCompletion, taskLatestCompletion);
-				var windowCapacity = (windowEnd - windowStart) * this.Capacity;
-
-				if (cumulativeEnergy + taskEnergy > windowCapacity)
-				{
-					var naiveBound = minEarliestStart - this.Durations[i];
-					var energeticBound = maxLatestCompletion - (int)Math.Ceiling((double)cumulativeEnergy / this.Capacity) - this.Durations[i];
-					var newUpperBound = Math.Min(naiveBound, energeticBound);
-
-					if (newUpperBound < this.Starts[i].Domain.LowerBound)
-						return ConstraintOperationResult.Violated;
-
-					if (newUpperBound < this.Starts[i].Domain.UpperBound)
-					{
-						var bounds = new Bounds<int>(this.Starts[i].Domain.LowerBound, newUpperBound);
-						this.Starts[i].Propagate(bounds, out var propagateResult);
-
-						if (propagateResult == ConstraintOperationResult.Violated)
-							return ConstraintOperationResult.Violated;
-
-						if (propagateResult == ConstraintOperationResult.Propagated)
-							result = ConstraintOperationResult.Propagated;
-					}
-				}
-			}
-		}
-
-		return result;
-	}
-
-	private ConstraintOperationResult NotFirstRule()
-	{
-		var result = ConstraintOperationResult.Undecided;
-
-		var tasksByLatestCompletion = Enumerable.Range(0, this.Starts.Count)
-			.OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i])
-			.ToList();
-
-		for (var i = 0; i < this.Starts.Count; ++i)
-		{
-			if (this.Starts[i].Instantiated())
-				continue;
-
-			var taskEarliestStart = this.Starts[i].Domain.LowerBound;
-			var taskEarliestCompletion = taskEarliestStart + this.Durations[i];
+			var taskBound = notFirst
+				? this.Starts[i].Domain.LowerBound + this.Durations[i]
+				: this.Starts[i].Domain.UpperBound;
 
 			var setEnergy = 0;
 			var maxLatestCompletion = int.MinValue;
 			var minEarliestCompletion = int.MaxValue;
-
-			foreach (var j in tasksByLatestCompletion)
-			{
-				if (j == i)
-					continue;
-
-				setEnergy += this.Durations[j] * this.Demands[j];
-				maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
-				minEarliestCompletion = Math.Min(minEarliestCompletion, this.Starts[j].Domain.LowerBound + this.Durations[j]);
-
-				if (maxLatestCompletion <= taskEarliestCompletion)
-					continue;
-
-				var availableWindow = maxLatestCompletion - taskEarliestCompletion;
-				var availableCapacity = availableWindow * this.Capacity;
-
-				if (setEnergy > availableCapacity)
-				{
-					var newLowerBound = minEarliestCompletion;
-
-					if (newLowerBound > this.Starts[i].Domain.UpperBound)
-						return ConstraintOperationResult.Violated;
-
-					if (newLowerBound > this.Starts[i].Domain.LowerBound)
-					{
-						var bounds = new Bounds<int>(newLowerBound, this.Starts[i].Domain.UpperBound);
-						this.Starts[i].Propagate(bounds, out var propagateResult);
-
-						if (propagateResult == ConstraintOperationResult.Violated)
-							return ConstraintOperationResult.Violated;
-
-						if (propagateResult == ConstraintOperationResult.Propagated)
-							result = ConstraintOperationResult.Propagated;
-					}
-				}
-			}
-		}
-
-		return result;
-	}
-
-	private ConstraintOperationResult NotLastRule()
-	{
-		var result = ConstraintOperationResult.Undecided;
-
-		var tasksByEarliestStart = Enumerable.Range(0, this.Starts.Count)
-			.OrderByDescending(i => this.Starts[i].Domain.LowerBound)
-			.ToList();
-
-		for (var i = 0; i < this.Starts.Count; ++i)
-		{
-			if (this.Starts[i].Instantiated())
-				continue;
-
-			var taskLatestCompletion = this.Starts[i].Domain.UpperBound + this.Durations[i];
-			var taskLatestStart = this.Starts[i].Domain.UpperBound;
-
-			var setEnergy = 0;
 			var minEarliestStart = int.MaxValue;
 			var maxLatestStart = int.MinValue;
 
-			foreach (var j in tasksByEarliestStart)
+			var contributors = this.GenerateReasons ? new List<int>() : null;
+
+			foreach (var j in orderedTasks)
 			{
 				if (j == i)
 					continue;
 
+				contributors?.Add(j);
 				setEnergy += this.Durations[j] * this.Demands[j];
-				minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
-				maxLatestStart = Math.Max(maxLatestStart, this.Starts[j].Domain.UpperBound);
 
-				if (minEarliestStart >= taskLatestStart)
-					continue;
-
-				var availableWindow = taskLatestStart - minEarliestStart;
-				var availableCapacity = availableWindow * this.Capacity;
-
-				if (setEnergy > availableCapacity)
+				if (notFirst)
 				{
-					var newUpperBound = maxLatestStart - this.Durations[i];
+					maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
+					minEarliestCompletion = Math.Min(minEarliestCompletion, this.Starts[j].Domain.LowerBound + this.Durations[j]);
 
-					if (newUpperBound < this.Starts[i].Domain.LowerBound)
+					if (maxLatestCompletion <= taskBound || setEnergy <= (maxLatestCompletion - taskBound) * this.Capacity)
+						continue;
+
+					SetReasonIfEnabled(contributors, i);
+
+					if (ApplyNewLowerBound(i, minEarliestCompletion, ref result))
 						return ConstraintOperationResult.Violated;
+				}
+				else
+				{
+					minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
+					maxLatestStart = Math.Max(maxLatestStart, this.Starts[j].Domain.UpperBound);
 
-					if (newUpperBound < this.Starts[i].Domain.UpperBound)
-					{
-						var bounds = new Bounds<int>(this.Starts[i].Domain.LowerBound, newUpperBound);
-						this.Starts[i].Propagate(bounds, out var propagateResult);
+					if (minEarliestStart >= taskBound || setEnergy <= (taskBound - minEarliestStart) * this.Capacity)
+						continue;
 
-						if (propagateResult == ConstraintOperationResult.Violated)
-							return ConstraintOperationResult.Violated;
+					SetReasonIfEnabled(contributors, i);
 
-						if (propagateResult == ConstraintOperationResult.Propagated)
-							result = ConstraintOperationResult.Propagated;
-					}
+					if (ApplyNewUpperBound(i, maxLatestStart - this.Durations[i], ref result))
+						return ConstraintOperationResult.Violated;
 				}
 			}
 		}

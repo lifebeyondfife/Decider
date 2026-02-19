@@ -33,3 +33,11 @@ public interface IBacktrackableConstraint : IConstraint
 {
 	void OnBacktrack(int toDepth);
 }
+
+public record struct BoundReason(int VariableIndex, bool IsLowerBound, int BoundValue);
+
+public interface IReasoningConstraint : IConstraint
+{
+	bool GenerateReasons { get; set; }
+	IList<BoundReason>? LastReason { get; }
+}

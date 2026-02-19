@@ -3,6 +3,7 @@
 
   This file is part of Decider.
 */
+using System.Linq;
 using System.Collections.Generic;
 using Xunit;
 
@@ -519,5 +520,105 @@ public class CumulativeIntegerTest
 
 		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
 		Assert.True(starts[3].Domain.LowerBound >= 6);
+	}
+
+	[Fact]
+	public void TestReasonGenerationDisabledByDefault()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 0),
+			new("s1", 0, 0)
+		};
+		var durations = new List<int> { 5, 5 };
+		var demands = new List<int> { 3, 3 };
+
+		var cumulative = new CumulativeInteger(starts, durations, demands, capacity: 4);
+		var state = new StateInteger(starts, new List<IConstraint> { cumulative });
+
+		cumulative.Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
+		Assert.Null(((IReasoningConstraint)cumulative).LastReason);
+	}
+
+	[Fact]
+	public void TestReasonGenerationForProfileOverload()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 0),
+			new("s1", 0, 0)
+		};
+		var durations = new List<int> { 5, 5 };
+		var demands = new List<int> { 3, 3 };
+
+		var cumulative = new CumulativeInteger(starts, durations, demands, capacity: 4);
+		var reasoning = (IReasoningConstraint)cumulative;
+		reasoning.GenerateReasons = true;
+		var state = new StateInteger(starts, new List<IConstraint> { cumulative });
+
+		cumulative.Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
+		Assert.NotNull(reasoning.LastReason);
+		Assert.NotEmpty(reasoning.LastReason!);
+
+		var variableIds = reasoning.LastReason!.Select(r => r.VariableIndex).Distinct().ToList();
+		Assert.Equal(2, variableIds.Count);
+	}
+
+	[Fact]
+	public void TestReasonGenerationForEdgeFindingViolation()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 1),
+			new("s1", 0, 1),
+			new("s2", 0, 1)
+		};
+		var durations = new List<int> { 2, 2, 2 };
+		var demands = new List<int> { 3, 3, 3 };
+
+		var cumulative = new CumulativeInteger(starts, durations, demands, capacity: 3);
+		var reasoning = (IReasoningConstraint)cumulative;
+		reasoning.GenerateReasons = true;
+		var state = new StateInteger(starts, new List<IConstraint> { cumulative });
+
+		cumulative.Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
+		Assert.NotNull(reasoning.LastReason);
+		Assert.NotEmpty(reasoning.LastReason!);
+	}
+
+	[Fact]
+	public void TestReasonBoundsAreCorrectForProfileOverload()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 1, 1),
+			new("s1", 1, 1)
+		};
+		var durations = new List<int> { 3, 3 };
+		var demands = new List<int> { 3, 3 };
+
+		var cumulative = new CumulativeInteger(starts, durations, demands, capacity: 4);
+		var reasoning = (IReasoningConstraint)cumulative;
+		reasoning.GenerateReasons = true;
+		var state = new StateInteger(starts, new List<IConstraint> { cumulative });
+
+		cumulative.Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
+		Assert.NotNull(reasoning.LastReason);
+
+		var lowerBounds = reasoning.LastReason!.Where(r => r.IsLowerBound).ToList();
+		var upperBounds = reasoning.LastReason!.Where(r => !r.IsLowerBound).ToList();
+
+		Assert.NotEmpty(lowerBounds);
+		Assert.NotEmpty(upperBounds);
+		Assert.All(lowerBounds, lb => Assert.Equal(1, lb.BoundValue));
+		Assert.All(upperBounds, ub => Assert.Equal(1, ub.BoundValue));
 	}
 }
