@@ -86,25 +86,25 @@ All benchmarks track the following metrics in the summary table:
 
 **Decider NQueens:**
 ```
-| Method       | BoardSize | Mean         | Error     | StdDev    | Backtracks | Gen0        | Gen1       | Gen2      | Allocated  |
-|------------- |---------- |-------------:|----------:|----------:|-----------:|------------:|-----------:|----------:|-----------:|
-| SolveNQueens | 8         |     7.462 ms | 0.0170 ms | 0.0159 ms |        889 |   2757.8125 |   531.2500 |  500.0000 |   20.25 MB |
-| SolveNQueens | 10        |   121.742 ms | 0.2488 ms | 0.2206 ms |     10,770 |  34800.0000 |  1200.0000 |  400.0000 |  278.55 MB |
-| SolveNQueens | 12        | 2,949.143 ms | 6.2729 ms | 5.8677 ms |    210,151 | 804000.0000 | 31000.0000 | 6000.0000 | 6385.09 MB |
+| Method       | BoardSize | Mean         | Error      | StdDev     | Backtracks | Gen0        | Gen1       | Gen2      | Allocated  |
+|------------- |---------- |-------------:|-----------:|-----------:|-----------:|------------:|-----------:|----------:|-----------:|
+| SolveNQueens | 8         |     7.217 ms |  0.1387 ms |  0.1484 ms |        889 |   2757.8125 |   531.2500 |  500.0000 |   20.25 MB |
+| SolveNQueens | 10        |   120.342 ms |  1.8667 ms |  1.7461 ms |     10,770 |  34800.0000 |  1200.0000 |  400.0000 |  278.55 MB |
+| SolveNQueens | 12        | 2,915.387 ms | 31.6798 ms | 29.6333 ms |    210,151 | 804000.0000 | 31000.0000 | 6000.0000 | 6385.09 MB |
 ```
 
 **Decider LeagueGeneration:**
 ```
 | Method                | Mean     | Error     | StdDev    | Backtracks | Gen0      | Gen1      | Gen2     | Allocated |
 |---------------------- |---------:|----------:|----------:|-----------:|----------:|----------:|---------:|----------:|
-| SolveLeagueGeneration | 9.970 ms | 0.0164 ms | 0.0153 ms |          1 | 3234.3750 | 1234.3750 | 953.1250 |  70.81 MB |
+| SolveLeagueGeneration | 9.397 ms | 0.1465 ms | 0.1370 ms |          1 | 3234.3750 | 1250.0000 | 953.1250 |  70.81 MB |
 ```
 
 **Decider FurnitureMoving:**
 ```
-| Method               | Mean     | Error   | StdDev  | Backtracks | Gen0       | Allocated |
-|--------------------- |---------:|--------:|--------:|-----------:|-----------:|----------:|
-| SolveFurnitureMoving | 413.9 ms | 1.13 ms | 0.94 ms |     83,387 | 88000.0000 |  709.8 MB |
+| Method               | Mean     | Error   | StdDev  | Backtracks | Gen0       | Gen1     | Gen2     | Allocated |
+|--------------------- |---------:|--------:|--------:|-----------:|-----------:|---------:|---------:|----------:|
+| SolveFurnitureMoving | 224.2 ms | 1.99 ms | 1.76 ms |     44,846 | 48000.0000 | 666.6667 | 333.3333 | 383.88 MB |
 ```
 
 **OR-Tools NQueens:**

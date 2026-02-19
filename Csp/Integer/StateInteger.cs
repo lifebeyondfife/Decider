@@ -36,6 +36,10 @@ public class StateInteger : IState<int>
 	private IList<int> Explored { get; set; } = new List<int>();
 	private TimeSpan LastProgressReport { get; set; }
 
+	private int[] AssignmentDepthByVarId { get; set; } = Array.Empty<int>();
+	private int ConflictJumpDepth { get; set; } = -1;
+	private int[] DepthConflictAccumulator { get; set; } = Array.Empty<int>();
+
 	private List<IVariable<int>> AssignmentCandidates { get; set; } = new List<IVariable<int>>();
 
 	public IVariableOrderingHeuristic<int> VariableOrdering { get; private set; }
@@ -83,6 +87,14 @@ public class StateInteger : IState<int>
 		this.VariableLastSeenGenerations = new int[this.Variables.Count];
 		for (var i = 0; i < this.VariableLastSeenGenerations.Count; ++i)
 			this.VariableLastSeenGenerations[i] = -1;
+
+		this.AssignmentDepthByVarId = new int[this.Variables.Count];
+		for (var i = 0; i < this.AssignmentDepthByVarId.Length; ++i)
+			this.AssignmentDepthByVarId[i] = -1;
+
+		this.DepthConflictAccumulator = new int[this.Variables.Count];
+		for (var i = 0; i < this.DepthConflictAccumulator.Length; ++i)
+			this.DepthConflictAccumulator[i] = -1;
 	}
 
 	public void SetConstraints(IEnumerable<IConstraint> constraints)
@@ -301,6 +313,8 @@ public class StateInteger : IState<int>
 			if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
 				return false;
 
+			this.AssignmentDepthByVarId[instantiatedVariables[this.Depth].VariableId] = this.Depth;
+
 			if (ConstraintsViolated() || this.AssignmentCandidates.Any(v => v.Size() == 0))
 			{
 				if (!Backtrack(instantiatedVariables))
@@ -326,24 +340,100 @@ public class StateInteger : IState<int>
 
 	private bool Backtrack(IList<IVariable<int>> instantiatedVariables)
 	{
-		DomainOperationResult removeResult;
-		do
+		if (this.ConflictJumpDepth >= 0 && this.ConflictJumpDepth > this.DepthConflictAccumulator[this.Depth])
+			this.DepthConflictAccumulator[this.Depth] = this.ConflictJumpDepth;
+		this.ConflictJumpDepth = -1;
+
+		return ChronologicalBacktrack(instantiatedVariables);
+	}
+
+	private bool ChronologicalBacktrack(IList<IVariable<int>> instantiatedVariables)
+	{
+		while (true)
 		{
 			if (this.Depth < 0)
 				return false;
 
 			this.AssignmentCandidates.Add(instantiatedVariables[this.Depth]);
-			BackTrackVariable(instantiatedVariables[this.Depth], out removeResult);
+			BackTrackVariable(instantiatedVariables[this.Depth], out DomainOperationResult removeResult);
 
-			if (removeResult == DomainOperationResult.EmptyDomain)
-				this.BranchFactor[this.Depth + 1] = 0;
-		} while (removeResult == DomainOperationResult.EmptyDomain);
+			if (removeResult != DomainOperationResult.EmptyDomain)
+			{
+				this.DepthConflictAccumulator[this.Depth + 1] = -1;
+				return true;
+			}
 
-		return true;
+			this.BranchFactor[this.Depth + 1] = 0;
+
+			var jumpTarget = this.DepthConflictAccumulator[this.Depth + 1];
+			this.DepthConflictAccumulator[this.Depth + 1] = -1;
+
+			if (jumpTarget >= 0 && jumpTarget > this.DepthConflictAccumulator[this.Depth])
+				this.DepthConflictAccumulator[this.Depth] = jumpTarget;
+
+			if (jumpTarget >= 0 && jumpTarget < this.Depth)
+				return BacktrackJumpFromCurrentDepth(instantiatedVariables, jumpTarget);
+		}
+	}
+
+	private bool BacktrackJumpFromCurrentDepth(IList<IVariable<int>> instantiatedVariables, int jumpTarget)
+	{
+		var currentDepth = this.Depth;
+
+		for (var d = currentDepth; d > jumpTarget; --d)
+		{
+			this.AssignmentCandidates.Add(instantiatedVariables[d]);
+			this.AssignmentDepthByVarId[instantiatedVariables[d].VariableId] = -1;
+			this.BranchFactor[d] = 0;
+			this.DepthConflictAccumulator[d] = -1;
+		}
+		this.AssignmentCandidates.Add(instantiatedVariables[jumpTarget]);
+		this.AssignmentDepthByVarId[instantiatedVariables[jumpTarget].VariableId] = -1;
+		this.DepthConflictAccumulator[jumpTarget] = -1;
+
+		var targetValue = instantiatedVariables[jumpTarget].InstantiatedValue;
+
+		foreach (var variable in this.Variables)
+			variable.Backtrack(jumpTarget);
+
+		++this.Explored[jumpTarget];
+		this.Depth = jumpTarget - 1;
+
+		this.Trail.Backtrack(this.Depth, this.Variables);
+
+		foreach (var constraint in this.BacktrackableConstraints)
+			constraint.OnBacktrack(this.Depth);
+
+		instantiatedVariables[jumpTarget].Remove(targetValue, this.Depth, out DomainOperationResult removeResult);
+
+		if (removeResult != DomainOperationResult.EmptyDomain)
+			return true;
+
+		this.BranchFactor[jumpTarget] = 0;
+		return ChronologicalBacktrack(instantiatedVariables);
+	}
+
+	private int ComputeConflictDepth(IReadOnlyList<IVariable<int>>? constraintVariables)
+	{
+		if (constraintVariables == null)
+			return -1;
+
+		var maxDepth = -1;
+		foreach (var variable in constraintVariables)
+		{
+			var variableId = variable.VariableId;
+			if (variableId < 0 || variableId >= this.AssignmentDepthByVarId.Length)
+				continue;
+			var assignmentDepth = this.AssignmentDepthByVarId[variableId];
+			if (assignmentDepth >= 0 && assignmentDepth < this.Depth && assignmentDepth > maxDepth)
+				maxDepth = assignmentDepth;
+		}
+		return maxDepth;
 	}
 
 	private bool ConstraintsViolated()
 	{
+		this.ConflictJumpDepth = -1;
 		BuildInitialDirtySet();
 
 		if (ProcessDirtyQueue())
@@ -397,7 +487,10 @@ public class StateInteger : IState<int>
 
 		constraint.Propagate(out ConstraintOperationResult propagateResult);
 		if ((propagateResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
+		{
+			this.ConflictJumpDepth = ComputeConflictDepth(constraintVariables);
 			return true;
+		}
 
 		EnqueueChangedConstraints(constraintVariables);
 
@@ -405,7 +498,13 @@ public class StateInteger : IState<int>
 			return false;
 
 		constraint.Check(out ConstraintOperationResult checkResult);
-		return (checkResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated;
+		if ((checkResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
+		{
+			this.ConflictJumpDepth = ComputeConflictDepth(constraintVariables);
+			return true;
+		}
+
+		return false;
 	}
 
 	private void SnapshotGenerations(IReadOnlyList<IVariable<int>>? constraintVariables)
@@ -467,6 +566,7 @@ public class StateInteger : IState<int>
 	private void BackTrackVariable(IVariable<int> variablePrune, out DomainOperationResult result)
 	{
 		++this.Backtracks;
+		this.AssignmentDepthByVarId[((VariableInteger)variablePrune).VariableId] = -1;
 		var value = variablePrune.InstantiatedValue;
 
 		foreach (var variable in this.Variables)
