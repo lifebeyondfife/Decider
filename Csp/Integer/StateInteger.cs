@@ -39,6 +39,7 @@ public class StateInteger : IState<int>
 	private int[] AssignmentDepthByVarId { get; set; } = Array.Empty<int>();
 	private int ConflictJumpDepth { get; set; } = -1;
 	private int[] DepthConflictAccumulator { get; set; } = Array.Empty<int>();
+	private IConstraint? OptimisationConstraint { get; set; }
 
 	private List<IVariable<int>> AssignmentCandidates { get; set; } = new List<IVariable<int>>();
 
@@ -182,7 +183,8 @@ public class StateInteger : IState<int>
 		var stopwatch = Stopwatch.StartNew();
 		var searchResult = StateOperationResult.Unsatisfiable;
 
-		this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar < Int32.MaxValue));
+		this.OptimisationConstraint = new ConstraintInteger((VariableInteger) optimiseVar < Int32.MaxValue);
+		this.Constraints.Add(this.OptimisationConstraint);
 		BuildVariableConstraintIndex();
 
 		while (true)
@@ -198,8 +200,9 @@ public class StateInteger : IState<int>
 
 			if (Search(out searchResult, instantiatedVariables, ref stopwatch, cancellationToken))
 			{
-				this.Constraints.RemoveAt(this.Constraints.Count - 1);
-				this.Constraints.Add(new ConstraintInteger((VariableInteger) optimiseVar < optimiseVar.InstantiatedValue));
+				this.Constraints.Remove(this.OptimisationConstraint);
+				this.OptimisationConstraint = new ConstraintInteger((VariableInteger) optimiseVar < optimiseVar.InstantiatedValue);
+				this.Constraints.Add(this.OptimisationConstraint);
 				BuildVariableConstraintIndex();
 				this.OptimalSolution = CloneLastSolution();
 			}
@@ -566,7 +569,7 @@ public class StateInteger : IState<int>
 	private void BackTrackVariable(IVariable<int> variablePrune, out DomainOperationResult result)
 	{
 		++this.Backtracks;
-		this.AssignmentDepthByVarId[((VariableInteger)variablePrune).VariableId] = -1;
+		this.AssignmentDepthByVarId[variablePrune.VariableId] = -1;
 		var value = variablePrune.InstantiatedValue;
 
 		foreach (var variable in this.Variables)
