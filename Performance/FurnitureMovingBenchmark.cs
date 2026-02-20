@@ -34,7 +34,7 @@ public class FurnitureMovingBenchmark
 
 	private static IState<int> SolveModel()
 	{
-		var starts = new List<VariableInteger>();
+		var starts = new List<IVariable<int>>();
 		foreach (var i in Enumerable.Range(0, N))
 			starts.Add(new VariableInteger($"task_{i}", 0, UpperLimit - Durations[i]));
 
@@ -46,10 +46,10 @@ public class FurnitureMovingBenchmark
 		};
 
 		foreach (var i in Enumerable.Range(0, N))
-			constraints.Add(new ConstraintInteger(makespan >= starts[i] + Durations[i]));
+			constraints.Add(new ConstraintInteger(makespan >= (VariableInteger) starts[i] + Durations[i]));
 
-		var variables = new List<VariableInteger>(starts) { makespan };
-		var state = new StateInteger(variables, constraints);
+		var variables = new List<IVariable<int>>(starts) { makespan };
+		var state = new StateInteger(variables, constraints, new DomWdegOrdering(variables, constraints), new MiddleValueOrdering());
 		state.Search(makespan);
 
 		return state;

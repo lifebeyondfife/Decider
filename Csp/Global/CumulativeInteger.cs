@@ -22,6 +22,7 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 	private int Capacity { get; set; }
 	private IList<int> GenerationArray { get; set; }
 
+	public int FailureWeight { get; set; }
 	public bool GenerateReasons { get; set; }
 	public IList<BoundReason>? LastReason { get; private set; }
 
@@ -37,19 +38,20 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		}
 	}
 
-	public CumulativeInteger(IList<VariableInteger> starts, IList<int> durations, IList<int> demands, int capacity)
+	public CumulativeInteger(IEnumerable<IVariable<int>> starts, IEnumerable<int> durations, IEnumerable<int> demands, int capacity)
 	{
-		if (starts.Count != durations.Count || starts.Count != demands.Count)
+		this.Starts = starts.Cast<VariableInteger>().ToList();
+		this.Durations = durations.ToList();
+		this.Demands = demands.ToList();
+
+		if (this.Starts.Count != this.Durations.Count || this.Starts.Count != this.Demands.Count)
 			throw new ArgumentException("starts, durations, and demands must have the same length");
 
 		if (capacity < 0)
 			throw new ArgumentException("capacity must be non-negative");
 
-		this.Starts = starts;
-		this.Durations = durations;
-		this.Demands = demands;
 		this.Capacity = capacity;
-		this.GenerationArray = Enumerable.Repeat(0, starts.Count).ToList();
+		this.GenerationArray = Enumerable.Repeat(0, this.Starts.Count).ToList();
 	}
 
 	public void Check(out ConstraintOperationResult result)

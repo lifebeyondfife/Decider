@@ -17,6 +17,7 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>
 	private IList<int> GenerationList { get; set; }
 
 	public IReadOnlyList<IVariable<int>> Variables => this.VariableList;
+	public int FailureWeight { get; set; }
 
 	public ConstraintInteger(Expression<int> expression)
 	{

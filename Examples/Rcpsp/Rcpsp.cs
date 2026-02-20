@@ -24,10 +24,10 @@ public class Rcpsp
 
 	public Rcpsp()
 	{
-		NumberOfTasks = 10;
+		this.NumberOfTasks = 10;
 		var horizon = 30;
 
-		StartTimes = [];
+		this.StartTimes = [];
 		foreach (var i in Enumerable.Range(0, NumberOfTasks))
 			StartTimes.Add(new VariableInteger(i.ToString(CultureInfo.CurrentCulture), 0, horizon));
 
@@ -35,40 +35,41 @@ public class Rcpsp
 		var demands = new List<int> { 0, 2, 1, 2, 1, 2, 1, 2, 1, 0 };
 		var capacity = 3;
 
-		Constraints = new List<IConstraint>
-        {
-            new CumulativeInteger(StartTimes, durations, demands, capacity),
-            new ConstraintInteger(StartTimes[0] == 0),
-            new ConstraintInteger(StartTimes[1] >= StartTimes[0] + durations[0]),
-            new ConstraintInteger(StartTimes[2] >= StartTimes[0] + durations[0]),
-            new ConstraintInteger(StartTimes[3] >= StartTimes[1] + durations[1]),
-            new ConstraintInteger(StartTimes[4] >= StartTimes[1] + durations[1]),
-            new ConstraintInteger(StartTimes[5] >= StartTimes[2] + durations[2]),
-            new ConstraintInteger(StartTimes[6] >= StartTimes[3] + durations[3]),
-            new ConstraintInteger(StartTimes[7] >= StartTimes[4] + durations[4]),
-            new ConstraintInteger(StartTimes[8] >= StartTimes[5] + durations[5]),
-            new ConstraintInteger(StartTimes[9] >= StartTimes[6] + durations[6]),
-            new ConstraintInteger(StartTimes[9] >= StartTimes[7] + durations[7]),
-            new ConstraintInteger(StartTimes[9] >= StartTimes[8] + durations[8])
-        };
+		this.Constraints =
+        [
+            new CumulativeInteger(this.StartTimes.Cast<IVariable<int>>(), durations, demands, capacity),
+            new ConstraintInteger(this.StartTimes[0] == 0),
+            new ConstraintInteger(this.StartTimes[1] >= this.StartTimes[0] + durations[0]),
+            new ConstraintInteger(this.StartTimes[2] >= this.StartTimes[0] + durations[0]),
+            new ConstraintInteger(this.StartTimes[3] >= this.StartTimes[1] + durations[1]),
+            new ConstraintInteger(this.StartTimes[4] >= this.StartTimes[1] + durations[1]),
+            new ConstraintInteger(this.StartTimes[5] >= this.StartTimes[2] + durations[2]),
+            new ConstraintInteger(this.StartTimes[6] >= this.StartTimes[3] + durations[3]),
+            new ConstraintInteger(this.StartTimes[7] >= this.StartTimes[4] + durations[4]),
+            new ConstraintInteger(this.StartTimes[8] >= this.StartTimes[5] + durations[5]),
+            new ConstraintInteger(this.StartTimes[9] >= this.StartTimes[6] + durations[6]),
+            new ConstraintInteger(this.StartTimes[9] >= this.StartTimes[7] + durations[7]),
+            new ConstraintInteger(this.StartTimes[9] >= this.StartTimes[8] + durations[8])
+        ];
 	}
 
 	public void Solve()
 	{
-		State = new StateInteger(StartTimes, Constraints);
+		this.State = new StateInteger(StartTimes.Cast<IVariable<int>>(), Constraints,
+			new DomWdegOrdering(this.StartTimes.Cast<IVariable<int>>(), this.Constraints));
 
-		if (State.Search() == StateOperationResult.Solved)
-			Solution = State.Solutions[0];
+		if (this.State.Search() == StateOperationResult.Solved)
+			this.Solution = State.Solutions[0];
 		else
 			throw new ApplicationException("RCPSP problem has no solution.");
 	}
 
 	public void OptimiseMakespan()
 	{
-		State = new StateInteger(StartTimes, Constraints);
+		this.State = new StateInteger(this.StartTimes, this.Constraints);
 
-		if (State.Search(StartTimes.Last()) == StateOperationResult.Solved)
-			Solution = State.OptimalSolution;
+		if (this.State.Search(StartTimes.Last()) == StateOperationResult.Solved)
+			this.Solution = this.State.OptimalSolution;
 		else
 			throw new ApplicationException("RCPSP problem has no solution.");
 	}
