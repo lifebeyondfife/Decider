@@ -28,7 +28,7 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
 
 		var state = new StateInteger(starts, constraints);
@@ -51,7 +51,7 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
 
 		var state = new StateInteger(starts, constraints);
@@ -74,7 +74,7 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 4)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 4)
 		};
 
 		var state = new StateInteger(starts, constraints);
@@ -98,7 +98,7 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 6)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 6)
 		};
 
 		var state = new StateInteger(starts, constraints);
@@ -121,7 +121,7 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 3)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 3)
 		};
 
 		var state = new StateInteger(starts, constraints);
@@ -143,7 +143,7 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
 
 		var state = new StateInteger(starts, constraints);
@@ -166,7 +166,7 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
 
 		var state = new StateInteger(starts, constraints);
@@ -189,7 +189,7 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
 
 		var state = new StateInteger(starts, constraints);
@@ -212,12 +212,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 10)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 10)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Check(out ConstraintOperationResult checkResult);
+        constraints[0].Check(out ConstraintOperationResult checkResult);
 
 		Assert.Equal(ConstraintOperationResult.Satisfied, checkResult);
 	}
@@ -235,12 +234,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+        constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.False(starts[1].Domain.Contains(3));
 		Assert.False(starts[1].Domain.Contains(4));
@@ -260,12 +258,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+        constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
 		Assert.True(starts[2].Domain.LowerBound >= 4);
@@ -285,12 +282,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+        constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
 		Assert.Equal(4, starts[2].Domain.LowerBound);
@@ -310,12 +306,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 3)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 3)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+        constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
 	}
@@ -334,12 +329,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+        constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
 		Assert.Equal(3, starts[2].Domain.UpperBound);
@@ -359,12 +353,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+        constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.True(propagateResult == ConstraintOperationResult.Propagated || propagateResult == ConstraintOperationResult.Undecided);
 		Assert.True(starts[2].Domain.LowerBound >= 4);
@@ -384,12 +377,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+        constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.True(propagateResult == ConstraintOperationResult.Propagated || propagateResult == ConstraintOperationResult.Undecided);
 		Assert.True(starts[2].Domain.UpperBound <= 6);
@@ -409,10 +401,9 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 3)
+			new CumulativeInteger([..starts], durations, demands, capacity: 3)
 		};
-
-		var state = new StateInteger(starts, constraints);
+		_ = new StateInteger(starts, constraints);
 
 		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
@@ -433,10 +424,9 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 3)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 3)
 		};
-
-		var state = new StateInteger(starts, constraints);
+		_ = new StateInteger(starts, constraints);
 
 		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
@@ -457,12 +447,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+        constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.True(propagateResult == ConstraintOperationResult.Propagated || propagateResult == ConstraintOperationResult.Undecided);
 		Assert.True(starts[2].Domain.LowerBound >= 3);
@@ -482,12 +471,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		var originalLower = starts[2].Domain.LowerBound;
+        var originalLower = starts[2].Domain.LowerBound;
 		var originalUpper = starts[2].Domain.UpperBound;
 
 		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
@@ -511,12 +499,11 @@ public class CumulativeIntegerTest
 
 		var constraints = new List<IConstraint>
 		{
-			new CumulativeInteger(starts, durations, demands, capacity: 5)
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
 		};
+        _ = new StateInteger(starts, constraints);
 
-		var state = new StateInteger(starts, constraints);
-
-		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+        constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
 		Assert.True(starts[3].Domain.LowerBound >= 6);
@@ -533,10 +520,10 @@ public class CumulativeIntegerTest
 		var durations = new List<int> { 5, 5 };
 		var demands = new List<int> { 3, 3 };
 
-		var cumulative = new CumulativeInteger(starts, durations, demands, capacity: 4);
-		var state = new StateInteger(starts, new List<IConstraint> { cumulative });
+		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 4);
+        _ = new StateInteger(starts, [cumulative]);
 
-		cumulative.Propagate(out ConstraintOperationResult propagateResult);
+        cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
 		Assert.Null(((IReasoningConstraint)cumulative).LastReason);
@@ -553,18 +540,17 @@ public class CumulativeIntegerTest
 		var durations = new List<int> { 5, 5 };
 		var demands = new List<int> { 3, 3 };
 
-		var cumulative = new CumulativeInteger(starts, durations, demands, capacity: 4);
-		var reasoning = (IReasoningConstraint)cumulative;
-		reasoning.GenerateReasons = true;
-		var state = new StateInteger(starts, new List<IConstraint> { cumulative });
+		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 4);
+        ((IReasoningConstraint)cumulative).GenerateReasons = true;
+		var state = new StateInteger(starts, [cumulative]);
 
 		cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
-		Assert.NotNull(reasoning.LastReason);
-		Assert.NotEmpty(reasoning.LastReason!);
+		Assert.NotNull(((IReasoningConstraint)cumulative).LastReason);
+		Assert.NotEmpty(((IReasoningConstraint)cumulative).LastReason!);
 
-		var variableIds = reasoning.LastReason!.Select(r => r.VariableIndex).Distinct().ToList();
+		var variableIds = ((IReasoningConstraint)cumulative).LastReason!.Select(r => r.VariableIndex).Distinct().ToList();
 		Assert.Equal(2, variableIds.Count);
 	}
 
@@ -580,16 +566,15 @@ public class CumulativeIntegerTest
 		var durations = new List<int> { 2, 2, 2 };
 		var demands = new List<int> { 3, 3, 3 };
 
-		var cumulative = new CumulativeInteger(starts, durations, demands, capacity: 3);
-		var reasoning = (IReasoningConstraint)cumulative;
-		reasoning.GenerateReasons = true;
-		var state = new StateInteger(starts, new List<IConstraint> { cumulative });
+		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 3);
+        ((IReasoningConstraint)cumulative).GenerateReasons = true;
+		var state = new StateInteger(starts, [cumulative]);
 
 		cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
-		Assert.NotNull(reasoning.LastReason);
-		Assert.NotEmpty(reasoning.LastReason!);
+		Assert.NotNull(((IReasoningConstraint)cumulative).LastReason);
+		Assert.NotEmpty(((IReasoningConstraint)cumulative).LastReason!);
 	}
 
 	[Fact]
@@ -603,18 +588,17 @@ public class CumulativeIntegerTest
 		var durations = new List<int> { 3, 3 };
 		var demands = new List<int> { 3, 3 };
 
-		var cumulative = new CumulativeInteger(starts, durations, demands, capacity: 4);
-		var reasoning = (IReasoningConstraint)cumulative;
-		reasoning.GenerateReasons = true;
-		var state = new StateInteger(starts, new List<IConstraint> { cumulative });
+		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 4);
+        ((IReasoningConstraint)cumulative).GenerateReasons = true;
+		var state = new StateInteger(starts, [cumulative]);
 
 		cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
-		Assert.NotNull(reasoning.LastReason);
+		Assert.NotNull(((IReasoningConstraint)cumulative).LastReason);
 
-		var lowerBounds = reasoning.LastReason!.Where(r => r.IsLowerBound).ToList();
-		var upperBounds = reasoning.LastReason!.Where(r => !r.IsLowerBound).ToList();
+		var lowerBounds = ((IReasoningConstraint)cumulative).LastReason!.Where(r => r.IsLowerBound).ToList();
+		var upperBounds = ((IReasoningConstraint)cumulative).LastReason!.Where(r => !r.IsLowerBound).ToList();
 
 		Assert.NotEmpty(lowerBounds);
 		Assert.NotEmpty(upperBounds);

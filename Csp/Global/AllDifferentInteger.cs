@@ -17,6 +17,7 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>
 	private VariableInteger[] VariableList { get; set; } = Array.Empty<VariableInteger>();
 
 	public IReadOnlyList<IVariable<int>> Variables => this.VariableList;
+	public int FailureWeight { get; set; }
 	private IList<int> GenerationList { get; set; }
 	private BipartiteGraph? Graph { get; set; }
 	private readonly CycleDetection cycleDetection;

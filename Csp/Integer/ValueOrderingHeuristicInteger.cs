@@ -14,3 +14,23 @@ public class LowestValueOrdering : IValueOrderingHeuristic<int>
 		return ((VariableInteger) variable).Domain.LowerBound;
 	}
 }
+
+public class MiddleValueOrdering : IValueOrderingHeuristic<int>
+{
+	public int SelectValue(IVariable<int> variable)
+	{
+		var domain = ((VariableInteger) variable).Domain;
+		var target = domain.Size() / 2;
+		var count = 0;
+
+		foreach (var value in domain)
+		{
+			if (count == target)
+				return value;
+
+			++count;
+		}
+
+		return domain.LowerBound;
+	}
+}

@@ -39,7 +39,7 @@ public class RcpspBenchmark
 	{
 		var instance = PspLibParser.Parse(instanceFile);
 
-		var starts = new List<VariableInteger>();
+		var starts = new List<IVariable<int>>();
 		foreach (var i in Enumerable.Range(0, instance.JobCount))
 			starts.Add(new VariableInteger(i.ToString(CultureInfo.CurrentCulture), 0, instance.Horizon));
 
@@ -54,18 +54,18 @@ public class RcpspBenchmark
 			constraints.Add(new CumulativeInteger(starts, instance.Durations, demands, instance.ResourceCapacities[r]));
 		}
 
-		constraints.Add(new ConstraintInteger(starts[0] == 0));
+		constraints.Add(new ConstraintInteger((VariableInteger)starts[0] == 0));
 
 		foreach (var j in Enumerable.Range(0, instance.JobCount))
 		{
 			foreach (var successor in instance.Successors[j])
 			{
 				constraints.Add(new ConstraintInteger(
-					starts[successor] >= starts[j] + instance.Durations[j]));
+					(VariableInteger)starts[successor] >= (VariableInteger)starts[j] + instance.Durations[j]));
 			}
 		}
 
-		var state = new StateInteger(starts, constraints);
+		var state = new StateInteger(starts, constraints, new DomWdegOrdering(starts, constraints), new MiddleValueOrdering());
 		state.Search();
 		return state;
 	}

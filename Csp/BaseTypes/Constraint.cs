@@ -22,6 +22,7 @@ public interface IConstraint
 	void Check(out ConstraintOperationResult result);
 	void Propagate(out ConstraintOperationResult result);
 	bool StateChanged();
+	int FailureWeight { get; set; }
 }
 
 public interface IConstraint<T> : IConstraint

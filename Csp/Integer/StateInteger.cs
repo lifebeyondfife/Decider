@@ -371,6 +371,9 @@ public class StateInteger : IState<int>
 			var jumpTarget = this.DepthConflictAccumulator[this.Depth + 1];
 			this.DepthConflictAccumulator[this.Depth + 1] = -1;
 
+			if (this.Depth < 0)
+				return false;
+
 			if (jumpTarget >= 0 && jumpTarget > this.DepthConflictAccumulator[this.Depth])
 				this.DepthConflictAccumulator[this.Depth] = jumpTarget;
 
@@ -491,6 +494,7 @@ public class StateInteger : IState<int>
 		constraint.Propagate(out ConstraintOperationResult propagateResult);
 		if ((propagateResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
 		{
+			constraint.FailureWeight++;
 			this.ConflictJumpDepth = ComputeConflictDepth(constraintVariables);
 			return true;
 		}
@@ -503,6 +507,7 @@ public class StateInteger : IState<int>
 		constraint.Check(out ConstraintOperationResult checkResult);
 		if ((checkResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
 		{
+			constraint.FailureWeight++;
 			this.ConflictJumpDepth = ComputeConflictDepth(constraintVariables);
 			return true;
 		}
