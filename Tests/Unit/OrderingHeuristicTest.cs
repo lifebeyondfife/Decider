@@ -20,7 +20,7 @@ public class OrderingHeuristicTest
 		var v1 = new VariableInteger("v1", 0, 4);
 		var v2 = new VariableInteger("v2", 0, 14);
 		var variables = new List<IVariable<int>> { v0, v1, v2 };
-		var ordering = new DomWdegOrdering(variables, new List<IConstraint>());
+		var ordering = new DomWdegOrdering(variables, []);
 
 		var list = new List<IVariable<int>>(variables);
 		var selected = list[ordering.SelectVariableIndex(list)];
@@ -37,7 +37,7 @@ public class OrderingHeuristicTest
 
 		var constraint = new ConstraintInteger(v1 > 0);
 		constraint.FailureWeight = 10;
-		var ordering = new DomWdegOrdering(variables, new List<IConstraint> { constraint });
+		var ordering = new DomWdegOrdering(variables, [constraint]);
 
 		var list = new List<IVariable<int>>(variables);
 		var selected = list[ordering.SelectVariableIndex(list)];
@@ -50,10 +50,10 @@ public class OrderingHeuristicTest
 	{
 		var queens = new List<VariableInteger>
 		{
-			new VariableInteger("0", 0, 3),
-			new VariableInteger("1", 0, 3),
-			new VariableInteger("2", 0, 3),
-			new VariableInteger("3", 0, 3)
+			new("0", 0, 3),
+			new("1", 0, 3),
+			new("2", 0, 3),
+			new("3", 0, 3)
 		};
 
 		var constraints = new List<IConstraint>();

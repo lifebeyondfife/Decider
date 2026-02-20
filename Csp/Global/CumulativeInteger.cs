@@ -105,9 +105,9 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 
 			var profile = BuildCompulsoryProfile();
 
-			foreach (var time in profile.Keys)
+			foreach (var (time, cumulativeDemand) in profile)
 			{
-				if (profile[time] <= this.Capacity)
+				if (cumulativeDemand <= this.Capacity)
 					continue;
 
 				if (this.GenerateReasons)
@@ -248,47 +248,114 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		this.LastReason = CollectReasonForTasks(contributors.Concat(new[] { taskIndex }));
 	}
 
-	private Dictionary<int, int> BuildCompulsoryProfile()
+	private List<(int Time, int CumulativeDemand)> BuildCompulsoryProfile()
 	{
-		var profile = new Dictionary<int, int>();
+		var events = new List<(int Time, int Delta)>();
 
 		for (var i = 0; i < this.Starts.Count; ++i)
 		{
 			if (!GetCompulsoryPart(i, out var compulsoryStart, out var compulsoryEnd))
 				continue;
 
-			for (var t = compulsoryStart; t < compulsoryEnd; ++t)
-			{
-				if (!profile.ContainsKey(t))
-					profile[t] = 0;
+			events.Add((compulsoryStart, this.Demands[i]));
+			events.Add((compulsoryEnd, -this.Demands[i]));
+		}
 
-				profile[t] += this.Demands[i];
-			}
+		if (events.Count == 0)
+			return new List<(int, int)>();
+
+		events.Sort((a, b) => a.Time.CompareTo(b.Time));
+
+		var profile = new List<(int Time, int CumulativeDemand)>();
+		var runningTotal = 0;
+
+		foreach (var (time, delta) in events)
+		{
+			runningTotal += delta;
+
+			if (profile.Count > 0 && profile[profile.Count - 1].Time == time)
+				profile[profile.Count - 1] = (time, runningTotal);
+			else
+				profile.Add((time, runningTotal));
 		}
 
 		return profile;
 	}
 
-	private bool IsInfeasibleWithProfile(int taskIndex, int candidateStart, Dictionary<int, int> profile)
+	private static int GetProfileDemandAt(List<(int Time, int CumulativeDemand)> profile, int time)
+	{
+		if (profile.Count == 0 || time < profile[0].Time)
+			return 0;
+
+		var lo = 0;
+		var hi = profile.Count - 1;
+
+		while (lo < hi)
+		{
+			var mid = lo + (hi - lo + 1) / 2;
+
+			if (profile[mid].Time <= time)
+				lo = mid;
+			else
+				hi = mid - 1;
+		}
+
+		return profile[lo].CumulativeDemand;
+	}
+
+	private static int FindFirstProfileIndex(List<(int Time, int CumulativeDemand)> profile, int minTime)
+	{
+		var lo = 0;
+		var hi = profile.Count;
+
+		while (lo < hi)
+		{
+			var mid = lo + (hi - lo) / 2;
+
+			if (profile[mid].Time < minTime)
+				lo = mid + 1;
+			else
+				hi = mid;
+		}
+
+		return lo;
+	}
+
+	private int FindFirstViolatingTime(int taskIndex, int candidateStart, List<(int Time, int CumulativeDemand)> profile)
 	{
 		var end = candidateStart + this.Durations[taskIndex];
 		var demand = this.Demands[taskIndex];
-
 		GetCompulsoryPart(taskIndex, out var compulsoryStart, out var compulsoryEnd);
 
-		for (var t = candidateStart; t < end; ++t)
-		{
-			if (!profile.TryGetValue(t, out var profileDemand))
-				profileDemand = 0;
+		var profileDemand = GetProfileDemandAt(profile, candidateStart);
+		var taskInCompulsory = candidateStart >= compulsoryStart && candidateStart < compulsoryEnd;
+		if ((taskInCompulsory ? profileDemand : profileDemand + demand) > this.Capacity)
+			return candidateStart;
 
-			var taskInCompulsory = t >= compulsoryStart && t < compulsoryEnd;
-			var totalDemand = taskInCompulsory ? profileDemand : profileDemand + demand;
+		var idx = FindFirstProfileIndex(profile, candidateStart + 1);
+		for (; idx < profile.Count && profile[idx].Time < end; ++idx)
+		{
+			taskInCompulsory = profile[idx].Time >= compulsoryStart && profile[idx].Time < compulsoryEnd;
+			var totalDemand = taskInCompulsory ? profile[idx].CumulativeDemand : profile[idx].CumulativeDemand + demand;
 
 			if (totalDemand > this.Capacity)
-				return true;
+				return profile[idx].Time;
 		}
 
-		return false;
+		if (compulsoryEnd > candidateStart && compulsoryEnd < end)
+		{
+			profileDemand = GetProfileDemandAt(profile, compulsoryEnd);
+
+			if (profileDemand + demand > this.Capacity)
+				return compulsoryEnd;
+		}
+
+		return -1;
+	}
+
+	private bool IsInfeasibleWithProfile(int taskIndex, int candidateStart, List<(int Time, int CumulativeDemand)> profile)
+	{
+		return FindFirstViolatingTime(taskIndex, candidateStart, profile) >= 0;
 	}
 
 	private IList<BoundReason> ReasonForProfileOverload(int time)
@@ -310,27 +377,14 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		return reasons;
 	}
 
-	private IList<BoundReason> ReasonForTimetableFilter(int taskIndex, int candidateStart, Dictionary<int, int> profile)
+	private IList<BoundReason> ReasonForTimetableFilter(int taskIndex, int candidateStart, List<(int Time, int CumulativeDemand)> profile)
 	{
-		var end = candidateStart + this.Durations[taskIndex];
-		var demand = this.Demands[taskIndex];
+		var violatingTime = FindFirstViolatingTime(taskIndex, candidateStart, profile);
 
-		GetCompulsoryPart(taskIndex, out var compulsoryStart, out var compulsoryEnd);
+		if (violatingTime < 0)
+			return new List<BoundReason>();
 
-		for (var t = candidateStart; t < end; ++t)
-		{
-			profile.TryGetValue(t, out var profileDemand);
-
-			var taskInCompulsory = t >= compulsoryStart && t < compulsoryEnd;
-			var totalDemand = taskInCompulsory ? profileDemand : profileDemand + demand;
-
-			if (totalDemand <= this.Capacity)
-				continue;
-
-			return ReasonForProfileOverload(t);
-		}
-
-		return new List<BoundReason>();
+		return ReasonForProfileOverload(violatingTime);
 	}
 
 	private IList<BoundReason> CollectReasonForTasks(IEnumerable<int> taskIndices)
