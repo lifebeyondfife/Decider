@@ -8,57 +8,64 @@ using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
+using Decider.Example.Rcpsp;
 using Google.OrTools.ConstraintSolver;
+using System.IO;
+using System.Reflection;
 
 namespace Decider.Performance;
 
-/// <summary>
-/// Benchmark for the Furniture Moving Intervals problem using Google OR-Tools.
-/// Based on: https://github.com/google/or-tools/blob/stable/examples/dotnet/furniture_moving_intervals.cs
-///
-/// Problem description from Marriott & Stukey: 'Programming with constraints', page 112f
-/// A scheduling problem where furniture needs to be moved with constraints on:
-/// - Task durations
-/// - Worker demand per task
-/// - Total available workers
-/// </summary>
 [MemoryDiagnoser]
 [Config(typeof(OrToolsConstraintSolverConfig))]
-public class OrToolsFurnitureMovingBenchmark
+public class OrToolsRcpspBenchmark
 {
-	private const int N = 8;
-	private static readonly int[] Durations = { 30, 10, 15, 15, 20, 25, 12, 20 };
-	private static readonly int[] Demand = { 3, 1, 3, 2, 4, 2, 3, 2 };
-	private const int Capacity = 4;
-	private const int UpperLimit = 160;
+	private const int HorizonMultiplier = 10;
+
+	private static string GetDataFilePath(string fileName)
+	{
+		var assemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+		return Path.Combine(assemblyLocation, "Data", fileName);
+	}
 
 	private static Solver SolveModel()
 	{
-		var solver = new Solver("FurnitureMovingIntervals");
+		var instance = PspLibParser.Parse(GetDataFilePath("j3010_1.sm"));
+		var scaledHorizon = instance.Horizon * HorizonMultiplier;
 
-		var tasks = new IntervalVar[N];
-		var startVars = new IntVar[N];
-		for (var i = 0; i < N; ++i)
+		var solver = new Solver("RcpspJ30");
+
+		var tasks = new IntervalVar[instance.JobCount];
+		var startVars = new IntVar[instance.JobCount];
+
+		for (var i = 0; i < instance.JobCount; ++i)
 		{
 			tasks[i] = solver.MakeFixedDurationIntervalVar(
 				0,
-				UpperLimit - Durations[i],
-				Durations[i],
+				scaledHorizon - instance.Durations[i],
+				instance.Durations[i],
 				false,
-				"task_" + i);
+				"job_" + i);
 			startVars[i] = tasks[i].StartExpr().Var();
 		}
 
-		var ends = new IntVar[N];
-		for (var i = 0; i < N; ++i)
+		solver.Add(startVars[0] == 0);
+
+		for (var r = 0; r < instance.ResourceCount; ++r)
 		{
-			ends[i] = tasks[i].EndExpr().Var();
+			var demands = new int[instance.JobCount];
+			for (var i = 0; i < instance.JobCount; ++i)
+				demands[i] = instance.ResourceDemands[i][r];
+
+			solver.Add(tasks.Cumulative(demands, instance.ResourceCapacities[r], $"resource_{r}"));
 		}
-		var endTime = ends.Max().VarWithName("end_time");
 
-		solver.Add(tasks.Cumulative(Demand, Capacity, "workers"));
+		for (var j = 0; j < instance.JobCount; ++j)
+		{
+			foreach (var successor in instance.Successors[j])
+				solver.Add(tasks[successor].StartsAfterEnd(tasks[j]));
+		}
 
-		var obj = endTime.Minimize(1);
+		var obj = startVars[instance.JobCount - 1].Minimize(1);
 
 		var db = solver.MakePhase(startVars, Solver.CHOOSE_MIN_SIZE, Solver.ASSIGN_MIN_VALUE);
 		solver.NewSearch(db, obj);
@@ -68,12 +75,11 @@ public class OrToolsFurnitureMovingBenchmark
 		}
 
 		solver.EndSearch();
-
 		return solver;
 	}
 
 	[Benchmark]
-	public void SolveFurnitureMoving()
+	public void SolveRcpspJ30Instance()
 	{
 		SolveModel();
 	}

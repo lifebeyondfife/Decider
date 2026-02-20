@@ -122,32 +122,24 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 				if (this.Starts[i].Instantiated())
 					continue;
 
-				var valuesToRemove = new List<int>();
+				var newLowerBound = FindNewLowerBound(i, profile);
+				var newUpperBound = FindNewUpperBound(i, profile);
 
-				foreach (var candidateStart in this.Starts[i].Domain)
+				if (newLowerBound > newUpperBound)
 				{
-					if (IsInfeasibleWithProfile(i, candidateStart, profile))
-						valuesToRemove.Add(candidateStart);
+					if (this.GenerateReasons)
+						this.LastReason = ReasonForTimetableFilter(i, this.Starts[i].Domain.LowerBound, profile);
+
+					result = ConstraintOperationResult.Violated;
+					return;
 				}
 
-				foreach (var value in valuesToRemove)
+				this.Starts[i].Propagate(new Bounds<int>(newLowerBound, newUpperBound), out var propagateResult);
+
+				if (propagateResult == ConstraintOperationResult.Propagated)
 				{
-					this.Starts[i].Remove(value, this.Depth, out DomainOperationResult domainResult);
-
-					if (domainResult == DomainOperationResult.EmptyDomain)
-					{
-						if (this.GenerateReasons)
-							this.LastReason = ReasonForTimetableFilter(i, value, profile);
-
-						result = ConstraintOperationResult.Violated;
-						return;
-					}
-
-					if (domainResult == DomainOperationResult.RemoveSuccessful)
-					{
-						result = ConstraintOperationResult.Propagated;
-						propagationOccurred = true;
-					}
+					result = ConstraintOperationResult.Propagated;
+					propagationOccurred = true;
 				}
 			}
 
@@ -353,9 +345,36 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		return -1;
 	}
 
-	private bool IsInfeasibleWithProfile(int taskIndex, int candidateStart, List<(int Time, int CumulativeDemand)> profile)
+	private int FindNewLowerBound(int taskIndex, List<(int Time, int CumulativeDemand)> profile)
 	{
-		return FindFirstViolatingTime(taskIndex, candidateStart, profile) >= 0;
+		var candidate = this.Starts[taskIndex].Domain.LowerBound;
+		var upperBound = this.Starts[taskIndex].Domain.UpperBound;
+
+		while (candidate <= upperBound)
+		{
+			var violatingTime = FindFirstViolatingTime(taskIndex, candidate, profile);
+			if (violatingTime < 0)
+				return candidate;
+			candidate = violatingTime + 1;
+		}
+
+		return upperBound + 1;
+	}
+
+	private int FindNewUpperBound(int taskIndex, List<(int Time, int CumulativeDemand)> profile)
+	{
+		var candidate = this.Starts[taskIndex].Domain.UpperBound;
+		var lowerBound = this.Starts[taskIndex].Domain.LowerBound;
+
+		while (candidate >= lowerBound)
+		{
+			var violatingTime = FindFirstViolatingTime(taskIndex, candidate, profile);
+			if (violatingTime < 0)
+				return candidate;
+			candidate = violatingTime - this.Durations[taskIndex];
+		}
+
+		return lowerBound - 1;
 	}
 
 	private IList<BoundReason> ReasonForProfileOverload(int time)

@@ -5,7 +5,8 @@
 */
 using System;
 using System.Globalization;
-using System.Linq;
+using System.IO;
+using System.Reflection;
 
 namespace Decider.Example.Rcpsp;
 
@@ -13,23 +14,22 @@ public class Program
 {
 	public static void Main(string[] args)
 	{
-		var rcpsp = new Rcpsp();
+		var assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+		var instanceFile = Path.Combine(assemblyDir, "Data", "j3010_1.sm");
 
-		Console.WriteLine("Solving RCPSP instance...");
+		var rcpsp = new Rcpsp(instanceFile);
+
+		Console.WriteLine($"RCPSP — PSPLib j3010_1");
+		Console.WriteLine($"  {rcpsp.TaskCount} jobs");
+		Console.WriteLine();
+		Console.WriteLine("Solving for minimum makespan...");
+
 		rcpsp.OptimiseMakespan();
-		Console.WriteLine();
 
-		Console.WriteLine("Optimal Schedule:");
-		foreach (var index in Enumerable.Range(0, rcpsp.State.Variables.Count))
-		{
-			var taskId = index.ToString(CultureInfo.CurrentCulture);
-			var startTime = rcpsp.Solution![taskId].InstantiatedValue;
-			Console.WriteLine($"Task {taskId}: starts at time {startTime}");
-		}
-
+		var sinkId = rcpsp.SinkTaskIndex.ToString(CultureInfo.CurrentCulture);
 		Console.WriteLine();
-		Console.WriteLine($"Makespan:\t{rcpsp.Solution!["9"].InstantiatedValue}");
-		Console.WriteLine($"Runtime:\t{rcpsp.State.Runtime}");
-		Console.WriteLine($"Backtracks:\t{rcpsp.State.Backtracks}");
+		Console.WriteLine($"Optimal Makespan:  {rcpsp.Solution[sinkId].InstantiatedValue}");
+		Console.WriteLine($"Runtime:           {rcpsp.State.Runtime}");
+		Console.WriteLine($"Backtracks:        {rcpsp.State.Backtracks}");
 	}
 }

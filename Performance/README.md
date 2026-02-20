@@ -19,6 +19,7 @@ dotnet run -c Release -- --filter "*RcpspBenchmark*"
 dotnet run -c Release -- --filter "*FurnitureMovingBenchmark*"
 dotnet run -c Release -- --filter "*OrToolsNQueensBenchmark*"
 dotnet run -c Release -- --filter "*OrToolsFurnitureMovingBenchmark*"
+dotnet run -c Release -- --filter "*OrToolsRcpspBenchmark*"
 ```
 
 ### Run with specific board size
@@ -43,15 +44,15 @@ dotnet run -c Release -- --filter "*NQueensBenchmark*" --job short --warmupCount
 
 ### RcpspBenchmark
 - **Problem**: Resource-Constrained Project Scheduling Problem (RCPSP) using `Cumulative` constraint + precedence constraints
-- **Search**: `Search()` - finds first solution for PSPLib j30 instance (j3010_1)
-- **Parameters**: Real PSPLib j30 instance loaded from `Data/j3010_1.sm`
+- **Search**: `Search(makespan)` - finds optimal (minimum makespan) solution for PSPLib j30 instance (j3010_1)
+- **Parameters**: PSPLib j30 instance with horizon scaled 10x (164 → 1640) to create large domains
 - **Metrics**: Execution time, memory allocations, backtracks
-- **Note**: Instance files use standard PSPLib format and can be swapped for other instances
+- **Purpose**: Direct comparison with OrToolsRcpspBenchmark; large domains demonstrate bounds-based timetable filtering advantage
 
 ### FurnitureMovingBenchmark
 - **Problem**: Furniture moving scheduling using `Cumulative` constraint, based on Marriott & Stukey: 'Programming with constraints', page 112f
 - **Search**: `Search(makespan)` - finds optimal (minimum makespan) solution
-- **Parameters**: 7 tasks with varying durations (10-30) and demands (1-4), capacity 4, horizon 160
+- **Parameters**: 8 tasks with varying durations (10-30) and demands (1-4), capacity 4, horizon 160
 - **Metrics**: Execution time, memory allocations, backtracks
 - **Purpose**: Direct comparison with OrToolsFurnitureMovingBenchmark
 
@@ -66,11 +67,19 @@ dotnet run -c Release -- --filter "*NQueensBenchmark*" --job short --warmupCount
 
 ### OrToolsFurnitureMovingBenchmark
 - **Problem**: Furniture moving scheduling using OR-Tools ConstraintSolver `Cumulative` constraint
-- **Search**: Minimize makespan using most-constrained variable heuristic (`CHOOSE_MIN_SIZE` / `CHOOSE_MIN_SIZE_LOWEST_MIN`)
-- **Parameters**: Same 7 tasks as FurnitureMovingBenchmark
+- **Search**: Minimize makespan using fail-first heuristic (`CHOOSE_MIN_SIZE` / `ASSIGN_MIN_VALUE`)
+- **Parameters**: Same 8 tasks as FurnitureMovingBenchmark
 - **Metrics**: Execution time, memory allocations, failures, branches
 - **Purpose**: Direct competitive comparison with Decider's `Cumulative` constraint
-  - **Note**: Uses equivalent variable ordering heuristic to Decider's `GetMostConstrainedVariable` for fair comparison
+  - **Note**: `CHOOSE_MIN_SIZE` (smallest domain) is the closest OR-Tools equivalent to Decider's `DomWdegOrdering`; `ASSIGN_MIN_VALUE` (earliest start) is the standard approach for makespan minimisation in CP
+
+### OrToolsRcpspBenchmark
+- **Problem**: RCPSP using OR-Tools ConstraintSolver `Cumulative` constraint + precedence constraints
+- **Search**: Minimize makespan using fail-first heuristic (`CHOOSE_MIN_SIZE` / `ASSIGN_MIN_VALUE`)
+- **Parameters**: Same PSPLib j30 instance (j3010_1) and 10x horizon scaling as RcpspBenchmark
+- **Metrics**: Execution time, memory allocations, failures, branches
+- **Purpose**: Direct competitive comparison with Decider's RCPSP benchmark
+  - **Note**: `CHOOSE_MIN_SIZE` (smallest domain) is the closest OR-Tools equivalent to Decider's `DomWdegOrdering`; `ASSIGN_MIN_VALUE` matches Decider's `LowestValueOrdering`
 
 ## Metrics Tracked
 
@@ -97,14 +106,21 @@ All benchmarks track the following metrics in the summary table:
 ```
 | Method                | Mean     | Error     | StdDev    | Backtracks | Gen0      | Gen1      | Gen2     | Allocated |
 |---------------------- |---------:|----------:|----------:|-----------:|----------:|----------:|---------:|----------:|
-| SolveLeagueGeneration | 9.397 ms | 0.1465 ms | 0.1370 ms |          1 | 3234.3750 | 1250.0000 | 953.1250 |  70.81 MB |
+| SolveLeagueGeneration | 9.235 ms | 0.0171 ms | 0.0160 ms |          1 | 3234.3750 | 1250.0000 | 953.1250 |  70.81 MB |
 ```
 
 **Decider FurnitureMoving:**
 ```
-| Method               | Mean     | Error    | StdDev   | Backtracks | Gen0       | Gen1     | Gen2     | Allocated |
-|--------------------- |---------:|---------:|---------:|-----------:|-----------:|---------:|---------:|----------:|
-| SolveFurnitureMoving | 76.66 ms | 0.465 ms | 0.435 ms |     22,489 | 11714.2857 | 571.4286 | 428.5714 |   92.2 MB |
+| Method               | Mean    | Error    | StdDev   | Backtracks | Gen0        | Allocated |
+|--------------------- |--------:|---------:|---------:|-----------:|------------:|----------:|
+| SolveFurnitureMoving | 1.983 s | 0.0081 s | 0.0063 s |  2,491,642 | 344000.0000 |   2.68 GB |
+```
+
+**Decider RcpspJ30:**
+```
+| Method                | Mean     | Error   | StdDev  | Backtracks | Gen0      | Gen1      | Gen2      | Allocated |
+|---------------------- |---------:|--------:|--------:|-----------:|----------:|----------:|----------:|----------:|
+| SolveRcpspJ30Instance | 335.9 ms | 1.88 ms | 1.76 ms |      3,266 | 8000.0000 | 1000.0000 | 1000.0000 |  66.77 MB |
 ```
 
 **OR-Tools NQueens:**
@@ -118,9 +134,16 @@ All benchmarks track the following metrics in the summary table:
 
 **OR-Tools FurnitureMoving:**
 ```
-| Method               | Mean     | Error    | StdDev   | Failures | Branches | Allocated |
-|--------------------- |---------:|---------:|---------:|---------:|---------:|----------:|
-| SolveFurnitureMoving | 14.82 ms | 0.106 ms | 0.094 ms |   13,567 |   27,119 |   5.66 KB |
+| Method               | Mean     | Error   | StdDev  | Failures | Branches | Allocated |
+|--------------------- |---------:|--------:|--------:|---------:|---------:|----------:|
+| SolveFurnitureMoving | 947.4 ms | 3.99 ms | 3.54 ms |  211,664 |  423,322 |         - |
+```
+
+**OR-Tools RcpspJ30:**
+```
+| Method                | Mean     | Error   | StdDev  | Failures | Branches | Allocated |
+|---------------------- |---------:|--------:|--------:|---------:|---------:|----------:|
+| SolveRcpspJ30Instance | 603.1 ms | 0.71 ms | 0.67 ms |    6,201 |   12,311 |  97.91 KB |
 ```
 
 > **Note:** OR-Tools allocation figures only reflect .NET managed heap usage (the C# interop layer). The solver itself is written in C++ and allocates on the native heap, which is not tracked by BenchmarkDotNet's `MemoryDiagnoser`. Direct memory comparisons between Decider and OR-Tools are therefore not meaningful.
