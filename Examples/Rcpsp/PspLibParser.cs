@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Decider.Performance;
+namespace Decider.Example.Rcpsp;
 
 public class PspLibInstance
 {

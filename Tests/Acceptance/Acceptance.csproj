@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\Performance\Data\j3010_1.sm" CopyToOutputDirectory="PreserveNewest" Link="Data\j3010_1.sm" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Csp\Csp.csproj" />
     <ProjectReference Include="..\..\Examples\LeagueGeneration\LeagueGeneration.csproj" />
     <ProjectReference Include="..\..\Examples\NQueens\NQueens.csproj" />

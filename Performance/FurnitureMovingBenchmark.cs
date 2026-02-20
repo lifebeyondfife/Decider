@@ -26,9 +26,9 @@ namespace Decider.Performance;
 [Config(typeof(BacktracksConfig))]
 public class FurnitureMovingBenchmark
 {
-	private const int N = 7;
-	private static readonly IList<int> Durations = new List<int> { 30, 10, 15, 15, 20, 25, 12 };
-	private static readonly IList<int> Demands = new List<int> { 3, 1, 3, 2, 4, 2, 3 };
+	private const int N = 8;
+	private static readonly IList<int> Durations = new List<int> { 30, 10, 15, 15, 20, 25, 12, 20 };
+	private static readonly IList<int> Demands = new List<int> { 3, 1, 3, 2, 4, 2, 3, 2 };
 	private const int Capacity = 4;
 	private const int UpperLimit = 160;
 
@@ -49,7 +49,7 @@ public class FurnitureMovingBenchmark
 			constraints.Add(new ConstraintInteger(makespan >= (VariableInteger) starts[i] + Durations[i]));
 
 		var variables = new List<IVariable<int>>(starts) { makespan };
-		var state = new StateInteger(variables, constraints, new DomWdegOrdering(variables, constraints), new MiddleValueOrdering());
+		var state = new StateInteger(variables, constraints, new DomWdegOrdering(variables, constraints), new LowestValueOrdering());
 		state.Search(makespan);
 
 		return state;

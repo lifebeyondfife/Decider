@@ -11,6 +11,7 @@ using BenchmarkDotNet.Running;
 using Decider.Csp.BaseTypes;
 using Decider.Csp.Global;
 using Decider.Csp.Integer;
+using Decider.Example.Rcpsp;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -23,6 +24,8 @@ namespace Decider.Performance;
 [Config(typeof(BacktracksConfig))]
 public class RcpspBenchmark
 {
+	private const int HorizonMultiplier = 10;
+
 	private static string GetDataFilePath(string fileName)
 	{
 		var assemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -38,10 +41,11 @@ public class RcpspBenchmark
 	private IState<int> SolvePspLibInstance(string instanceFile)
 	{
 		var instance = PspLibParser.Parse(instanceFile);
+		var scaledHorizon = instance.Horizon * HorizonMultiplier;
 
 		var starts = new List<IVariable<int>>();
 		foreach (var i in Enumerable.Range(0, instance.JobCount))
-			starts.Add(new VariableInteger(i.ToString(CultureInfo.CurrentCulture), 0, instance.Horizon));
+			starts.Add(new VariableInteger(i.ToString(CultureInfo.CurrentCulture), 0, scaledHorizon));
 
 		var constraints = new List<IConstraint>();
 
@@ -65,8 +69,8 @@ public class RcpspBenchmark
 			}
 		}
 
-		var state = new StateInteger(starts, constraints, new DomWdegOrdering(starts, constraints), new MiddleValueOrdering());
-		state.Search();
+		var state = new StateInteger(starts, constraints, new DomWdegOrdering(starts, constraints), new LowestValueOrdering());
+		state.Search(starts.Last());
 		return state;
 	}
 

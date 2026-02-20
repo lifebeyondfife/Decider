@@ -10,4 +10,8 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="..\..\Performance\Data\j3010_1.sm" CopyToOutputDirectory="PreserveNewest" Link="Data\j3010_1.sm" />
+  </ItemGroup>
+
 </Project>

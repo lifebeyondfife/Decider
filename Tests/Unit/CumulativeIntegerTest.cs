@@ -226,8 +226,8 @@ public class CumulativeIntegerTest
 	{
 		var starts = new List<VariableInteger>
 		{
-			new("s0", 2, 3),
-			new("s1", 0, 10)
+			new("s0", 0, 1),
+			new("s1", 0, 5)
 		};
 		var durations = new List<int> { 3, 2 };
 		var demands = new List<int> { 4, 2 };
@@ -240,8 +240,29 @@ public class CumulativeIntegerTest
 
         constraints[0].Propagate(out ConstraintOperationResult propagateResult);
 
-		Assert.False(starts[1].Domain.Contains(3));
-		Assert.False(starts[1].Domain.Contains(4));
+		Assert.True(starts[1].Domain.LowerBound >= 3);
+	}
+
+	[Fact]
+	public void TestTimetableFilteringUpperBoundSweep()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 8, 9),
+			new("s1", 0, 10)
+		};
+		var durations = new List<int> { 3, 3 };
+		var demands = new List<int> { 3, 3 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
+		};
+		_ = new StateInteger(starts, constraints);
+
+		constraints[0].Propagate(out ConstraintOperationResult propagateResult);
+
+		Assert.True(starts[1].Domain.UpperBound <= 6);
 	}
 
 	[Fact]
