@@ -102,9 +102,9 @@ All benchmarks track the following metrics in the summary table:
 
 **Decider FurnitureMoving:**
 ```
-| Method               | Mean     | Error   | StdDev  | Backtracks | Gen0       | Gen1     | Gen2     | Allocated |
-|--------------------- |---------:|--------:|--------:|-----------:|-----------:|---------:|---------:|----------:|
-| SolveFurnitureMoving | 224.2 ms | 1.99 ms | 1.76 ms |     44,846 | 48000.0000 | 666.6667 | 333.3333 | 383.88 MB |
+| Method               | Mean     | Error    | StdDev   | Backtracks | Gen0       | Gen1     | Gen2     | Allocated |
+|--------------------- |---------:|---------:|---------:|-----------:|-----------:|---------:|---------:|----------:|
+| SolveFurnitureMoving | 76.66 ms | 0.465 ms | 0.435 ms |     22,489 | 11714.2857 | 571.4286 | 428.5714 |   92.2 MB |
 ```
 
 **OR-Tools NQueens:**
