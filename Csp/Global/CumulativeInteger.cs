@@ -52,6 +52,7 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 
 		this.Capacity = capacity;
 		this.GenerationArray = Enumerable.Repeat(0, this.Starts.Count).ToList();
+		this.Tree = new ThetaTree();
 	}
 
 	public void Check(out ConstraintOperationResult result)
@@ -160,17 +161,17 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 	private bool GetCompulsoryPart(int taskIndex, out int compulsoryStart, out int compulsoryEnd)
 	{
 		var earliestStartTime = this.Starts[taskIndex].Domain.LowerBound;
-		var lastStartTime = this.Starts[taskIndex].Domain.UpperBound;
+		var latestStartTime = this.Starts[taskIndex].Domain.UpperBound;
 		var duration = this.Durations[taskIndex];
 
-		if (lastStartTime >= earliestStartTime + duration)
+		if (latestStartTime >= earliestStartTime + duration)
 		{
 			compulsoryStart = int.MaxValue;
 			compulsoryEnd = int.MinValue;
 			return false;
 		}
 
-		compulsoryStart = lastStartTime;
+		compulsoryStart = latestStartTime;
 		compulsoryEnd = earliestStartTime + duration;
 		return true;
 	}
@@ -419,60 +420,145 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		return reasons;
 	}
 
+	private static long CeilDiv(long a, long b) =>
+		a >= 0 ? (a + b - 1) / b : a / b;
+
+	private ThetaTree Tree { get; set; }
+
 	private ConstraintOperationResult EdgeFinding(bool forward)
 	{
 		var result = ConstraintOperationResult.Undecided;
+		var n = this.Starts.Count;
 
-		var orderedTasks = forward
-			? Enumerable.Range(0, this.Starts.Count).OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i]).ToList()
-			: Enumerable.Range(0, this.Starts.Count).OrderByDescending(i => this.Starts[i].Domain.LowerBound).ToList();
+		if (n < 2)
+			return result;
 
-		for (var i = 0; i < this.Starts.Count; ++i)
+		var treeOrder = forward
+			? Enumerable.Range(0, n).OrderBy(j => this.Starts[j].Domain.LowerBound).ToList()
+			: Enumerable.Range(0, n).OrderByDescending(j => this.Starts[j].Domain.UpperBound + this.Durations[j]).ToList();
+
+		var rank = new int[n];
+		for (var pos = 0; pos < n; ++pos)
+			rank[treeOrder[pos]] = pos;
+
+		var maxLct = int.MinValue;
+		var maxLctCount = 0;
+		var secondMaxLct = int.MinValue;
+		var minEst = int.MaxValue;
+		var minEstCount = 0;
+		var secondMinEst = int.MaxValue;
+
+		for (var j = 0; j < n; ++j)
+		{
+			var lct = this.Starts[j].Domain.UpperBound + this.Durations[j];
+			var est = this.Starts[j].Domain.LowerBound;
+
+			if (lct > maxLct)
+			{
+				secondMaxLct = maxLct;
+				maxLct = lct;
+				maxLctCount = 1;
+			}
+			else if (lct == maxLct)
+			{
+				maxLctCount++;
+			}
+			else if (lct > secondMaxLct)
+			{
+				secondMaxLct = lct;
+			}
+
+			if (est < minEst)
+			{
+				secondMinEst = minEst;
+				minEst = est;
+				minEstCount = 1;
+			}
+			else if (est == minEst)
+			{
+				minEstCount++;
+			}
+			else if (est < secondMinEst)
+			{
+				secondMinEst = est;
+			}
+		}
+
+		this.Tree.Reset(n);
+
+		for (var j = 0; j < n; ++j)
+		{
+			var energy = (long)this.Durations[j] * this.Demands[j];
+
+			var leafEnv = forward
+				? (long)this.Starts[j].Domain.LowerBound * this.Capacity + energy
+				: -(long)(this.Starts[j].Domain.UpperBound + this.Durations[j]) * this.Capacity + energy;
+
+			this.Tree.Activate(rank[j], leafEnv, energy);
+		}
+
+		for (var i = 0; i < n; ++i)
 		{
 			if (this.Starts[i].Instantiated())
 				continue;
 
-			var taskBound = forward
-				? this.Starts[i].Domain.LowerBound
-				: this.Starts[i].Domain.UpperBound + this.Durations[i];
-			var taskEnergy = this.Durations[i] * this.Demands[i];
+			var energyI = (long)this.Durations[i] * this.Demands[i];
+			this.Tree.Deactivate(rank[i]);
 
-			var cumulativeEnergy = 0;
-			var minEarliestStart = int.MaxValue;
-			var maxLatestCompletion = int.MinValue;
+			var env = this.Tree.RootEnvelope;
+			var envE = this.Tree.RootEnvEnergy;
 
-			var contributors = this.GenerateReasons ? new List<int>() : null;
+			var estI = this.Starts[i].Domain.LowerBound;
+			var lctI = this.Starts[i].Domain.UpperBound + this.Durations[i];
 
-			foreach (var j in orderedTasks)
+			var maxLctExcluding = (lctI == maxLct && maxLctCount == 1) ? secondMaxLct : maxLct;
+			var minEstExcluding = (estI == minEst && minEstCount == 1) ? secondMinEst : minEst;
+
+			var threshold = forward
+				? (long)maxLctExcluding * this.Capacity
+				: -(long)minEstExcluding * this.Capacity;
+
+			var leafEnv = forward
+				? (long)estI * this.Capacity + energyI
+				: -(long)lctI * this.Capacity + energyI;
+			this.Tree.Activate(rank[i], leafEnv, energyI);
+
+			var effectiveEnv = env;
+
+			if (forward)
 			{
-				if (j == i)
-					continue;
+				var minEstS = (env - envE) / this.Capacity;
 
-				contributors?.Add(j);
-				cumulativeEnergy += this.Durations[j] * this.Demands[j];
-				minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
-				maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
+				if (minEstS > estI)
+					effectiveEnv = (long)estI * this.Capacity + envE;
+			}
+			else
+			{
+				var maxLctS = -(env - envE) / this.Capacity;
 
-				var windowStart = forward ? Math.Min(minEarliestStart, taskBound) : minEarliestStart;
-				var windowEnd = forward ? maxLatestCompletion : Math.Max(maxLatestCompletion, taskBound);
+				if (maxLctS < lctI)
+					effectiveEnv = -(long)lctI * this.Capacity + envE;
+			}
 
-				if (cumulativeEnergy + taskEnergy <= (windowEnd - windowStart) * this.Capacity)
-					continue;
+			if (effectiveEnv + energyI <= threshold)
+				continue;
 
-				SetReasonIfEnabled(contributors, i);
+			if (this.GenerateReasons)
+				this.LastReason = CollectReasonForTasks(Enumerable.Range(0, n));
 
-				if (forward)
-				{
-					var newLowerBound = Math.Max(maxLatestCompletion, minEarliestStart + (int)Math.Ceiling((double)cumulativeEnergy / this.Capacity));
-					if (ApplyNewLowerBound(i, newLowerBound, ref result))
-						return ConstraintOperationResult.Violated;
-				}
-				else
-				{
-					var newUpperBound = Math.Min(minEarliestStart, maxLatestCompletion - (int)Math.Ceiling((double)cumulativeEnergy / this.Capacity)) - this.Durations[i];
-					if (ApplyNewUpperBound(i, newUpperBound, ref result))
-						return ConstraintOperationResult.Violated;
-				}
+			if (forward)
+			{
+				var newLowerBound = (int)((env - envE) / this.Capacity + CeilDiv(envE, this.Capacity));
+
+				if (ApplyNewLowerBound(i, newLowerBound, ref result))
+					return ConstraintOperationResult.Violated;
+			}
+			else
+			{
+				var newUpperBound = (int)(-(env - envE) / this.Capacity - CeilDiv(envE, this.Capacity)) - this.Durations[i];
+
+				if (ApplyNewUpperBound(i, newUpperBound, ref result))
+					return ConstraintOperationResult.Violated;
 			}
 		}
 
@@ -482,12 +568,16 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 	private ConstraintOperationResult NotFirstOrLastRule(bool notFirst)
 	{
 		var result = ConstraintOperationResult.Undecided;
+		var n = this.Starts.Count;
+
+		if (n < 2)
+			return result;
 
 		var orderedTasks = notFirst
-			? Enumerable.Range(0, this.Starts.Count).OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i]).ToList()
-			: Enumerable.Range(0, this.Starts.Count).OrderByDescending(i => this.Starts[i].Domain.LowerBound).ToList();
+			? Enumerable.Range(0, n).OrderBy(j => this.Starts[j].Domain.UpperBound + this.Durations[j]).ToList()
+			: Enumerable.Range(0, n).OrderByDescending(j => this.Starts[j].Domain.LowerBound).ToList();
 
-		for (var i = 0; i < this.Starts.Count; ++i)
+		for (var i = 0; i < n; ++i)
 		{
 			if (this.Starts[i].Instantiated())
 				continue;
@@ -496,11 +586,11 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 				? this.Starts[i].Domain.LowerBound + this.Durations[i]
 				: this.Starts[i].Domain.UpperBound;
 
-			var setEnergy = 0;
-			var maxLatestCompletion = int.MinValue;
-			var minEarliestCompletion = int.MaxValue;
-			var minEarliestStart = int.MaxValue;
-			var maxLatestStart = int.MinValue;
+			var setEnergy = 0L;
+			var maxLatestCompletionTime = int.MinValue;
+			var minEarliestCompletionTime = int.MaxValue;
+			var minEarliestStartTime = int.MaxValue;
+			var maxLatestStartTime = int.MinValue;
 
 			var contributors = this.GenerateReasons ? new List<int>() : null;
 
@@ -510,32 +600,32 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 					continue;
 
 				contributors?.Add(j);
-				setEnergy += this.Durations[j] * this.Demands[j];
+				setEnergy += (long)this.Durations[j] * this.Demands[j];
 
 				if (notFirst)
 				{
-					maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
-					minEarliestCompletion = Math.Min(minEarliestCompletion, this.Starts[j].Domain.LowerBound + this.Durations[j]);
+					maxLatestCompletionTime = Math.Max(maxLatestCompletionTime, this.Starts[j].Domain.UpperBound + this.Durations[j]);
+					minEarliestCompletionTime = Math.Min(minEarliestCompletionTime, this.Starts[j].Domain.LowerBound + this.Durations[j]);
 
-					if (maxLatestCompletion <= taskBound || setEnergy <= (maxLatestCompletion - taskBound) * this.Capacity)
+					if (maxLatestCompletionTime <= taskBound || setEnergy <= (long)(maxLatestCompletionTime - taskBound) * this.Capacity)
 						continue;
 
 					SetReasonIfEnabled(contributors, i);
 
-					if (ApplyNewLowerBound(i, minEarliestCompletion, ref result))
+					if (ApplyNewLowerBound(i, minEarliestCompletionTime, ref result))
 						return ConstraintOperationResult.Violated;
 				}
 				else
 				{
-					minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
-					maxLatestStart = Math.Max(maxLatestStart, this.Starts[j].Domain.UpperBound);
+					minEarliestStartTime = Math.Min(minEarliestStartTime, this.Starts[j].Domain.LowerBound);
+					maxLatestStartTime = Math.Max(maxLatestStartTime, this.Starts[j].Domain.UpperBound);
 
-					if (minEarliestStart >= taskBound || setEnergy <= (taskBound - minEarliestStart) * this.Capacity)
+					if (minEarliestStartTime >= taskBound || setEnergy <= (long)(taskBound - minEarliestStartTime) * this.Capacity)
 						continue;
 
 					SetReasonIfEnabled(contributors, i);
 
-					if (ApplyNewUpperBound(i, maxLatestStart - this.Durations[i], ref result))
+					if (ApplyNewUpperBound(i, maxLatestStartTime - this.Durations[i], ref result))
 						return ConstraintOperationResult.Violated;
 				}
 			}
