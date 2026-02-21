@@ -3,6 +3,8 @@
 
   This file is part of Decider.
 */
+using System.Collections.Generic;
+
 using Decider.Csp.BaseTypes;
 
 namespace Decider.Csp.Integer;
@@ -32,5 +34,33 @@ public class MiddleValueOrdering : IValueOrderingHeuristic<int>
 		}
 
 		return domain.LowerBound;
+	}
+}
+
+public class SolutionGuidedValueOrdering : IValueOrderingHeuristic<int>
+{
+	private readonly IValueOrderingHeuristic<int> baseOrdering;
+	private readonly Dictionary<int, int> preferredValues;
+
+	public SolutionGuidedValueOrdering(IValueOrderingHeuristic<int> baseOrdering)
+	{
+		this.baseOrdering = baseOrdering;
+		this.preferredValues = new Dictionary<int, int>();
+	}
+
+	public void UpdatePreferredValues(IVariable<int>[] solution)
+	{
+		this.preferredValues.Clear();
+		foreach (var variable in solution)
+			this.preferredValues[variable.VariableId] = variable.InstantiatedValue;
+	}
+
+	public int SelectValue(IVariable<int> variable)
+	{
+		if (this.preferredValues.TryGetValue(variable.VariableId, out var preferred) &&
+			((VariableInteger) variable).Domain.Contains(preferred))
+			return preferred;
+
+		return this.baseOrdering.SelectValue(variable);
 	}
 }

@@ -23,37 +23,37 @@ public class NQueens
 
 	public NQueens(int numberOfQueens)
 	{
-		NumberOfQueens = numberOfQueens;
+		this.NumberOfQueens = numberOfQueens;
 
 		// Model
-		Variables = new VariableInteger[numberOfQueens];
-		for (var i = 0; i < Variables.Count; ++i)
+		this.Variables = new VariableInteger[numberOfQueens];
+		for (var i = 0; i < this.Variables.Count; ++i)
 			Variables[i] = new VariableInteger(i.ToString(CultureInfo.CurrentCulture), 0, numberOfQueens - 1);
 
 		//	Constraints
-		Constraints = new List<IConstraint> { new AllDifferentInteger(Variables) };
-		for (var i=0; i < Variables.Count - 1; ++i)
-			for (var j = i + 1; j < Variables.Count; ++j)
+		this.Constraints = new List<IConstraint> { new AllDifferentInteger(this.Variables) };
+		for (var i=0; i < this.Variables.Count - 1; ++i)
+			for (var j = i + 1; j < this.Variables.Count; ++j)
 			{
-				Constraints.Add(new ConstraintInteger(Variables[i] - Variables[j] != j - i));
-				Constraints.Add(new ConstraintInteger(Variables[i] - Variables[j] != i - j));
+				this.Constraints.Add(new ConstraintInteger(this.Variables[i] - this.Variables[j] != j - i));
+				this.Constraints.Add(new ConstraintInteger(this.Variables[i] - this.Variables[j] != i - j));
 			}
 	}
 
 	public void SearchAllSolutions(bool progress = true)
 	{
 		//	Search
-		State = new StateInteger(Variables, Constraints);
+		this.State = new StateInteger(this.Variables, this.Constraints, new MostConstrainedOrdering(), new MiddleValueOrdering());
 		if (progress)
-			State.OnProgress = progress =>
+			this.State.OnProgress = progress =>
 			{
 				var filled = (int)(progress * 50);
 				Console.Write($"\r[{new string('#', filled)}{new string('-', 50 - filled)}] {progress:P1}  " +
-					$"{State.Backtracks} backtracks, {State.Solutions.Count} solutions");
+					$"{this.State.Backtracks} backtracks, {this.State.Solutions.Count} solutions");
 			};
 
-		if (State.SearchAllSolutions() == StateOperationResult.Solved)
-			Solutions = State.Solutions;
+		if (this.State.SearchAllSolutions() == StateOperationResult.Solved)
+			this.Solutions = this.State.Solutions;
 		else
 		{
 			Console.WriteLine("${State.Solutions.Count}");

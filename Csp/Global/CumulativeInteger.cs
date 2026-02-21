@@ -664,7 +664,7 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 			this.TimetableProfileEnergyAtEst[i] = GetProfileEnergy(earliestStartTime[i]);
 			this.TimetableProfileEnergyAtLct[i] = GetProfileEnergy(latestCompletionTime[i]);
 
-			if (freeDuration[i] > 0)
+			if (freeDuration[i] > 0 && this.Demands[i] > 0)
 				this.TimetableFreeTaskIndices.Add(i);
 		}
 
