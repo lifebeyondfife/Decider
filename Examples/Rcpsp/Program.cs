@@ -15,11 +15,11 @@ public class Program
 	public static void Main(string[] args)
 	{
 		var assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-		var instanceFile = Path.Combine(assemblyDir, "Data", "j6010_1.sm");
+		var instanceFile = Path.Combine(assemblyDir, "Data", "j3010_1.sm");
 
 		var rcpsp = new Rcpsp(instanceFile);
 
-		Console.WriteLine($"RCPSP — PSPLib j6010_1");
+		Console.WriteLine($"RCPSP — PSPLib j3010_1");
 		Console.WriteLine($"  {rcpsp.TaskCount} jobs");
 		Console.WriteLine();
 		Console.WriteLine("Solving for minimum makespan...");
