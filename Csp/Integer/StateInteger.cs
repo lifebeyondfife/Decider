@@ -35,6 +35,7 @@ public class StateInteger : IState<int>
 	private IList<int> BranchFactor { get; set; } = new List<int>();
 	private IList<int> Explored { get; set; } = new List<int>();
 	private TimeSpan LastProgressReport { get; set; }
+	private double ProgressHighWatermark { get; set; }
 
 	private int[] AssignmentDepthByVarId { get; set; } = Array.Empty<int>();
 	private int ConflictJumpDepth { get; set; } = -1;
@@ -146,6 +147,7 @@ public class StateInteger : IState<int>
 
 	public StateOperationResult Search()
 	{
+		this.ProgressHighWatermark = 0;
 		this.AssignmentCandidates = this.LastSolution == null
 			? new List<IVariable<int>>(this.Variables)
 			: new List<IVariable<int>>();
@@ -176,35 +178,64 @@ public class StateInteger : IState<int>
 
 	public StateOperationResult Search(IVariable<int> optimiseVar, CancellationToken cancellationToken = default)
 	{
-		this.AssignmentCandidates = this.LastSolution == null
-			? new List<IVariable<int>>(this.Variables)
-			: new List<IVariable<int>>();
-		var instantiatedVariables = this.LastSolution ?? new IVariable<int>[this.Variables.Count];
+		this.ProgressHighWatermark = 0;
+		var instantiatedVariables = new IVariable<int>[this.Variables.Count];
 		var stopwatch = Stopwatch.StartNew();
 		var searchResult = StateOperationResult.Unsatisfiable;
+
+		var guidedOrdering = new SolutionGuidedValueOrdering(this.ValueOrdering);
+		this.ValueOrdering = guidedOrdering;
 
 		this.OptimisationConstraint = new ConstraintInteger((VariableInteger) optimiseVar < Int32.MaxValue);
 		this.Constraints.Add(this.OptimisationConstraint);
 		BuildVariableConstraintIndex();
 
+		this.Depth = 0;
+		this.AssignmentCandidates = new List<IVariable<int>>(this.Variables);
+
+		if (ConstraintsViolated() || this.AssignmentCandidates.Any(v => v.Size() == 0))
+		{
+			this.Runtime += stopwatch.Elapsed;
+			stopwatch.Stop();
+			return searchResult;
+		}
+
 		while (true)
 		{
-			if (this.Depth == instantiatedVariables.Length)
-			{
-				--this.Depth;
-				Backtrack(instantiatedVariables);
-				++this.Depth;
-			}
-			else if (ConstraintsViolated())
-				break;
-
 			if (Search(out searchResult, instantiatedVariables, ref stopwatch, cancellationToken))
 			{
+				var bestValue = optimiseVar.InstantiatedValue;
+				this.OptimalSolution = CloneLastSolution();
+				guidedOrdering.UpdatePreferredValues(this.LastSolution!);
+
+				foreach (var variable in this.Variables)
+					variable.Backtrack(0);
+
+				this.Depth = -1;
+				this.Trail.Backtrack(this.Depth, this.Variables);
+
+				foreach (var constraint in this.BacktrackableConstraints)
+					constraint.OnBacktrack(this.Depth);
+
 				this.Constraints.Remove(this.OptimisationConstraint);
-				this.OptimisationConstraint = new ConstraintInteger((VariableInteger) optimiseVar < optimiseVar.InstantiatedValue);
+				this.OptimisationConstraint = new ConstraintInteger((VariableInteger) optimiseVar < bestValue);
 				this.Constraints.Add(this.OptimisationConstraint);
 				BuildVariableConstraintIndex();
-				this.OptimalSolution = CloneLastSolution();
+
+				this.Depth = 0;
+				this.AssignmentCandidates = new List<IVariable<int>>(this.Variables);
+				for (var i = 0; i < this.Variables.Count; ++i)
+				{
+					this.BranchFactor[i] = 0;
+					this.Explored[i] = 0;
+					this.AssignmentDepthByVarId[i] = -1;
+					this.DepthConflictAccumulator[i] = -1;
+				}
+
+				this.ProgressHighWatermark = 0;
+
+				if (ConstraintsViolated() || this.AssignmentCandidates.Any(v => v.Size() == 0))
+					break;
 			}
 			else if (searchResult == StateOperationResult.Cancelled)
 				break;
@@ -212,7 +243,7 @@ public class StateInteger : IState<int>
 				break;
 		}
 
-		if (this.LastSolution != null && searchResult == StateOperationResult.Unsatisfiable)
+		if (this.OptimalSolution != null && searchResult == StateOperationResult.Unsatisfiable)
 			searchResult = StateOperationResult.Solved;
 
 		this.Runtime += stopwatch.Elapsed;
@@ -222,6 +253,7 @@ public class StateInteger : IState<int>
 
 	public StateOperationResult SearchAllSolutions()
 	{
+		this.ProgressHighWatermark = 0;
 		this.AssignmentCandidates = this.LastSolution == null
 			? new List<IVariable<int>>(this.Variables)
 			: new List<IVariable<int>>();
@@ -293,6 +325,12 @@ public class StateInteger : IState<int>
 			}
 
 			var selectedIndex = this.VariableOrdering.SelectVariableIndex(this.AssignmentCandidates);
+
+			if (this.BranchFactor[this.Depth] != 0 &&
+				instantiatedVariables[this.Depth] != null &&
+				instantiatedVariables[this.Depth].VariableId != this.AssignmentCandidates[selectedIndex].VariableId)
+				this.BranchFactor[this.Depth] = this.Explored[this.Depth] + this.AssignmentCandidates[selectedIndex].Size();
+
 			instantiatedVariables[this.Depth] = this.AssignmentCandidates[selectedIndex];
 			var lastIndex = this.AssignmentCandidates.Count - 1;
 			this.AssignmentCandidates[selectedIndex] = this.AssignmentCandidates[lastIndex];
@@ -608,6 +646,11 @@ public class StateInteger : IState<int>
 
 			scale /= this.BranchFactor[d];
 		}
+
+		if (progress > this.ProgressHighWatermark)
+			this.ProgressHighWatermark = progress;
+		else
+			progress = this.ProgressHighWatermark;
 
 		return progress;
 	}
