@@ -20,7 +20,7 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 	private IList<int> Durations { get; set; }
 	private IList<int> Demands { get; set; }
 	private int Capacity { get; set; }
-	private IList<int> GenerationArray { get; set; }
+	private int[] GenerationArray { get; set; }
 
 	public int FailureWeight { get; set; }
 	public bool GenerateReasons { get; set; }
@@ -48,6 +48,13 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 	private List<int> TimetableFreeTaskIndices { get; set; }
 	private List<int> TimetableSortedTasks { get; set; }
 
+	private int[] NotFirstLastSortedTasks { get; set; }
+	private Comparison<int> NotFirstComparison { get; set; }
+	private Comparison<int> NotLastComparison { get; set; }
+
+	private IList<DisjunctiveInteger> DisjunctiveSubproblems { get; set; }
+	private bool AllDisjunctive { get; set; }
+
 	public CumulativeInteger(IEnumerable<IVariable<int>> starts, IEnumerable<int> durations, IEnumerable<int> demands, int capacity)
 	{
 		this.Starts = starts.Cast<VariableInteger>().ToList();
@@ -61,7 +68,7 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 			throw new ArgumentException("capacity must be non-negative");
 
 		this.Capacity = capacity;
-		this.GenerationArray = Enumerable.Repeat(0, this.Starts.Count).ToList();
+		this.GenerationArray = new int[this.Starts.Count];
 
 		var n = this.Starts.Count;
 		this.TimetableEarliestStartTimes = new int[n];
@@ -73,6 +80,117 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		this.TimetableNewBounds = new int[n];
 		this.TimetableFreeTaskIndices = new List<int>(n);
 		this.TimetableSortedTasks = new List<int>(n);
+
+		this.NotFirstLastSortedTasks = new int[n];
+		for (var i = 0; i < n; ++i)
+			this.NotFirstLastSortedTasks[i] = i;
+
+		this.NotFirstComparison = (a, b) => (this.Starts[a].Domain.UpperBound + this.Durations[a]).CompareTo(this.Starts[b].Domain.UpperBound + this.Durations[b]);
+		this.NotLastComparison = (a, b) => this.Starts[b].Domain.LowerBound.CompareTo(this.Starts[a].Domain.LowerBound);
+
+		this.DisjunctiveSubproblems = BuildDisjunctiveSubproblems();
+		this.AllDisjunctive = this.DisjunctiveSubproblems.Count == 1 && this.DisjunctiveSubproblems[0].Variables.Count == n;
+	}
+
+	private IList<DisjunctiveInteger> BuildDisjunctiveSubproblems()
+	{
+		var n = this.Starts.Count;
+		var conflicts = new bool[n, n];
+		var hasConflict = new bool[n];
+
+		for (var i = 0; i < n; ++i)
+		{
+			for (var j = i + 1; j < n; ++j)
+			{
+				if (this.Demands[i] + this.Demands[j] <= this.Capacity)
+					continue;
+
+				conflicts[i, j] = true;
+				conflicts[j, i] = true;
+				hasConflict[i] = true;
+				hasConflict[j] = true;
+			}
+		}
+
+		var conflictingTasks = new List<int>();
+		for (var i = 0; i < n; ++i)
+		{
+			if (hasConflict[i])
+				conflictingTasks.Add(i);
+		}
+
+		if (conflictingTasks.Count < 2)
+			return new List<DisjunctiveInteger>();
+
+		var allMutuallyConflicting = true;
+		for (var ci = 0; ci < conflictingTasks.Count && allMutuallyConflicting; ++ci)
+		{
+			for (var cj = ci + 1; cj < conflictingTasks.Count && allMutuallyConflicting; ++cj)
+			{
+				if (!conflicts[conflictingTasks[ci], conflictingTasks[cj]])
+					allMutuallyConflicting = false;
+			}
+		}
+
+		if (allMutuallyConflicting)
+		{
+			var starts = conflictingTasks.Select(i => this.Starts[i]).ToList();
+			var durations = conflictingTasks.Select(i => this.Durations[i]).ToList();
+			return new List<DisjunctiveInteger> { new DisjunctiveInteger(starts, durations) };
+		}
+
+		return BuildCliques(conflicts, conflictingTasks);
+	}
+
+	private IList<DisjunctiveInteger> BuildCliques(bool[,] conflicts, List<int> conflictingTasks)
+	{
+		var cliques = new List<List<int>>();
+		var assigned = new bool[this.Starts.Count];
+
+		foreach (var seed in conflictingTasks)
+		{
+			if (assigned[seed])
+				continue;
+
+			var clique = new List<int> { seed };
+
+			foreach (var candidate in conflictingTasks)
+			{
+				if (candidate == seed || assigned[candidate])
+					continue;
+
+				var fitsClique = true;
+				foreach (var member in clique)
+				{
+					if (conflicts[candidate, member])
+						continue;
+
+					fitsClique = false;
+					break;
+				}
+
+				if (fitsClique)
+					clique.Add(candidate);
+			}
+
+			if (clique.Count >= 2)
+			{
+				foreach (var task in clique)
+					assigned[task] = true;
+
+				cliques.Add(clique);
+			}
+		}
+
+		var result = new List<DisjunctiveInteger>();
+		foreach (var clique in cliques)
+		{
+			var starts = clique.Select(i => this.Starts[i]).ToList();
+			var durations = clique.Select(i => this.Durations[i]).ToList();
+			result.Add(new DisjunctiveInteger(starts, durations));
+		}
+
+		return result;
 	}
 
 	public void Check(out ConstraintOperationResult result)
@@ -80,10 +198,13 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		for (var i = 0; i < this.Starts.Count; ++i)
 			this.GenerationArray[i] = this.Starts[i].Generation;
 
-		if (this.Starts.Any(s => !s.Instantiated()))
+		for (var i = 0; i < this.Starts.Count; ++i)
 		{
-			result = ConstraintOperationResult.Undecided;
-			return;
+			if (!this.Starts[i].Instantiated())
+			{
+				result = ConstraintOperationResult.Undecided;
+				return;
+			}
 		}
 
 		var profile = new Dictionary<int, int>();
@@ -123,6 +244,24 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		while (propagationOccurred)
 		{
 			propagationOccurred = false;
+
+			foreach (var disjunctive in this.DisjunctiveSubproblems)
+			{
+				if (!disjunctive.StateChanged())
+					continue;
+
+				disjunctive.GenerateReasons = this.GenerateReasons;
+				disjunctive.Propagate(out var disjunctiveResult);
+
+				if (this.GenerateReasons && disjunctive.LastReason != null)
+					this.LastReason = disjunctive.LastReason;
+
+				if (ApplySubResult(disjunctiveResult, ref result, ref propagationOccurred))
+					return;
+			}
+
+			if (this.AllDisjunctive)
+				continue;
 
 			var profile = BuildCompulsoryProfile();
 			BuildProfileEnergy(profile);
@@ -689,11 +828,13 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 	{
 		var result = ConstraintOperationResult.Undecided;
 
-		var orderedTasks = notFirst
-			? Enumerable.Range(0, this.Starts.Count).OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i]).ToList()
-			: Enumerable.Range(0, this.Starts.Count).OrderByDescending(i => this.Starts[i].Domain.LowerBound).ToList();
+		var n = this.Starts.Count;
+		for (var k = 0; k < n; ++k)
+			this.NotFirstLastSortedTasks[k] = k;
 
-		for (var i = 0; i < this.Starts.Count; ++i)
+		Array.Sort(this.NotFirstLastSortedTasks, notFirst ? this.NotFirstComparison : this.NotLastComparison);
+
+		for (var i = 0; i < n; ++i)
 		{
 			if (this.Starts[i].Instantiated())
 				continue;
@@ -710,8 +851,10 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 
 			var contributors = this.GenerateReasons ? new List<int>() : null;
 
-			foreach (var j in orderedTasks)
+			for (var si = 0; si < n; ++si)
 			{
+				var j = this.NotFirstLastSortedTasks[si];
+
 				if (j == i)
 					continue;
 
@@ -752,6 +895,12 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 
 	public bool StateChanged()
 	{
-		return this.Starts.Where((t, i) => t.Generation != this.GenerationArray[i]).Any();
+		for (var i = 0; i < this.Starts.Count; ++i)
+		{
+			if (this.Starts[i].Generation != this.GenerationArray[i])
+				return true;
+		}
+
+		return false;
 	}
 }
