@@ -113,14 +113,14 @@ All benchmarks track the following metrics in the summary table:
 ```
 | Method               | Mean    | Error    | StdDev   | Backtracks | Gen0        | Allocated |
 |--------------------- |--------:|---------:|---------:|-----------:|------------:|----------:|
-| SolveFurnitureMoving | 1.983 s | 0.0081 s | 0.0063 s |  2,491,642 | 344000.0000 |   2.68 GB |
+| SolveFurnitureMoving | 2.142 s | 0.0193 s | 0.0180 s |  2,711,692 | 361000.0000 |   2.82 GB |
 ```
 
 **Decider RcpspJ30:**
 ```
-| Method                | Mean     | Error   | StdDev  | Backtracks | Gen0      | Gen1      | Gen2      | Allocated |
-|---------------------- |---------:|--------:|--------:|-----------:|----------:|----------:|----------:|----------:|
-| SolveRcpspJ30Instance | 335.9 ms | 1.88 ms | 1.76 ms |      3,266 | 8000.0000 | 1000.0000 | 1000.0000 |  66.77 MB |
+| Method                | Mean     | Error   | StdDev  | Backtracks | Gen0      | Gen1     | Gen2     | Allocated |
+|---------------------- |---------:|--------:|--------:|-----------:|----------:|---------:|---------:|----------:|
+| SolveRcpspJ30Instance | 263.7 ms | 2.76 ms | 2.58 ms |      3,266 | 4500.0000 | 500.0000 | 500.0000 |  42.09 MB |
 ```
 
 **OR-Tools NQueens:**

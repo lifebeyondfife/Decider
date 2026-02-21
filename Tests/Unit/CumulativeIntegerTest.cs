@@ -626,4 +626,29 @@ public class CumulativeIntegerTest
 		Assert.All(lowerBounds, lb => Assert.Equal(1, lb.BoundValue));
 		Assert.All(upperBounds, ub => Assert.Equal(1, ub.BoundValue));
 	}
+
+	[Fact]
+	public void TestTimeTableEdgeFindingTighterThanStandard()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("bg", 0, 0),
+			new("s0", 0, 0),
+			new("s1", 3, 3),
+			new("target", 0, 8)
+		};
+		var durations = new List<int> { 8, 3, 3, 2 };
+		var demands = new List<int> { 2, 3, 3, 3 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
+		};
+		_ = new StateInteger(starts, constraints);
+
+		constraints[0].Propagate(out var propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
+		Assert.True(starts[3].Domain.LowerBound >= 6);
+	}
 }

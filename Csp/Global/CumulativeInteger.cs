@@ -38,6 +38,16 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		}
 	}
 
+	private int[] TimetableEarliestStartTimes { get; set; }
+	private int[] TimetableLatestCompletionTimes { get; set; }
+	private int[] TimetableFreeDurations { get; set; }
+	private long[] TimetableFreeEnergies { get; set; }
+	private long[] TimetableProfileEnergyAtEst { get; set; }
+	private long[] TimetableProfileEnergyAtLct { get; set; }
+	private int[] TimetableNewBounds { get; set; }
+	private List<int> TimetableFreeTaskIndices { get; set; }
+	private List<int> TimetableSortedTasks { get; set; }
+
 	public CumulativeInteger(IEnumerable<IVariable<int>> starts, IEnumerable<int> durations, IEnumerable<int> demands, int capacity)
 	{
 		this.Starts = starts.Cast<VariableInteger>().ToList();
@@ -52,6 +62,17 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 
 		this.Capacity = capacity;
 		this.GenerationArray = Enumerable.Repeat(0, this.Starts.Count).ToList();
+
+		var n = this.Starts.Count;
+		this.TimetableEarliestStartTimes = new int[n];
+		this.TimetableLatestCompletionTimes = new int[n];
+		this.TimetableFreeDurations = new int[n];
+		this.TimetableFreeEnergies = new long[n];
+		this.TimetableProfileEnergyAtEst = new long[n];
+		this.TimetableProfileEnergyAtLct = new long[n];
+		this.TimetableNewBounds = new int[n];
+		this.TimetableFreeTaskIndices = new List<int>(n);
+		this.TimetableSortedTasks = new List<int>(n);
 	}
 
 	public void Check(out ConstraintOperationResult result)
@@ -104,6 +125,7 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 			propagationOccurred = false;
 
 			var profile = BuildCompulsoryProfile();
+			BuildProfileEnergy(profile);
 
 			foreach (var (time, cumulativeDemand) in profile)
 			{
@@ -143,16 +165,16 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 				}
 			}
 
-			if (ApplySubResult(EdgeFinding(true), ref result, ref propagationOccurred))
-				return;
-
-			if (ApplySubResult(EdgeFinding(false), ref result, ref propagationOccurred))
-				return;
-
 			if (ApplySubResult(NotFirstOrLastRule(true), ref result, ref propagationOccurred))
 				return;
 
 			if (ApplySubResult(NotFirstOrLastRule(false), ref result, ref propagationOccurred))
+				return;
+
+			if (ApplySubResult(TimetableEdgeFinding(true), ref result, ref propagationOccurred))
+				return;
+
+			if (ApplySubResult(TimetableEdgeFinding(false), ref result, ref propagationOccurred))
 				return;
 		}
 	}
@@ -419,61 +441,245 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		return reasons;
 	}
 
-	private ConstraintOperationResult EdgeFinding(bool forward)
+	private List<(int Time, long CumulativeEnergy)> ProfileEnergy { get; set; } = new();
+
+	private void BuildProfileEnergy(List<(int Time, int CumulativeDemand)> profile)
+	{
+		this.ProfileEnergy.Clear();
+
+		if (profile.Count == 0)
+			return;
+
+		this.ProfileEnergy.Add((profile[0].Time, 0L));
+
+		var cumulative = 0L;
+		for (var i = 0; i < profile.Count - 1; ++i)
+		{
+			var segmentLength = profile[i + 1].Time - profile[i].Time;
+			cumulative += (long)profile[i].CumulativeDemand * segmentLength;
+			this.ProfileEnergy.Add((profile[i + 1].Time, cumulative));
+		}
+	}
+
+	private long GetProfileEnergy(int time)
+	{
+		if (this.ProfileEnergy.Count == 0)
+			return 0L;
+
+		if (time <= this.ProfileEnergy[0].Time)
+			return 0L;
+
+		var last = this.ProfileEnergy[this.ProfileEnergy.Count - 1];
+		if (time >= last.Time)
+			return last.CumulativeEnergy;
+
+		var lo = 0;
+		var hi = this.ProfileEnergy.Count - 1;
+
+		while (lo < hi)
+		{
+			var mid = lo + (hi - lo + 1) / 2;
+
+			if (this.ProfileEnergy[mid].Time <= time)
+				lo = mid;
+			else
+				hi = mid - 1;
+		}
+
+		var (entryTime, entryEnergy) = this.ProfileEnergy[lo];
+		var (nextTime, nextEnergy) = this.ProfileEnergy[lo + 1];
+		var demandRate = (nextEnergy - entryEnergy) / (nextTime - entryTime);
+		return entryEnergy + demandRate * (time - entryTime);
+	}
+
+	private static int FloorDiv(long dividend, int divisor)
+	{
+		var quotient = dividend / divisor;
+
+		if (dividend % divisor != 0 && dividend < 0)
+			quotient--;
+
+		return (int)quotient;
+	}
+
+	private ConstraintOperationResult TimetableEdgeFinding(bool forward)
+	{
+		var taskCount = this.Starts.Count;
+
+		if (taskCount < 2 || this.ProfileEnergy.Count == 0)
+			return ConstraintOperationResult.Undecided;
+
+		var earliestStartTime = this.TimetableEarliestStartTimes;
+		var latestCompletionTime = this.TimetableLatestCompletionTimes;
+		var freeDuration = this.TimetableFreeDurations;
+		var freeEnergy = this.TimetableFreeEnergies;
+		this.TimetableFreeTaskIndices.Clear();
+
+		for (var i = 0; i < taskCount; ++i)
+		{
+			earliestStartTime[i] = this.Starts[i].Domain.LowerBound;
+			latestCompletionTime[i] = this.Starts[i].Domain.UpperBound + this.Durations[i];
+			var compulsoryDuration = Math.Max(0, earliestStartTime[i] + this.Durations[i] - latestCompletionTime[i] + this.Durations[i]);
+			freeDuration[i] = this.Durations[i] - compulsoryDuration;
+			freeEnergy[i] = (long)this.Demands[i] * freeDuration[i];
+			this.TimetableProfileEnergyAtEst[i] = GetProfileEnergy(earliestStartTime[i]);
+			this.TimetableProfileEnergyAtLct[i] = GetProfileEnergy(latestCompletionTime[i]);
+
+			if (freeDuration[i] > 0)
+				this.TimetableFreeTaskIndices.Add(i);
+		}
+
+		if (this.TimetableFreeTaskIndices.Count < 2)
+			return ConstraintOperationResult.Undecided;
+
+		return forward
+			? TimetableEdgeFindingForward(taskCount)
+			: TimetableEdgeFindingBackward(taskCount);
+	}
+
+	private ConstraintOperationResult TimetableEdgeFindingForward(int taskCount)
 	{
 		var result = ConstraintOperationResult.Undecided;
+		var earliestStartTime = this.TimetableEarliestStartTimes;
+		var latestCompletionTime = this.TimetableLatestCompletionTimes;
+		var freeEnergy = this.TimetableFreeEnergies;
+		var profileEnergyAtEst = this.TimetableProfileEnergyAtEst;
+		var profileEnergyAtLct = this.TimetableProfileEnergyAtLct;
+		var newBounds = this.TimetableNewBounds;
 
-		var orderedTasks = forward
-			? Enumerable.Range(0, this.Starts.Count).OrderBy(i => this.Starts[i].Domain.UpperBound + this.Durations[i]).ToList()
-			: Enumerable.Range(0, this.Starts.Count).OrderByDescending(i => this.Starts[i].Domain.LowerBound).ToList();
+		this.TimetableSortedTasks.Clear();
+		this.TimetableSortedTasks.AddRange(this.TimetableFreeTaskIndices);
+		this.TimetableSortedTasks.Sort((a, b) => earliestStartTime[b].CompareTo(earliestStartTime[a]));
 
-		for (var i = 0; i < this.Starts.Count; ++i)
+		for (var i = 0; i < taskCount; ++i)
+			newBounds[i] = earliestStartTime[i];
+
+		foreach (var outerTask in this.TimetableFreeTaskIndices)
 		{
-			if (this.Starts[i].Instantiated())
-				continue;
+			var setFreeEnergy = 0L;
+			var candidateTask = -1;
+			var candidateAdditionalEnergy = 0L;
 
-			var taskBound = forward
-				? this.Starts[i].Domain.LowerBound
-				: this.Starts[i].Domain.UpperBound + this.Durations[i];
-			var taskEnergy = this.Durations[i] * this.Demands[i];
-
-			var cumulativeEnergy = 0;
-			var minEarliestStart = int.MaxValue;
-			var maxLatestCompletion = int.MinValue;
-
-			var contributors = this.GenerateReasons ? new List<int>() : null;
-
-			foreach (var j in orderedTasks)
+			foreach (var innerTask in this.TimetableSortedTasks)
 			{
-				if (j == i)
+				if (earliestStartTime[innerTask] >= latestCompletionTime[outerTask])
 					continue;
 
-				contributors?.Add(j);
-				cumulativeEnergy += this.Durations[j] * this.Demands[j];
-				minEarliestStart = Math.Min(minEarliestStart, this.Starts[j].Domain.LowerBound);
-				maxLatestCompletion = Math.Max(maxLatestCompletion, this.Starts[j].Domain.UpperBound + this.Durations[j]);
-
-				var windowStart = forward ? Math.Min(minEarliestStart, taskBound) : minEarliestStart;
-				var windowEnd = forward ? maxLatestCompletion : Math.Max(maxLatestCompletion, taskBound);
-
-				if (cumulativeEnergy + taskEnergy <= (windowEnd - windowStart) * this.Capacity)
-					continue;
-
-				SetReasonIfEnabled(contributors, i);
-
-				if (forward)
+				if (latestCompletionTime[innerTask] <= latestCompletionTime[outerTask])
 				{
-					var newLowerBound = Math.Max(maxLatestCompletion, minEarliestStart + (int)Math.Ceiling((double)cumulativeEnergy / this.Capacity));
-					if (ApplyNewLowerBound(i, newLowerBound, ref result))
-						return ConstraintOperationResult.Violated;
+					setFreeEnergy += freeEnergy[innerTask];
 				}
 				else
 				{
-					var newUpperBound = Math.Min(minEarliestStart, maxLatestCompletion - (int)Math.Ceiling((double)cumulativeEnergy / this.Capacity)) - this.Durations[i];
-					if (ApplyNewUpperBound(i, newUpperBound, ref result))
-						return ConstraintOperationResult.Violated;
+					var additionalEnergy = Math.Min(freeEnergy[innerTask], (long)this.Demands[innerTask] * (latestCompletionTime[outerTask] - earliestStartTime[innerTask]));
+
+					if (candidateTask == -1 || additionalEnergy > candidateAdditionalEnergy)
+					{
+						candidateTask = innerTask;
+						candidateAdditionalEnergy = additionalEnergy;
+					}
 				}
+
+				if (candidateTask == -1)
+					continue;
+
+				var reserve = (long)this.Capacity * (latestCompletionTime[outerTask] - earliestStartTime[innerTask]) - setFreeEnergy - (profileEnergyAtLct[outerTask] - profileEnergyAtEst[innerTask]);
+
+				if (reserve >= candidateAdditionalEnergy)
+					continue;
+
+				var compulsoryStart = latestCompletionTime[candidateTask] - this.Durations[candidateTask];
+				var compulsoryEnd = earliestStartTime[candidateTask] + this.Durations[candidateTask];
+				var mandatoryOverlap = Math.Max(0, Math.Min(latestCompletionTime[outerTask], compulsoryEnd) - Math.Max(earliestStartTime[innerTask], compulsoryStart));
+				var newLowerBound = latestCompletionTime[outerTask] - mandatoryOverlap - FloorDiv(reserve, this.Demands[candidateTask]);
+				newBounds[candidateTask] = Math.Max(newBounds[candidateTask], newLowerBound);
 			}
+		}
+
+		for (var i = 0; i < taskCount; ++i)
+		{
+			if (newBounds[i] <= earliestStartTime[i])
+				continue;
+
+			if (this.GenerateReasons)
+				this.LastReason = CollectReasonForTasks(Enumerable.Range(0, taskCount));
+
+			if (ApplyNewLowerBound(i, newBounds[i], ref result))
+				return ConstraintOperationResult.Violated;
+		}
+
+		return result;
+	}
+
+	private ConstraintOperationResult TimetableEdgeFindingBackward(int taskCount)
+	{
+		var result = ConstraintOperationResult.Undecided;
+		var earliestStartTime = this.TimetableEarliestStartTimes;
+		var latestCompletionTime = this.TimetableLatestCompletionTimes;
+		var freeEnergy = this.TimetableFreeEnergies;
+		var profileEnergyAtEst = this.TimetableProfileEnergyAtEst;
+		var profileEnergyAtLct = this.TimetableProfileEnergyAtLct;
+		var newBounds = this.TimetableNewBounds;
+
+		this.TimetableSortedTasks.Clear();
+		this.TimetableSortedTasks.AddRange(this.TimetableFreeTaskIndices);
+		this.TimetableSortedTasks.Sort((a, b) => latestCompletionTime[a].CompareTo(latestCompletionTime[b]));
+
+		for (var i = 0; i < taskCount; ++i)
+			newBounds[i] = this.Starts[i].Domain.UpperBound;
+
+		foreach (var outerTask in this.TimetableFreeTaskIndices)
+		{
+			var setFreeEnergy = 0L;
+			var candidateTask = -1;
+			var candidateAdditionalEnergy = 0L;
+
+			foreach (var innerTask in this.TimetableSortedTasks)
+			{
+				if (latestCompletionTime[innerTask] <= earliestStartTime[outerTask])
+					continue;
+
+				if (earliestStartTime[innerTask] >= earliestStartTime[outerTask])
+				{
+					setFreeEnergy += freeEnergy[innerTask];
+				}
+				else
+				{
+					var additionalEnergy = Math.Min(freeEnergy[innerTask], (long)this.Demands[innerTask] * (latestCompletionTime[innerTask] - earliestStartTime[outerTask]));
+
+					if (candidateTask == -1 || additionalEnergy > candidateAdditionalEnergy)
+					{
+						candidateTask = innerTask;
+						candidateAdditionalEnergy = additionalEnergy;
+					}
+				}
+
+				if (candidateTask == -1)
+					continue;
+
+				var reserve = (long)this.Capacity * (latestCompletionTime[innerTask] - earliestStartTime[outerTask]) - setFreeEnergy - (profileEnergyAtLct[innerTask] - profileEnergyAtEst[outerTask]);
+
+				if (reserve >= candidateAdditionalEnergy)
+					continue;
+
+				var compulsoryStart = latestCompletionTime[candidateTask] - this.Durations[candidateTask];
+				var compulsoryEnd = earliestStartTime[candidateTask] + this.Durations[candidateTask];
+				var mandatoryOverlap = Math.Max(0, Math.Min(latestCompletionTime[innerTask], compulsoryEnd) - Math.Max(earliestStartTime[outerTask], compulsoryStart));
+				var newUpperBound = earliestStartTime[outerTask] + mandatoryOverlap + FloorDiv(reserve, this.Demands[candidateTask]) - this.Durations[candidateTask];
+				newBounds[candidateTask] = Math.Min(newBounds[candidateTask], newUpperBound);
+			}
+		}
+
+		for (var i = 0; i < taskCount; ++i)
+		{
+			if (newBounds[i] >= this.Starts[i].Domain.UpperBound)
+				continue;
+
+			if (this.GenerateReasons)
+				this.LastReason = CollectReasonForTasks(Enumerable.Range(0, taskCount));
+
+			if (ApplyNewUpperBound(i, newBounds[i], ref result))
+				return ConstraintOperationResult.Violated;
 		}
 
 		return result;
