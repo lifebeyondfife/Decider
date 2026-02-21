@@ -651,4 +651,89 @@ public class CumulativeIntegerTest
 		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
 		Assert.True(starts[3].Domain.LowerBound >= 6);
 	}
+
+	[Fact]
+	public void TestDisjunctiveSubproblemDetection()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 0),
+			new("s1", 0, 10)
+		};
+		var durations = new List<int> { 3, 2 };
+		var demands = new List<int> { 4, 4 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
+		};
+		_ = new StateInteger(starts, constraints);
+
+		constraints[0].Propagate(out var propagateResult);
+
+		Assert.Equal(ConstraintOperationResult.Propagated, propagateResult);
+		Assert.True(starts[1].Domain.LowerBound >= 3);
+	}
+
+	[Fact]
+	public void TestFullDisjunctiveDecomposition()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 10),
+			new("s1", 0, 10),
+			new("s2", 0, 10)
+		};
+		var durations = new List<int> { 2, 3, 2 };
+		var demands = new List<int> { 1, 1, 1 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger([.. starts], durations, demands, capacity: 1)
+		};
+
+		var state = new StateInteger(starts, constraints);
+		var result = state.Search();
+
+		Assert.Equal(StateOperationResult.Solved, result);
+		Assert.Single(state.Solutions);
+
+		var solution = state.Solutions[0];
+		var s0 = solution["s0"].InstantiatedValue;
+		var s1 = solution["s1"].InstantiatedValue;
+		var s2 = solution["s2"].InstantiatedValue;
+
+		Assert.True(s0 + 2 <= s1 || s1 + 3 <= s0);
+		Assert.True(s0 + 2 <= s2 || s2 + 2 <= s0);
+		Assert.True(s1 + 3 <= s2 || s2 + 2 <= s1);
+	}
+
+	[Fact]
+	public void TestMixedDisjunctiveAndNonDisjunctive()
+	{
+		var starts = new List<VariableInteger>
+		{
+			new("s0", 0, 10),
+			new("s1", 0, 10),
+			new("s2", 0, 10)
+		};
+		var durations = new List<int> { 3, 3, 3 };
+		var demands = new List<int> { 4, 4, 1 };
+
+		var constraints = new List<IConstraint>
+		{
+			new CumulativeInteger([.. starts], durations, demands, capacity: 5)
+		};
+
+		var state = new StateInteger(starts, constraints);
+		var result = state.Search();
+
+		Assert.Equal(StateOperationResult.Solved, result);
+		Assert.Single(state.Solutions);
+
+		var solution = state.Solutions[0];
+		var s0 = solution["s0"].InstantiatedValue;
+		var s1 = solution["s1"].InstantiatedValue;
+		Assert.True(s0 + 3 <= s1 || s1 + 3 <= s0);
+	}
 }
