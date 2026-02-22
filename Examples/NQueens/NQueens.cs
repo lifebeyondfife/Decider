@@ -44,6 +44,7 @@ public class NQueens
 	{
 		//	Search
 		this.State = new StateInteger(this.Variables, this.Constraints, new MostConstrainedOrdering(), new MiddleValueOrdering());
+		((StateInteger)this.State).ClauseLearningEnabled = false;
 		if (progress)
 			this.State.OnProgress = progress =>
 			{

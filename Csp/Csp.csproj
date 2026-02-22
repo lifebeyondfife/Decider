@@ -21,6 +21,10 @@
   </PropertyGroup>
  
   <ItemGroup>
+    <InternalsVisibleTo Include="Unit" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     <None Include="icon.png" Pack="true" Visible="false" PackagePath="" />
     <None Include="../README.md" Pack="true" Visible="false" PackagePath="" />

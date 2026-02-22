@@ -43,6 +43,7 @@ public static class Optimisation
 
 		var variables = new[] { a, b, c, d, e, f, g, h, optimise };
 		var state = new StateInteger(variables, constraints);
+		state.ClauseLearningEnabled = false;
 
 		using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 		if (state.Search(optimise, cts.Token) == StateOperationResult.Unsatisfiable)
