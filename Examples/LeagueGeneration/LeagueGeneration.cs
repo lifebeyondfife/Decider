@@ -24,15 +24,15 @@ public class LeagueGeneration
 
 	public LeagueGeneration(int leagueSize)
 	{
-		LeagueSize = leagueSize;
-		Variables = new VariableInteger[LeagueSize - 1][];
+		this.LeagueSize = leagueSize;
+		this.Variables = new VariableInteger[this.LeagueSize - 1][];
 
 		for (var i = 0; i < Variables.Length; ++i)
-			Variables[i] = new VariableInteger[i + 1];
+			this.Variables[i] = new VariableInteger[i + 1];
 
 		for (var i = 0; i < Variables.Length; ++i)
 			for (var j = 0; j < Variables[i].Length; ++j)
-				Variables[i][j] = new VariableInteger(string.Format("{0} v {1}", i, j), 1, LeagueSize - 1);
+				this.Variables[i][j] = new VariableInteger(string.Format("{0} v {1}", i, j), 1, LeagueSize - 1);
 
 		for (var week = 1; week < LeagueSize; ++week)
 		{
@@ -41,13 +41,13 @@ public class LeagueGeneration
 
 			do
 			{
-				Variables[i][j] = new VariableInteger(string.Format("{0} v {1}", i, j), week, week);
+				this.Variables[i][j] = new VariableInteger(string.Format("{0} v {1}", i, j), week, week);
 				--i;
 				++j;
 			} while (i >= j);
 		}
 
-		Constraints = new List<IConstraint>();
+		this.Constraints = [];
 
 		for (int row = -1; row < LeagueSize - 1; ++row)
 		{
@@ -64,31 +64,32 @@ public class LeagueGeneration
 			while (i < LeagueSize - 1)
 				allDifferentRow.Add(Variables[i++][j]);
 
-			Constraints.Add(new AllDifferentInteger(allDifferentRow));
+			this.Constraints.Add(new AllDifferentInteger(allDifferentRow));
 		}
 	}
 
 	public void Search()
 	{
-		State = new StateInteger(Variables.SelectMany(s => s.Select(a => a)), Constraints);
-		State.Search();
+		this.State = new StateInteger(this.Variables.SelectMany(s => s.Select(a => a)), this.Constraints);
+		((StateInteger)this.State).ClauseLearningEnabled = false;
+		this.State.Search();
 	}
 
 	public void GenerateFixtures()
 	{
-		var map = Enumerable.Range(1, (LeagueSize - 1) * 2).
+		var map = Enumerable.Range(1, (this.LeagueSize - 1) * 2).
 			Select((e, i) => Tuple.Create(i + 1, e)).
 			ToDictionary(t => t.Item1, t => t.Item2);
 
-		FixtureWeeks = new int[LeagueSize][];
-		for (var i = 0; i < FixtureWeeks.Length; ++i)
-			FixtureWeeks[i] = new int[LeagueSize];
+		this.FixtureWeeks = new int[LeagueSize][];
+		for (var i = 0; i < this.FixtureWeeks.Length; ++i)
+			this.FixtureWeeks[i] = new int[this.LeagueSize];
 
-		for (int i = 0; i < Variables.Length; ++i)
-			for (int j = 0; j < Variables[i].Length; ++j)
+		for (int i = 0; i < this.Variables.Length; ++i)
+			for (int j = 0; j < this.Variables[i].Length; ++j)
 			{
-				FixtureWeeks[i + 1][j] = map[Variables[i][j].Value];
-				FixtureWeeks[j][i + 1] = map[Variables[i][j].Value + LeagueSize - 1];
+				this.FixtureWeeks[i + 1][j] = map[this.Variables[i][j].Value];
+				this.FixtureWeeks[j][i + 1] = map[this.Variables[i][j].Value + this.LeagueSize - 1];
 			}
 	}
 }

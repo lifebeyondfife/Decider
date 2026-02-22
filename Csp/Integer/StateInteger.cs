@@ -53,6 +53,13 @@ public class StateInteger : IState<int>
 	private Queue<int> DirtyConstraintQueue { get; set; } = new Queue<int>();
 	private int[] PropagationSnapshotBuffer { get; set; } = Array.Empty<int>();
 
+	private PropagationTrail PropTrail { get; set; }
+	private ClauseStore LearnedClauses { get; set; }
+	public bool ClauseLearningEnabled { get; set; }
+	private int[] BoundSnapshotLB { get; set; } = Array.Empty<int>();
+	private int[] BoundSnapshotUB { get; set; } = Array.Empty<int>();
+	private int ConflictConstraintIndex { get; set; } = -1;
+
 	public StateInteger(IEnumerable<IVariable<int>> variables, IEnumerable<IConstraint> constraints,
 		IVariableOrderingHeuristic<int>? ordering = null, IValueOrderingHeuristic<int>? valueOrdering = null)
 	{
@@ -66,6 +73,8 @@ public class StateInteger : IState<int>
 		this.LastProgressReport = TimeSpan.Zero;
 
 		this.Trail = new DomainTrail(this.Variables.Count, this.Variables.Count * 10000);
+		this.PropTrail = new PropagationTrail(this.Variables.Count, this.Variables.Count * 100);
+		this.LearnedClauses = new ClauseStore();
 
 		this.BranchFactor = new int[this.Variables.Count];
 		this.Explored = new int[this.Variables.Count];
@@ -133,6 +142,8 @@ public class StateInteger : IState<int>
 		this.InDirtyConstraintSet = new bool[this.Constraints.Count];
 		this.DirtyConstraintQueue = new Queue<int>(this.Constraints.Count);
 		this.PropagationSnapshotBuffer = new int[maxConstraintVariables];
+		this.BoundSnapshotLB = new int[maxConstraintVariables];
+		this.BoundSnapshotUB = new int[maxConstraintVariables];
 	}
 
 	public void SetVariableOrderingHeuristic(IVariableOrderingHeuristic<int> variableOrdering)
@@ -213,6 +224,12 @@ public class StateInteger : IState<int>
 
 				this.Depth = -1;
 				this.Trail.Backtrack(this.Depth, this.Variables);
+
+				if (this.ClauseLearningEnabled)
+				{
+					this.LearnedClauses.Clear();
+					this.PropTrail.Clear();
+				}
 
 				foreach (var constraint in this.BacktrackableConstraints)
 					constraint.OnBacktrack(this.Depth);
@@ -356,7 +373,20 @@ public class StateInteger : IState<int>
 
 			this.AssignmentDepthByVarId[instantiatedVariables[this.Depth].VariableId] = this.Depth;
 
-			if (ConstraintsViolated() || this.AssignmentCandidates.Any(v => v.Size() == 0))
+			var decisionConflict = false;
+			if (this.ClauseLearningEnabled)
+			{
+				this.ConflictConstraintIndex = -1;
+				var instVar = instantiatedVariables[this.Depth];
+				this.PropTrail.RecordDecision(instVar.VariableId,
+					instVar.Domain.LowerBound, instVar.Domain.UpperBound, this.Depth);
+
+				decisionConflict = NotifyClauseStore(instVar.VariableId, false);
+				if (!decisionConflict)
+					decisionConflict = NotifyClauseStore(instVar.VariableId, true);
+			}
+
+			if (decisionConflict || ConstraintsViolated() || this.AssignmentCandidates.Any(v => v.Size() == 0))
 			{
 				if (!Backtrack(instantiatedVariables))
 					return false;
@@ -381,6 +411,9 @@ public class StateInteger : IState<int>
 
 	private bool Backtrack(IList<IVariable<int>> instantiatedVariables)
 	{
+		if (this.ClauseLearningEnabled && this.ConflictConstraintIndex >= 0)
+			return PerformConflictAnalysis(instantiatedVariables);
+
 		if (this.ConflictJumpDepth >= 0 && this.ConflictJumpDepth > this.DepthConflictAccumulator[this.Depth])
 			this.DepthConflictAccumulator[this.Depth] = this.ConflictJumpDepth;
 		this.ConflictJumpDepth = -1;
@@ -445,6 +478,9 @@ public class StateInteger : IState<int>
 
 		this.Trail.Backtrack(this.Depth, this.Variables);
 
+		if (this.ClauseLearningEnabled)
+			this.PropTrail.Backtrack(this.Depth);
+
 		foreach (var constraint in this.BacktrackableConstraints)
 			constraint.OnBacktrack(this.Depth);
 
@@ -478,6 +514,7 @@ public class StateInteger : IState<int>
 	private bool ConstraintsViolated()
 	{
 		this.ConflictJumpDepth = -1;
+		this.ConflictConstraintIndex = -1;
 		BuildInitialDirtySet();
 
 		if (ProcessDirtyQueue())
@@ -529,15 +566,27 @@ public class StateInteger : IState<int>
 
 		SnapshotGenerations(constraintVariables);
 
+		if (this.ClauseLearningEnabled)
+			SnapshotBounds(constraintVariables);
+
 		constraint.Propagate(out ConstraintOperationResult propagateResult);
+
 		if ((propagateResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
 		{
 			constraint.FailureWeight++;
+			this.ConflictConstraintIndex = conIndex;
 			this.ConflictJumpDepth = ComputeConflictDepth(constraintVariables);
+
+			if (this.ClauseLearningEnabled)
+				RecordBoundChangesTrailOnly(constraintVariables, conIndex);
+
 			return true;
 		}
 
 		EnqueueChangedConstraints(constraintVariables);
+
+		if (this.ClauseLearningEnabled && RecordBoundChanges(constraintVariables, conIndex))
+			return true;
 
 		if (!AllInstantiated(constraintVariables))
 			return false;
@@ -546,6 +595,7 @@ public class StateInteger : IState<int>
 		if ((checkResult & ConstraintOperationResult.Violated) == ConstraintOperationResult.Violated)
 		{
 			constraint.FailureWeight++;
+			this.ConflictConstraintIndex = conIndex;
 			this.ConflictJumpDepth = ComputeConflictDepth(constraintVariables);
 			return true;
 		}
@@ -609,10 +659,351 @@ public class StateInteger : IState<int>
 			this.InDirtyConstraintSet[this.DirtyConstraintQueue.Dequeue()] = false;
 	}
 
+	private void SnapshotBounds(IReadOnlyList<IVariable<int>>? constraintVariables)
+	{
+		if (constraintVariables == null)
+			return;
+
+		for (var j = 0; j < constraintVariables.Count; ++j)
+		{
+			this.BoundSnapshotLB[j] = constraintVariables[j].Domain.LowerBound;
+			this.BoundSnapshotUB[j] = constraintVariables[j].Domain.UpperBound;
+		}
+	}
+
+	private static bool DomainHasHoles(IReadOnlyList<IVariable<int>> constraintVariables)
+	{
+		foreach (var variable in constraintVariables)
+		{
+			var domain = variable.Domain;
+			var lb = domain.LowerBound;
+			var ub = domain.UpperBound;
+			for (var v = lb + 1; v < ub; ++v)
+			{
+				if (!domain.Contains(v))
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+	private bool RecordBoundChanges(IReadOnlyList<IVariable<int>>? constraintVariables, int conIndex)
+	{
+		if (constraintVariables == null)
+			return false;
+
+		var constraint = this.Constraints[conIndex];
+		var hasExplainer = constraint is IExplainableConstraint;
+		var snapshotHadHoles = false;
+		if (!hasExplainer)
+			snapshotHadHoles = DomainHasHoles(constraintVariables);
+
+		for (var j = 0; j < constraintVariables.Count; ++j)
+		{
+			if (constraintVariables[j].Generation == this.PropagationSnapshotBuffer[j])
+				continue;
+
+			var variable = constraintVariables[j];
+			var varId = variable.VariableId;
+			var newLB = variable.Domain.LowerBound;
+			var newUB = variable.Domain.UpperBound;
+
+			if (newLB > this.BoundSnapshotLB[j])
+			{
+				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, true);
+				this.PropTrail.RecordPropagation(varId, true, newLB, this.Depth,
+					PropagationTrail.ReasonConstraint, conIndex, explanation, snapshotHadHoles);
+
+				if (NotifyClauseStore(varId, false))
+					return true;
+			}
+
+			if (newUB < this.BoundSnapshotUB[j])
+			{
+				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, false);
+				this.PropTrail.RecordPropagation(varId, false, newUB, this.Depth,
+					PropagationTrail.ReasonConstraint, conIndex, explanation, snapshotHadHoles);
+
+				if (NotifyClauseStore(varId, true))
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+	private IList<BoundReason> ComputeEagerExplanation(IReadOnlyList<IVariable<int>> constraintVariables,
+		int conIndex, int propagatedVariableId, bool propagatedIsLowerBound)
+	{
+		var constraint = this.Constraints[conIndex];
+		if (constraint is IExplainableConstraint explainable)
+		{
+			var result = new List<BoundReason>();
+			var variable = this.Variables[propagatedVariableId];
+			explainable.Explain(propagatedVariableId, propagatedIsLowerBound,
+				propagatedIsLowerBound ? variable.Domain.LowerBound : variable.Domain.UpperBound, result);
+			return result;
+		}
+
+		var explanation = new List<BoundReason>();
+		for (var k = 0; k < constraintVariables.Count; ++k)
+		{
+			var v = constraintVariables[k];
+			if (v.VariableId == propagatedVariableId && propagatedIsLowerBound)
+				explanation.Add(new BoundReason(v.VariableId, false, this.BoundSnapshotUB[k]));
+			else if (v.VariableId == propagatedVariableId && !propagatedIsLowerBound)
+				explanation.Add(new BoundReason(v.VariableId, true, this.BoundSnapshotLB[k]));
+			else
+			{
+				explanation.Add(new BoundReason(v.VariableId, true, this.BoundSnapshotLB[k]));
+				explanation.Add(new BoundReason(v.VariableId, false, this.BoundSnapshotUB[k]));
+			}
+		}
+
+		return explanation;
+	}
+
+	private bool NotifyClauseStore(int varId, bool isLowerBound)
+	{
+		while (true)
+		{
+			if (this.LearnedClauses.NotifyBoundChange(varId, isLowerBound, this.Variables,
+				out var forcedLiteral, out var forcedClauseIndex))
+				return true;
+
+			if (forcedClauseIndex < 0)
+				return false;
+
+			if (ApplyForcedLiteral(forcedLiteral, forcedClauseIndex))
+				return true;
+		}
+	}
+
+	private bool ApplyForcedLiteral(BoundReason literal, int clauseIndex)
+	{
+		var variable = this.Variables[literal.VariableIndex];
+
+		if (literal.IsLowerBound)
+		{
+			while (variable.Domain.LowerBound < literal.BoundValue)
+			{
+				variable.Remove(variable.Domain.LowerBound, this.Depth, out var result);
+				if (result == DomainOperationResult.EmptyDomain)
+					return true;
+			}
+		}
+		else
+		{
+			while (variable.Domain.UpperBound > literal.BoundValue)
+			{
+				variable.Remove(variable.Domain.UpperBound, this.Depth, out var result);
+				if (result == DomainOperationResult.EmptyDomain)
+					return true;
+			}
+		}
+
+		this.PropTrail.RecordPropagation(literal.VariableIndex, literal.IsLowerBound, literal.BoundValue,
+			this.Depth, PropagationTrail.ReasonLearnedClause, clauseIndex);
+
+		foreach (var conIndex in this.VariableConstraintIndices[literal.VariableIndex])
+		{
+			if (this.InDirtyConstraintSet[conIndex])
+				continue;
+
+			this.InDirtyConstraintSet[conIndex] = true;
+			this.DirtyConstraintQueue.Enqueue(conIndex);
+		}
+
+		if (literal.IsLowerBound)
+			return NotifyClauseStore(literal.VariableIndex, false);
+
+		return NotifyClauseStore(literal.VariableIndex, true);
+	}
+
+	private void RecordBoundChangesTrailOnly(IReadOnlyList<IVariable<int>>? constraintVariables, int conIndex)
+	{
+		if (constraintVariables == null)
+			return;
+
+		var constraint = this.Constraints[conIndex];
+		var hasExplainer = constraint is IExplainableConstraint;
+		var snapshotHadHoles = false;
+		if (!hasExplainer)
+			snapshotHadHoles = DomainHasHoles(constraintVariables);
+
+		for (var j = 0; j < constraintVariables.Count; ++j)
+		{
+			var variable = constraintVariables[j];
+			if (variable.Size() == 0)
+				continue;
+
+			var varId = variable.VariableId;
+			var newLB = variable.Domain.LowerBound;
+			var newUB = variable.Domain.UpperBound;
+
+			if (newLB > this.BoundSnapshotLB[j])
+			{
+				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, true);
+				this.PropTrail.RecordPropagation(varId, true, newLB, this.Depth,
+					PropagationTrail.ReasonConstraint, conIndex, explanation, snapshotHadHoles);
+			}
+
+			if (newUB < this.BoundSnapshotUB[j])
+			{
+				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, false);
+				this.PropTrail.RecordPropagation(varId, false, newUB, this.Depth,
+					PropagationTrail.ReasonConstraint, conIndex, explanation, snapshotHadHoles);
+			}
+		}
+	}
+
+	private IList<BoundReason> GetConflictExplanation()
+	{
+		var result = new List<BoundReason>();
+
+		if (this.ConflictConstraintIndex < 0 || this.ConflictConstraintIndex >= this.Constraints.Count)
+			return result;
+
+		var constraint = this.Constraints[this.ConflictConstraintIndex];
+		if (constraint is not IConstraint<int> typedConstraint)
+			return result;
+
+		for (var j = 0; j < typedConstraint.Variables.Count; ++j)
+		{
+			var variable = typedConstraint.Variables[j];
+			if (variable.Size() == 0)
+			{
+				result.Add(new BoundReason(variable.VariableId, true, this.BoundSnapshotLB[j]));
+				result.Add(new BoundReason(variable.VariableId, false, this.BoundSnapshotUB[j]));
+				continue;
+			}
+
+			result.Add(new BoundReason(variable.VariableId, true, variable.Domain.LowerBound));
+			result.Add(new BoundReason(variable.VariableId, false, variable.Domain.UpperBound));
+		}
+
+		return result;
+	}
+
+	private bool PerformConflictAnalysis(IList<IVariable<int>> instantiatedVariables)
+	{
+		var conflictExplanation = GetConflictExplanation();
+
+		if (ConflictAnalyser.Analyse(this.PropTrail, conflictExplanation, this.Depth,
+			this.Constraints, this.Variables, out var learnedLiterals, out _))
+		{
+			this.LearnedClauses.AddClause(learnedLiterals, this.Variables);
+			this.LearnedClauses.DecayAllActivities();
+			this.LearnedClauses.ReduceDatabase();
+		}
+
+		this.ConflictConstraintIndex = -1;
+		return ChronologicalBacktrack(instantiatedVariables);
+	}
+
+	private bool BackjumpToLevel(IList<IVariable<int>> instantiatedVariables, int assertionLevel,
+		BoundReason[] learnedLiterals, int clauseIndex)
+	{
+		for (var d = this.Depth; d > assertionLevel; --d)
+		{
+			if (instantiatedVariables[d] == null)
+				continue;
+
+			this.AssignmentCandidates.Add(instantiatedVariables[d]);
+			this.AssignmentDepthByVarId[instantiatedVariables[d].VariableId] = -1;
+			this.BranchFactor[d] = 0;
+			this.DepthConflictAccumulator[d] = -1;
+		}
+
+		foreach (var variable in this.Variables)
+			variable.Backtrack(assertionLevel + 1);
+
+		this.Trail.Backtrack(assertionLevel, this.Variables);
+		this.PropTrail.Backtrack(assertionLevel);
+
+		foreach (var constraint in this.BacktrackableConstraints)
+			constraint.OnBacktrack(assertionLevel);
+
+		this.Depth = assertionLevel;
+		++this.Backtracks;
+
+		var clauseAlreadySatisfied = false;
+		BoundReason? assertingLiteral = null;
+		foreach (var literal in learnedLiterals)
+		{
+			var litVar = this.Variables[literal.VariableIndex];
+			if (Clause.IsLiteralFalsified(literal, litVar))
+				continue;
+
+			if (Clause.IsLiteralSatisfied(literal, litVar))
+			{
+				clauseAlreadySatisfied = true;
+				continue;
+			}
+
+			if (assertingLiteral == null)
+				assertingLiteral = literal;
+		}
+
+		if (clauseAlreadySatisfied)
+			return true;
+
+		if (assertingLiteral == null)
+			return ChronologicalBacktrack(instantiatedVariables);
+
+		var lit = assertingLiteral.Value;
+		var assertingVar = this.Variables[lit.VariableIndex];
+
+		if (lit.IsLowerBound)
+		{
+			while (assertingVar.Domain.LowerBound < lit.BoundValue)
+			{
+				assertingVar.Remove(assertingVar.Domain.LowerBound, this.Depth, out var result);
+				if (result == DomainOperationResult.EmptyDomain)
+					return ChronologicalBacktrack(instantiatedVariables);
+			}
+		}
+		else
+		{
+			while (assertingVar.Domain.UpperBound > lit.BoundValue)
+			{
+				assertingVar.Remove(assertingVar.Domain.UpperBound, this.Depth, out var result);
+				if (result == DomainOperationResult.EmptyDomain)
+					return ChronologicalBacktrack(instantiatedVariables);
+			}
+		}
+
+		this.PropTrail.RecordPropagation(lit.VariableIndex, lit.IsLowerBound, lit.BoundValue,
+			this.Depth, PropagationTrail.ReasonLearnedClause, clauseIndex);
+
+		return true;
+	}
+
 	private void BackTrackVariable(IVariable<int> variablePrune, out DomainOperationResult result)
 	{
 		++this.Backtracks;
 		this.AssignmentDepthByVarId[variablePrune.VariableId] = -1;
+
+		if (!variablePrune.Instantiated())
+		{
+			foreach (var variable in this.Variables)
+				variable.Backtrack(this.Depth);
+
+			--this.Depth;
+
+			this.Trail.Backtrack(this.Depth, this.Variables);
+
+			if (this.ClauseLearningEnabled)
+				this.PropTrail.Backtrack(this.Depth);
+
+			foreach (var backtrackableConstraint in this.BacktrackableConstraints)
+				backtrackableConstraint.OnBacktrack(this.Depth);
+
+			result = DomainOperationResult.EmptyDomain;
+			return;
+		}
+
 		var value = variablePrune.InstantiatedValue;
 
 		foreach (var variable in this.Variables)
@@ -622,6 +1013,9 @@ public class StateInteger : IState<int>
 		++this.Explored[this.Depth + 1];
 
 		this.Trail.Backtrack(this.Depth, this.Variables);
+
+		if (this.ClauseLearningEnabled)
+			this.PropTrail.Backtrack(this.Depth);
 
 		foreach (var backtrackableConstraint in this.BacktrackableConstraints)
 			backtrackableConstraint.OnBacktrack(this.Depth);

@@ -59,7 +59,8 @@ public static class PhaseLockedLoop
 
 
 		//	Search
-		var state = new StateInteger(new[] { f1, f2, r1, r2, q1, q2 }, constraints);
+		var state = new StateInteger([f1, f2, r1, r2, q1, q2], constraints);
+		state.ClauseLearningEnabled = false;
 
 		if (state.Search() == StateOperationResult.Solved)
 		{

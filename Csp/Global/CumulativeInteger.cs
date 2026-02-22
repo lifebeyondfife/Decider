@@ -12,7 +12,7 @@ using Decider.Csp.Integer;
 
 namespace Decider.Csp.Global;
 
-public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
+public class CumulativeInteger : IConstraint<int>, IExplainableConstraint
 {
 	private IList<VariableInteger> Starts { get; set; }
 
@@ -23,20 +23,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 	private int[] GenerationArray { get; set; }
 
 	public int FailureWeight { get; set; }
-	public bool GenerateReasons { get; set; }
-	public IList<BoundReason>? LastReason { get; private set; }
-
-	private IState<int>? State { get; set; }
-	private int Depth
-	{
-		get
-		{
-			if (this.State == null)
-				this.State = this.Starts[0].State;
-
-			return this.State!.Depth;
-		}
-	}
 
 	private int[] TimetableEarliestStartTimes { get; set; }
 	private int[] TimetableLatestCompletionTimes { get; set; }
@@ -236,9 +222,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 	{
 		result = ConstraintOperationResult.Undecided;
 
-		if (this.GenerateReasons)
-			this.LastReason = null;
-
 		var propagationOccurred = true;
 
 		while (propagationOccurred)
@@ -250,11 +233,7 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 				if (!disjunctive.StateChanged())
 					continue;
 
-				disjunctive.GenerateReasons = this.GenerateReasons;
 				disjunctive.Propagate(out var disjunctiveResult);
-
-				if (this.GenerateReasons && disjunctive.LastReason != null)
-					this.LastReason = disjunctive.LastReason;
 
 				if (ApplySubResult(disjunctiveResult, ref result, ref propagationOccurred))
 					return;
@@ -271,9 +250,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 				if (cumulativeDemand <= this.Capacity)
 					continue;
 
-				if (this.GenerateReasons)
-					this.LastReason = ReasonForProfileOverload(time);
-
 				result = ConstraintOperationResult.Violated;
 				return;
 			}
@@ -288,9 +264,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 
 				if (newLowerBound > newUpperBound)
 				{
-					if (this.GenerateReasons)
-						this.LastReason = ReasonForTimetableFilter(i, this.Starts[i].Domain.LowerBound, profile);
-
 					result = ConstraintOperationResult.Violated;
 					return;
 				}
@@ -391,14 +364,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		}
 
 		return false;
-	}
-
-	private void SetReasonIfEnabled(IList<int>? contributors, int taskIndex)
-	{
-		if (!this.GenerateReasons || contributors == null)
-			return;
-
-		this.LastReason = CollectReasonForTasks(contributors.Concat(new[] { taskIndex }));
 	}
 
 	private List<(int Time, int CumulativeDemand)> BuildCompulsoryProfile()
@@ -740,9 +705,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 			if (newBounds[i] <= earliestStartTime[i])
 				continue;
 
-			if (this.GenerateReasons)
-				this.LastReason = CollectReasonForTasks(Enumerable.Range(0, taskCount));
-
 			if (ApplyNewLowerBound(i, newBounds[i], ref result))
 				return ConstraintOperationResult.Violated;
 		}
@@ -814,9 +776,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 			if (newBounds[i] >= this.Starts[i].Domain.UpperBound)
 				continue;
 
-			if (this.GenerateReasons)
-				this.LastReason = CollectReasonForTasks(Enumerable.Range(0, taskCount));
-
 			if (ApplyNewUpperBound(i, newBounds[i], ref result))
 				return ConstraintOperationResult.Violated;
 		}
@@ -849,8 +808,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 			var minEarliestStart = int.MaxValue;
 			var maxLatestStart = int.MinValue;
 
-			var contributors = this.GenerateReasons ? new List<int>() : null;
-
 			for (var si = 0; si < n; ++si)
 			{
 				var j = this.NotFirstLastSortedTasks[si];
@@ -858,7 +815,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 				if (j == i)
 					continue;
 
-				contributors?.Add(j);
 				setEnergy += this.Durations[j] * this.Demands[j];
 
 				if (notFirst)
@@ -868,8 +824,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 
 					if (maxLatestCompletion <= taskBound || setEnergy <= (maxLatestCompletion - taskBound) * this.Capacity)
 						continue;
-
-					SetReasonIfEnabled(contributors, i);
 
 					if (ApplyNewLowerBound(i, minEarliestCompletion, ref result))
 						return ConstraintOperationResult.Violated;
@@ -882,8 +836,6 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 					if (minEarliestStart >= taskBound || setEnergy <= (taskBound - minEarliestStart) * this.Capacity)
 						continue;
 
-					SetReasonIfEnabled(contributors, i);
-
 					if (ApplyNewUpperBound(i, maxLatestStart - this.Durations[i], ref result))
 						return ConstraintOperationResult.Violated;
 				}
@@ -891,6 +843,15 @@ public class CumulativeInteger : IConstraint<int>, IReasoningConstraint
 		}
 
 		return result;
+	}
+
+	public void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result)
+	{
+		for (var j = 0; j < this.Starts.Count; ++j)
+		{
+			result.Add(new BoundReason(this.Starts[j].VariableId, true, this.Starts[j].Domain.LowerBound));
+			result.Add(new BoundReason(this.Starts[j].VariableId, false, this.Starts[j].Domain.UpperBound));
+		}
 	}
 
 	public bool StateChanged()

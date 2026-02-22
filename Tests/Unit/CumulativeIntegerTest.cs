@@ -531,7 +531,7 @@ public class CumulativeIntegerTest
 	}
 
 	[Fact]
-	public void TestReasonGenerationDisabledByDefault()
+	public void TestExplainableConstraintInterface()
 	{
 		var starts = new List<VariableInteger>
 		{
@@ -542,16 +542,13 @@ public class CumulativeIntegerTest
 		var demands = new List<int> { 3, 3 };
 
 		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 4);
-        _ = new StateInteger(starts, [cumulative]);
+		_ = new StateInteger(starts, [cumulative]);
 
-        cumulative.Propagate(out ConstraintOperationResult propagateResult);
-
-		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
-		Assert.Null(((IReasoningConstraint)cumulative).LastReason);
+		Assert.IsAssignableFrom<IExplainableConstraint>(cumulative);
 	}
 
 	[Fact]
-	public void TestReasonGenerationForProfileOverload()
+	public void TestExplainForProfileOverload()
 	{
 		var starts = new List<VariableInteger>
 		{
@@ -562,21 +559,22 @@ public class CumulativeIntegerTest
 		var demands = new List<int> { 3, 3 };
 
 		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 4);
-        ((IReasoningConstraint)cumulative).GenerateReasons = true;
-		var state = new StateInteger(starts, [cumulative]);
+		_ = new StateInteger(starts, [cumulative]);
 
 		cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
-		Assert.NotNull(((IReasoningConstraint)cumulative).LastReason);
-		Assert.NotEmpty(((IReasoningConstraint)cumulative).LastReason!);
 
-		var variableIds = ((IReasoningConstraint)cumulative).LastReason!.Select(r => r.VariableIndex).Distinct().ToList();
+		var explanation = new List<BoundReason>();
+		((IExplainableConstraint) cumulative).Explain(0, true, 0, explanation);
+
+		Assert.NotEmpty(explanation);
+		var variableIds = explanation.Select(r => r.VariableIndex).Distinct().ToList();
 		Assert.Equal(2, variableIds.Count);
 	}
 
 	[Fact]
-	public void TestReasonGenerationForEdgeFindingViolation()
+	public void TestExplainForEdgeFindingViolation()
 	{
 		var starts = new List<VariableInteger>
 		{
@@ -588,18 +586,20 @@ public class CumulativeIntegerTest
 		var demands = new List<int> { 3, 3, 3 };
 
 		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 3);
-        ((IReasoningConstraint)cumulative).GenerateReasons = true;
-		var state = new StateInteger(starts, [cumulative]);
+		_ = new StateInteger(starts, [cumulative]);
 
 		cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
-		Assert.NotNull(((IReasoningConstraint)cumulative).LastReason);
-		Assert.NotEmpty(((IReasoningConstraint)cumulative).LastReason!);
+
+		var explanation = new List<BoundReason>();
+		((IExplainableConstraint) cumulative).Explain(0, true, 0, explanation);
+
+		Assert.NotEmpty(explanation);
 	}
 
 	[Fact]
-	public void TestReasonBoundsAreCorrectForProfileOverload()
+	public void TestExplainBoundsAreCorrectForProfileOverload()
 	{
 		var starts = new List<VariableInteger>
 		{
@@ -610,16 +610,19 @@ public class CumulativeIntegerTest
 		var demands = new List<int> { 3, 3 };
 
 		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 4);
-        ((IReasoningConstraint)cumulative).GenerateReasons = true;
-		var state = new StateInteger(starts, [cumulative]);
+		_ = new StateInteger(starts, [cumulative]);
 
 		cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
-		Assert.NotNull(((IReasoningConstraint)cumulative).LastReason);
 
-		var lowerBounds = ((IReasoningConstraint)cumulative).LastReason!.Where(r => r.IsLowerBound).ToList();
-		var upperBounds = ((IReasoningConstraint)cumulative).LastReason!.Where(r => !r.IsLowerBound).ToList();
+		var explanation = new List<BoundReason>();
+		((IExplainableConstraint) cumulative).Explain(0, true, 1, explanation);
+
+		Assert.NotEmpty(explanation);
+
+		var lowerBounds = explanation.Where(r => r.IsLowerBound).ToList();
+		var upperBounds = explanation.Where(r => !r.IsLowerBound).ToList();
 
 		Assert.NotEmpty(lowerBounds);
 		Assert.NotEmpty(upperBounds);

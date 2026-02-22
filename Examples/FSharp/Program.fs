@@ -24,9 +24,11 @@ let solve rolls rollers =
         cityrollers
     ]
 
-    let state = StateInteger(variables, constraints)
+    let state = StateInteger(variables, constraints, ClauseLearningEnabled = false)
     match state.Search() with
     | StateOperationResult.Solved ->
+        printfn "Runtime:\t\t\t%A" state.Runtime
+        printfn "Backtracks\t\t\t%A" state.Backtracks
         [ kickboards.Value, cityrollers.Value ]
     | _ ->
         [ 0, 0 ]
@@ -34,5 +36,5 @@ let solve rolls rollers =
 [<EntryPoint>]
 let main argv =
     let solution = solve 37 15
-    printfn "[(Kickboards, Cityrollers)]: %A" solution
+    printfn "[(Kickboards, Cityrollers)]:\t%A" solution
     0

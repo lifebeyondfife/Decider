@@ -60,6 +60,7 @@ public class Rcpsp
 		var variables = this.StartTimes.Cast<IVariable<int>>().ToList();
 		this.State = new StateInteger(variables, this.Constraints,
 			new DomWdegOrdering(variables, this.Constraints), new LowestValueOrdering());
+		((StateInteger)this.State).ClauseLearningEnabled = false;
 
 		if (this.State.Search(this.StartTimes.Last()) == StateOperationResult.Solved)
 			this.Solution = this.State.OptimalSolution;

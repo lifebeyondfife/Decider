@@ -37,8 +37,7 @@ public interface IBacktrackableConstraint : IConstraint
 
 public record struct BoundReason(int VariableIndex, bool IsLowerBound, int BoundValue);
 
-public interface IReasoningConstraint : IConstraint
+public interface IExplainableConstraint : IConstraint
 {
-	bool GenerateReasons { get; set; }
-	IList<BoundReason>? LastReason { get; }
+	void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result);
 }

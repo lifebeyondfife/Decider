@@ -22,28 +22,28 @@ public static class TeacherTimetable
 
 		var hours = Enumerable.Range(0, 8).ToList();
 
-		var Monday = new List<VariableInteger>();
-		var Tuesday = new List<VariableInteger>();
-		var Wednesday = new List<VariableInteger>();
-		var Thursday = new List<VariableInteger>();
-		var Friday = new List<VariableInteger>();
-		var Saturday = new List<VariableInteger>();
+		var monday = new List<VariableInteger>();
+		var tuesday = new List<VariableInteger>();
+		var wednesday = new List<VariableInteger>();
+		var thursday = new List<VariableInteger>();
+		var friday = new List<VariableInteger>();
+		var saturday = new List<VariableInteger>();
 
 		foreach (var period in hours)
 		{
-			Monday.Add(new VariableInteger(string.Format("Monday {0}", period), 1, numberOfTeachers));
-			Tuesday.Add(new VariableInteger(string.Format("Tuesday {0}", period), 1, numberOfTeachers));
-			Wednesday.Add(new VariableInteger(string.Format("Wednesday {0}", period), 1, numberOfTeachers));
-			Thursday.Add(new VariableInteger(string.Format("Thursday {0}", period), 1, numberOfTeachers));
-			Friday.Add(new VariableInteger(string.Format("Friday {0}", period), 1, numberOfTeachers));
+			monday.Add(new VariableInteger(string.Format("Monday {0}", period), 1, numberOfTeachers));
+			tuesday.Add(new VariableInteger(string.Format("Tuesday {0}", period), 1, numberOfTeachers));
+			wednesday.Add(new VariableInteger(string.Format("Wednesday {0}", period), 1, numberOfTeachers));
+			thursday.Add(new VariableInteger(string.Format("Thursday {0}", period), 1, numberOfTeachers));
+			friday.Add(new VariableInteger(string.Format("Friday {0}", period), 1, numberOfTeachers));
 
 			if (period < 5)
-				Saturday.Add(new VariableInteger(string.Format("Saturday {0}", period), 1, numberOfTeachers));
+				saturday.Add(new VariableInteger(string.Format("Saturday {0}", period), 1, numberOfTeachers));
 		}
 
-		var Weekdays = new[] { Monday, Tuesday, Wednesday, Thursday, Friday }.ToList();
-		var Days = new[] { Monday, Tuesday, Wednesday, Thursday, Friday, Saturday }.ToList();
-		var Week = Days.SelectMany(x => x).ToList();
+		var weekdays = new[] { monday, tuesday, wednesday, thursday, friday }.ToList();
+		var days = new[] { monday, tuesday, wednesday, thursday, friday, saturday }.ToList();
+		var week = days.SelectMany(x => x).ToList();
 
 		#endregion
 
@@ -54,7 +54,7 @@ public static class TeacherTimetable
 		// No teacher teaches more than 5 hours per weekday
 		foreach (var teacher in Enumerable.Range(1, numberOfTeachers))
 		{
-			foreach (var day in Weekdays)
+			foreach (var day in weekdays)
 			{
 				constraints.Add(new ConstraintInteger(day.
 					Select(x => x == teacher).
@@ -63,7 +63,7 @@ public static class TeacherTimetable
 		}
 
 		// No teacher teaches for more than two consecutive hours
-		foreach (var day in Days)
+		foreach (var day in days)
 		{
 			for (var window = 0; window < day.Count - 2; ++window)
 			{
@@ -80,7 +80,7 @@ public static class TeacherTimetable
 		// No teacher teaches more than 27 hours per week
 		foreach (var teacher in Enumerable.Range(1, numberOfTeachers))
 		{
-			constraints.Add(new ConstraintInteger(Week.
+			constraints.Add(new ConstraintInteger(week.
 				Select(x => x == teacher).
 				Aggregate((x, y) => x + y) <= 27));
 		}
@@ -89,10 +89,11 @@ public static class TeacherTimetable
 
 		#region Search
 
-		var state = new StateInteger(Week, constraints);
+		var state = new StateInteger(week, constraints);
+		state.ClauseLearningEnabled = false;
 		state.Search();
 
-		foreach (var period in Week)
+		foreach (var period in week)
 		{
 			Console.WriteLine("{0}: {1}", period.Name, period.Value);
 		}

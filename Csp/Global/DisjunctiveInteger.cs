@@ -11,7 +11,7 @@ using Decider.Csp.Integer;
 
 namespace Decider.Csp.Global;
 
-public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
+public class DisjunctiveInteger : IConstraint<int>, IExplainableConstraint
 {
 	private IList<VariableInteger> Starts { get; set; }
 
@@ -20,8 +20,6 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 	private int[] GenerationArray { get; set; }
 
 	public int FailureWeight { get; set; }
-	public bool GenerateReasons { get; set; }
-	public IList<BoundReason>? LastReason { get; private set; }
 
 	private int[] EarliestStartTimes { get; set; }
 	private int[] LatestCompletionTimes { get; set; }
@@ -102,9 +100,6 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 	{
 		result = ConstraintOperationResult.Undecided;
 
-		if (this.GenerateReasons)
-			this.LastReason = null;
-
 		var propagationOccurred = true;
 
 		while (propagationOccurred)
@@ -164,12 +159,7 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 				var maxEnd = Math.Max(this.LatestCompletionTimes[i], this.LatestCompletionTimes[j]);
 
 				if (this.Durations[i] + this.Durations[j] > maxEnd - minStart)
-				{
-					if (this.GenerateReasons)
-						this.LastReason = CollectReasonForTasks(i, j);
-
 					return ConstraintOperationResult.Violated;
-				}
 			}
 		}
 
@@ -206,18 +196,12 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 		{
 			if (this.NewLowerBounds[i] > this.EarliestStartTimes[i])
 			{
-				if (this.GenerateReasons)
-					this.LastReason = CollectAllReasons();
-
 				if (ApplyNewLowerBound(i, this.NewLowerBounds[i], ref result))
 					return ConstraintOperationResult.Violated;
 			}
 
 			if (this.NewUpperBounds[i] < this.Starts[i].Domain.UpperBound)
 			{
-				if (this.GenerateReasons)
-					this.LastReason = CollectAllReasons();
-
 				if (ApplyNewUpperBound(i, this.NewUpperBounds[i], ref result))
 					return ConstraintOperationResult.Violated;
 			}
@@ -259,9 +243,6 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 					if (totalDuration <= maxLct - this.EarliestStartTimes[i] - this.Durations[i])
 						continue;
 
-					if (this.GenerateReasons)
-						this.LastReason = CollectAllReasons();
-
 					if (ApplyNewLowerBound(i, minEct, ref result))
 						return ConstraintOperationResult.Violated;
 
@@ -289,9 +270,6 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 
 					if (totalDuration <= this.Starts[i].Domain.UpperBound - minEst)
 						continue;
-
-					if (this.GenerateReasons)
-						this.LastReason = CollectAllReasons();
 
 					if (ApplyNewUpperBound(i, maxLst - this.Durations[i], ref result))
 						return ConstraintOperationResult.Violated;
@@ -338,9 +316,6 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 
 				if (setEst + setEnergy > outerLct)
 				{
-					if (this.GenerateReasons)
-						this.LastReason = CollectAllReasons();
-
 					return ConstraintOperationResult.Violated;
 				}
 			}
@@ -374,10 +349,7 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 			if (this.NewLowerBounds[i] <= this.EarliestStartTimes[i])
 				continue;
 
-			if (this.GenerateReasons)
-				this.LastReason = CollectAllReasons();
-
-			if (ApplyNewLowerBound(i, this.NewLowerBounds[i], ref result))
+if (ApplyNewLowerBound(i, this.NewLowerBounds[i], ref result))
 				return ConstraintOperationResult.Violated;
 		}
 
@@ -405,9 +377,6 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 
 				if (setLct - setEnergy < outerEst)
 				{
-					if (this.GenerateReasons)
-						this.LastReason = CollectAllReasons();
-
 					return ConstraintOperationResult.Violated;
 				}
 			}
@@ -441,10 +410,7 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 			if (this.NewUpperBounds[i] >= this.Starts[i].Domain.UpperBound)
 				continue;
 
-			if (this.GenerateReasons)
-				this.LastReason = CollectAllReasons();
-
-			if (ApplyNewUpperBound(i, this.NewUpperBounds[i], ref result))
+if (ApplyNewUpperBound(i, this.NewUpperBounds[i], ref result))
 				return ConstraintOperationResult.Violated;
 		}
 
@@ -530,6 +496,15 @@ public class DisjunctiveInteger : IConstraint<int>, IReasoningConstraint
 		}
 
 		return reasons;
+	}
+
+	public void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result)
+	{
+		for (var j = 0; j < this.Starts.Count; ++j)
+		{
+			result.Add(new BoundReason(this.Starts[j].VariableId, true, this.Starts[j].Domain.LowerBound));
+			result.Add(new BoundReason(this.Starts[j].VariableId, false, this.Starts[j].Domain.UpperBound));
+		}
 	}
 
 	public bool StateChanged()

@@ -22,6 +22,7 @@ public interface IVariable<T> : IComparable<IVariable<T>>
 	string Name { get; }
 	int VariableId { get; }
 	int Generation { get; }
+	IDomain<T> Domain { get; }
 	T InstantiatedValue { get; }
 	bool Instantiated();
 	int Size();
