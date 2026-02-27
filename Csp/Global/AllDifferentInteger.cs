@@ -23,7 +23,7 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 	private readonly CycleDetection cycleDetection;
 	private readonly Stack<(int Depth, int?[] Matching)> matchingTrail;
 	private int?[]? lastMatching;
-	private Dictionary<(int, bool), List<BoundReason>> propagationExplanations = new();
+	private Dictionary<(int, bool), List<BoundReason>> PropagationExplanations { get; set; }
 
 	private IState<int>? State { get; set; }
 	private int Depth
@@ -43,6 +43,7 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 		this.GenerationList = new int[this.VariableList.Length];
 		this.cycleDetection = new CycleDetection();
 		this.matchingTrail = new Stack<(int Depth, int?[] Matching)>();
+		this.PropagationExplanations = new();
 	}
 
 	public void Check(out ConstraintOperationResult result)
@@ -61,7 +62,7 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 
 	public void Propagate(out ConstraintOperationResult result)
 	{
-		this.propagationExplanations = new Dictionary<(int, bool), List<BoundReason>>();
+		this.PropagationExplanations = new Dictionary<(int, bool), List<BoundReason>>();
 
 		if (this.Graph == null)
 		{
@@ -129,7 +130,7 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 
 	public void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result)
 	{
-		if (this.propagationExplanations.TryGetValue((variableId, isLowerBound), out var reasons))
+		if (this.PropagationExplanations.TryGetValue((variableId, isLowerBound), out var reasons))
 		{
 			foreach (var reason in reasons)
 				result.Add(reason);
@@ -164,9 +165,9 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 	private void MergeExplanation(int variableId, bool isLowerBound, List<BoundReason> reasons)
 	{
 		var key = (variableId, isLowerBound);
-		if (!this.propagationExplanations.TryGetValue(key, out var existing))
+		if (!this.PropagationExplanations.TryGetValue(key, out var existing))
 		{
-			this.propagationExplanations[key] = new List<BoundReason>(reasons);
+			this.PropagationExplanations[key] = new List<BoundReason>(reasons);
 			return;
 		}
 		foreach (var reason in reasons)
