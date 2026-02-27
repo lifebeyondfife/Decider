@@ -1,6 +1,6 @@
 /*
   Copyright © Iain McDonald 2010-2026
-  
+
   This file is part of Decider.
 */
 using System;
@@ -11,10 +11,12 @@ using Decider.Csp.BaseTypes;
 
 namespace Decider.Csp.Integer;
 
-public class ConstraintInteger : ExpressionInteger, IConstraint<int>
+public class ConstraintInteger : ExpressionInteger, IConstraint<int>, IExplainableConstraint
 {
 	private VariableInteger[] VariableList { get; set; } = Array.Empty<VariableInteger>();
 	private IList<int> GenerationList { get; set; }
+	private int[] SnapshotLB { get; set; } = Array.Empty<int>();
+	private int[] SnapshotUB { get; set; } = Array.Empty<int>();
 
 	public IReadOnlyList<IVariable<int>> Variables => this.VariableList;
 	public int FailureWeight { get; set; }
@@ -33,6 +35,8 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>
 		ConstructVariableList((ExpressionInteger) expression, variableSet);
 		this.VariableList = variableSet.ToArray();
 		this.GenerationList = new int[this.VariableList.Length];
+		this.SnapshotLB = new int[this.VariableList.Length];
+		this.SnapshotUB = new int[this.VariableList.Length];
 	}
 
 	private static void ConstructVariableList(ExpressionInteger expression, ISet<VariableInteger> variableSet)
@@ -91,12 +95,37 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>
 
 	public void Propagate(out ConstraintOperationResult result)
 	{
+		for (var i = 0; i < this.VariableList.Length; ++i)
+		{
+			this.SnapshotLB[i] = this.VariableList[i].Domain.LowerBound;
+			this.SnapshotUB[i] = this.VariableList[i].Domain.UpperBound;
+		}
+
 		var enforce = new Bounds<int>(1, 1);
 
 		do
 		{
 			Propagate(enforce, out result);
 		} while ((result & ConstraintOperationResult.Propagated) == ConstraintOperationResult.Propagated);
+	}
+
+	public void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result)
+	{
+		for (var i = 0; i < this.VariableList.Length; ++i)
+		{
+			var v = this.VariableList[i];
+			if (v.VariableId == variableId)
+			{
+				result.Add(isLowerBound
+					? new BoundReason(v.VariableId, false, this.SnapshotUB[i])
+					: new BoundReason(v.VariableId, true, this.SnapshotLB[i]));
+			}
+			else
+			{
+				result.Add(new BoundReason(v.VariableId, true, this.SnapshotLB[i]));
+				result.Add(new BoundReason(v.VariableId, false, this.SnapshotUB[i]));
+			}
+		}
 	}
 
 	public bool StateChanged()
