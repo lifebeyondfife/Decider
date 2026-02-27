@@ -23,7 +23,7 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 	private readonly CycleDetection cycleDetection;
 	private readonly Stack<(int Depth, int?[] Matching)> matchingTrail;
 	private int?[]? lastMatching;
-	private Dictionary<(int, bool), List<BoundReason>> PropagationExplanations { get; set; }
+	private Dictionary<(int, bool), List<BoundReason>> PropagationExplanations { get; set; } = new();
 
 	private IState<int>? State { get; set; }
 	private int Depth
@@ -43,7 +43,6 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 		this.GenerationList = new int[this.VariableList.Length];
 		this.cycleDetection = new CycleDetection();
 		this.matchingTrail = new Stack<(int Depth, int?[] Matching)>();
-		this.PropagationExplanations = new();
 	}
 
 	public void Check(out ConstraintOperationResult result)

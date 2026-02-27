@@ -304,4 +304,81 @@ public class ClauseLearningTest
 		Assert.Equal(StateOperationResult.Solved, result);
 		Assert.NotNull(state.OptimalSolution);
 	}
+
+	[Fact]
+	public void TestConstraintIntegerImplementsIExplainableConstraint()
+	{
+		var x = new VariableInteger("x", 1, 5);
+		var y = new VariableInteger("y", 1, 5);
+		var constraint = new ConstraintInteger(x + y == 10);
+
+		Assert.IsAssignableFrom<IExplainableConstraint>(constraint);
+	}
+
+	[Fact]
+	public void TestConstraintIntegerExplainPlus()
+	{
+		var a = new VariableInteger("a", 1, 5);
+		var b = new VariableInteger("b", 1, 5);
+		var constraint = new ConstraintInteger(a + b == 10);
+		_ = new StateInteger([a, b], [constraint]);
+
+		constraint.Propagate(out _);
+
+		Assert.Equal(5, a.Domain.LowerBound);
+		Assert.Equal(5, b.Domain.LowerBound);
+
+		var explainable = (IExplainableConstraint) constraint;
+
+		var aLbReasons = new List<BoundReason>();
+		explainable.Explain(a.VariableId, true, 5, aLbReasons);
+		Assert.NotEmpty(aLbReasons);
+		Assert.Contains(aLbReasons, r => r.VariableIndex == b.VariableId && !r.IsLowerBound && r.BoundValue == 5);
+
+		var bLbReasons = new List<BoundReason>();
+		explainable.Explain(b.VariableId, true, 5, bLbReasons);
+		Assert.NotEmpty(bLbReasons);
+		Assert.Contains(bLbReasons, r => r.VariableIndex == a.VariableId && !r.IsLowerBound && r.BoundValue == 5);
+	}
+
+	[Fact]
+	public void TestConstraintIntegerExplainMinus()
+	{
+		var a = new VariableInteger("a", 1, 10);
+		var b = new VariableInteger("b", 1, 5);
+		var constraint = new ConstraintInteger(a - b == 3);
+		_ = new StateInteger([a, b], [constraint]);
+
+		constraint.Propagate(out _);
+
+		Assert.Equal(4, a.Domain.LowerBound);
+
+		var explainable = (IExplainableConstraint) constraint;
+		var reasons = new List<BoundReason>();
+		explainable.Explain(a.VariableId, true, 4, reasons);
+
+		Assert.NotEmpty(reasons);
+		Assert.Contains(reasons, r => r.VariableIndex == b.VariableId);
+	}
+
+	[Fact]
+	public void TestConstraintIntegerExplainNotEquals()
+	{
+		var a = new VariableInteger("a", 3, 3);
+		var b = new VariableInteger("b", 1, 3);
+		var constraint = new ConstraintInteger(a != b);
+		_ = new StateInteger([a, b], [constraint]);
+
+		constraint.Propagate(out _);
+
+		Assert.Equal(2, b.Domain.UpperBound);
+
+		var explainable = (IExplainableConstraint) constraint;
+		var reasons = new List<BoundReason>();
+		explainable.Explain(b.VariableId, false, 2, reasons);
+
+		Assert.NotEmpty(reasons);
+		Assert.Contains(reasons, r => r.VariableIndex == a.VariableId && r.IsLowerBound && r.BoundValue == 3);
+		Assert.Contains(reasons, r => r.VariableIndex == a.VariableId && !r.IsLowerBound && r.BoundValue == 3);
+	}
 }
