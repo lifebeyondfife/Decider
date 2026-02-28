@@ -8,6 +8,7 @@ using System.Linq;
 using Xunit;
 
 using Decider.Csp.BaseTypes;
+using Decider.Csp.Global;
 using Decider.Csp.Integer;
 
 namespace Decider.Tests.Csp;
@@ -176,5 +177,65 @@ public class DomainTrailTest
         {
             Assert.Equal(11, solution["x"].InstantiatedValue + solution["y"].InstantiatedValue);
         }
+    }
+
+    [Fact]
+    public void TestSizeAfterInteriorRemoval()
+    {
+        var domain = DomainBinaryInteger.CreateDomain(0, 7);
+        Assert.Equal(8, domain.Size());
+
+        domain.Remove(3, out var result);
+        Assert.Equal(DomainOperationResult.RemoveSuccessful, result);
+        Assert.Equal(7, domain.Size());
+
+        domain.Remove(5, out result);
+        Assert.Equal(DomainOperationResult.RemoveSuccessful, result);
+        Assert.Equal(6, domain.Size());
+
+        Assert.Equal(0, domain.LowerBound);
+        Assert.Equal(7, domain.UpperBound);
+    }
+
+    [Fact]
+    public void TestSizeAfterBoundaryRemovalPastHoles()
+    {
+        var domain = DomainBinaryInteger.CreateDomain(0, 7);
+
+        domain.Remove(1, out _);
+        domain.Remove(2, out _);
+        Assert.Equal(6, domain.Size());
+        Assert.Equal(0, domain.LowerBound);
+
+        domain.Remove(0, out _);
+        Assert.Equal(5, domain.Size());
+        Assert.Equal(3, domain.LowerBound);
+
+        domain.Remove(6, out _);
+        Assert.Equal(4, domain.Size());
+
+        domain.Remove(7, out _);
+        Assert.Equal(3, domain.Size());
+        Assert.Equal(5, domain.UpperBound);
+    }
+
+    [Fact]
+    public void TestSizeThroughCloneCycle()
+    {
+        var domain = DomainBinaryInteger.CreateDomain(0, 7);
+        domain.Remove(3, out _);
+        domain.Remove(5, out _);
+        Assert.Equal(6, domain.Size());
+
+        var clone = domain.Clone();
+        Assert.Equal(6, clone.Size());
+        Assert.Equal(0, clone.LowerBound);
+        Assert.Equal(7, clone.UpperBound);
+        Assert.False(clone.Contains(3));
+        Assert.False(clone.Contains(5));
+
+        clone.Remove(0, out _);
+        Assert.Equal(5, clone.Size());
+        Assert.Equal(6, domain.Size());
     }
 }

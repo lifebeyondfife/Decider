@@ -117,8 +117,8 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>, IExplainab
 			if (v.VariableId == variableId)
 			{
 				result.Add(isLowerBound
-					? new BoundReason(v.VariableId, false, this.SnapshotUB[i])
-					: new BoundReason(v.VariableId, true, this.SnapshotLB[i]));
+					? new BoundReason(v.VariableId, true, this.SnapshotLB[i])
+					: new BoundReason(v.VariableId, false, this.SnapshotUB[i]));
 			}
 			else
 			{

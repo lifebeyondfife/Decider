@@ -19,18 +19,16 @@ internal class DomainTrail
 		internal uint OldBits;
 		internal int OldLowerBound;
 		internal int OldUpperBound;
-		internal int OldSize;
 		internal int OldGeneration;
 
 		internal Change(int variableId, int arrayIndex, uint oldBits, int oldLowerBound,
-			int oldUpperBound, int oldSize, int oldGeneration)
+			int oldUpperBound, int oldGeneration)
 		{
 			this.VariableId = variableId;
 			this.ArrayIndex = arrayIndex;
 			this.OldBits = oldBits;
 			this.OldLowerBound = oldLowerBound;
 			this.OldUpperBound = oldUpperBound;
-			this.OldSize = oldSize;
 			this.OldGeneration = oldGeneration;
 		}
 	}
@@ -50,7 +48,7 @@ internal class DomainTrail
 	}
 
 	internal void RecordChange(int variableId, int arrayIndex, uint oldBits,
-		int oldLowerBound, int oldUpperBound, int oldSize, int oldGeneration, int depth)
+		int oldLowerBound, int oldUpperBound, int oldGeneration, int depth)
 	{
 		if (this.changeCount >= this.changes.Length)
 			Array.Resize(ref this.changes, this.changes.Length * 2);
@@ -59,7 +57,7 @@ internal class DomainTrail
 			this.depthStarts[depth] = this.changeCount;
 
 		this.changes[this.changeCount++] = new Change(variableId, arrayIndex, oldBits,
-			oldLowerBound, oldUpperBound, oldSize, oldGeneration);
+			oldLowerBound, oldUpperBound, oldGeneration);
 	}
 
 	internal void Backtrack(int toDepth, IList<IVariable<int>> variables)
@@ -79,7 +77,7 @@ internal class DomainTrail
 			var domain = (DomainBinaryInteger)variable.BaseDomain;
 
 			domain.RestoreBits(change.ArrayIndex, change.OldBits);
-			domain.SetBounds(change.OldLowerBound, change.OldUpperBound, change.OldSize);
+			domain.SetBounds(change.OldLowerBound, change.OldUpperBound);
 			variable.RestoreGeneration(change.OldGeneration);
 		}
 

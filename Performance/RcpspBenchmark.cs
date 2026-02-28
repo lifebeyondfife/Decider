@@ -70,7 +70,6 @@ public class RcpspBenchmark
 		}
 
 		var state = new StateInteger(starts, constraints, new DomWdegOrdering(starts, constraints), new LowestValueOrdering());
-		state.ClauseLearningEnabled = false;
 		state.Search(starts.Last());
 		return state;
 	}

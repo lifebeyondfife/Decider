@@ -3,6 +3,7 @@
 
   This file is part of Decider.
 */
+using System;
 using System.Collections.Generic;
 
 using Decider.Csp.BaseTypes;
@@ -127,6 +128,14 @@ internal class ClauseStore
 		}
 
 		return false;
+	}
+
+	internal BoundReason[] GetClauseLiterals(int clauseIndex)
+	{
+		if (clauseIndex < 0 || clauseIndex >= this.Clauses.Count)
+			return Array.Empty<BoundReason>();
+
+		return this.Clauses[clauseIndex].Literals;
 	}
 
 	internal void BumpActivity(int clauseIndex)

@@ -38,7 +38,6 @@ internal class PropagationTrail
 
 	private Entry[] entries;
 	private IList<BoundReason>[] explanations;
-	private bool[] explanationApproximate;
 	private int entryCount;
 	private int[] levelStarts;
 
@@ -48,7 +47,6 @@ internal class PropagationTrail
 	{
 		this.entries = new Entry[estimatedCapacity];
 		this.explanations = new IList<BoundReason>[estimatedCapacity];
-		this.explanationApproximate = new bool[estimatedCapacity];
 		this.entryCount = 0;
 		this.levelStarts = new int[maxLevels + 1];
 		for (var i = 0; i < this.levelStarts.Length; ++i)
@@ -59,29 +57,15 @@ internal class PropagationTrail
 	{
 		EnsureLevelStart(decisionLevel);
 		AppendEntry(new Entry(variableId, true, lowerBound, decisionLevel, ReasonDecision, -1));
-
-		IList<BoundReason> ubExplanation = new List<BoundReason>
-			{ new BoundReason(variableId, true, lowerBound) };
-		AppendEntry(
-			new Entry(variableId, false, upperBound, decisionLevel, ReasonConstraint, -1),
-			ubExplanation);
+		AppendEntry(new Entry(variableId, false, upperBound, decisionLevel, ReasonDecision, -1));
 	}
 
 	internal void RecordPropagation(int variableId, bool isLowerBound, int newBound,
-		int decisionLevel, int reasonKind, int reasonIndex, IList<BoundReason> explanation = null!,
-		bool isApproximate = false)
+		int decisionLevel, int reasonKind, int reasonIndex, IList<BoundReason> explanation = null!)
 	{
 		EnsureLevelStart(decisionLevel);
 		AppendEntry(new Entry(variableId, isLowerBound, newBound, decisionLevel, reasonKind, reasonIndex),
-			explanation, isApproximate);
-	}
-
-	internal bool IsExplanationApproximate(int index)
-	{
-		if (index < 0 || index >= this.entryCount)
-			return false;
-
-		return this.explanationApproximate[index];
+			explanation);
 	}
 
 	internal IList<BoundReason> GetExplanation(int index)
@@ -147,18 +131,15 @@ internal class PropagationTrail
 			this.levelStarts[level] = this.entryCount;
 	}
 
-	private void AppendEntry(Entry entry, IList<BoundReason> explanation = null!,
-		bool isApproximate = false)
+	private void AppendEntry(Entry entry, IList<BoundReason> explanation = null!)
 	{
 		if (this.entryCount >= this.entries.Length)
 		{
 			Array.Resize(ref this.entries, this.entries.Length * 2);
 			Array.Resize(ref this.explanations, this.explanations.Length * 2);
-			Array.Resize(ref this.explanationApproximate, this.explanationApproximate.Length * 2);
 		}
 
 		this.explanations[this.entryCount] = explanation;
-		this.explanationApproximate[this.entryCount] = isApproximate;
 		this.entries[this.entryCount++] = entry;
 	}
 }

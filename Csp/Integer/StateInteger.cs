@@ -158,6 +158,8 @@ public class StateInteger : IState<int>
 
 	public StateOperationResult Search()
 	{
+		foreach (var v in this.Variables)
+			((VariableInteger) v).BoundsOnlyRemove = this.ClauseLearningEnabled;
 		this.ProgressHighWatermark = 0;
 		this.AssignmentCandidates = this.LastSolution == null
 			? new List<IVariable<int>>(this.Variables)
@@ -189,6 +191,8 @@ public class StateInteger : IState<int>
 
 	public StateOperationResult Search(IVariable<int> optimiseVar, CancellationToken cancellationToken = default)
 	{
+		foreach (var v in this.Variables)
+			((VariableInteger) v).BoundsOnlyRemove = this.ClauseLearningEnabled;
 		this.ProgressHighWatermark = 0;
 		var instantiatedVariables = new IVariable<int>[this.Variables.Count];
 		var stopwatch = Stopwatch.StartNew();
@@ -270,6 +274,8 @@ public class StateInteger : IState<int>
 
 	public StateOperationResult SearchAllSolutions()
 	{
+		foreach (var v in this.Variables)
+			((VariableInteger) v).BoundsOnlyRemove = this.ClauseLearningEnabled;
 		this.ProgressHighWatermark = 0;
 		this.AssignmentCandidates = this.LastSolution == null
 			? new List<IVariable<int>>(this.Variables)
@@ -341,50 +347,10 @@ public class StateInteger : IState<int>
 				return true;
 			}
 
-			var selectedIndex = this.VariableOrdering.SelectVariableIndex(this.AssignmentCandidates);
+			SelectVariable(instantiatedVariables);
 
-			if (this.BranchFactor[this.Depth] != 0 &&
-				instantiatedVariables[this.Depth] != null &&
-				instantiatedVariables[this.Depth].VariableId != this.AssignmentCandidates[selectedIndex].VariableId)
-				this.BranchFactor[this.Depth] = this.Explored[this.Depth] + this.AssignmentCandidates[selectedIndex].Size();
-
-			instantiatedVariables[this.Depth] = this.AssignmentCandidates[selectedIndex];
-			var lastIndex = this.AssignmentCandidates.Count - 1;
-			this.AssignmentCandidates[selectedIndex] = this.AssignmentCandidates[lastIndex];
-			this.AssignmentCandidates.RemoveAt(lastIndex);
-
-			if (this.BranchFactor[this.Depth] == 0)
-			{
-				this.BranchFactor[this.Depth] = instantiatedVariables[this.Depth].Size();
-				this.Explored[this.Depth] = 0;
-
-				for (var i = this.Depth + 1; i < this.Explored.Count; ++i)
-				{
-					this.BranchFactor[i] = 0;
-					this.Explored[i] = 0;
-				}
-			}
-
-			var selectedValue = this.ValueOrdering.SelectValue(instantiatedVariables[this.Depth]);
-			instantiatedVariables[this.Depth].Instantiate(selectedValue, this.Depth, out DomainOperationResult instantiateResult);
-
-			if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
+			if (!MakeDecision(instantiatedVariables, out var decisionConflict))
 				return false;
-
-			this.AssignmentDepthByVarId[instantiatedVariables[this.Depth].VariableId] = this.Depth;
-
-			var decisionConflict = false;
-			if (this.ClauseLearningEnabled)
-			{
-				this.ConflictConstraintIndex = -1;
-				var instVar = instantiatedVariables[this.Depth];
-				this.PropTrail.RecordDecision(instVar.VariableId,
-					instVar.Domain.LowerBound, instVar.Domain.UpperBound, this.Depth);
-
-				decisionConflict = NotifyClauseStore(instVar.VariableId, false);
-				if (!decisionConflict)
-					decisionConflict = NotifyClauseStore(instVar.VariableId, true);
-			}
 
 			if (decisionConflict || ConstraintsViolated() || this.AssignmentCandidates.Any(v => v.Size() == 0))
 			{
@@ -398,15 +364,83 @@ public class StateInteger : IState<int>
 				return false;
 			}
 
-			var currentRuntime = this.Runtime + stopwatch.Elapsed;
-			if (this.OnProgress != null && currentRuntime - this.LastProgressReport >= this.ProgressInterval)
-			{
-				this.OnProgress(ComputeProgress());
-				this.LastProgressReport = currentRuntime;
-			}
-
+			ReportProgress(stopwatch);
 			++this.Depth;
 		}
+	}
+
+	private void SelectVariable(IList<IVariable<int>> instantiatedVariables)
+	{
+		var selectedIndex = this.VariableOrdering.SelectVariableIndex(this.AssignmentCandidates);
+
+		if (this.BranchFactor[this.Depth] != 0 &&
+			instantiatedVariables[this.Depth] != null &&
+			instantiatedVariables[this.Depth].VariableId != this.AssignmentCandidates[selectedIndex].VariableId)
+			this.BranchFactor[this.Depth] = this.Explored[this.Depth] + this.AssignmentCandidates[selectedIndex].Size();
+
+		instantiatedVariables[this.Depth] = this.AssignmentCandidates[selectedIndex];
+		var lastIndex = this.AssignmentCandidates.Count - 1;
+		this.AssignmentCandidates[selectedIndex] = this.AssignmentCandidates[lastIndex];
+		this.AssignmentCandidates.RemoveAt(lastIndex);
+
+		if (this.BranchFactor[this.Depth] == 0)
+		{
+			this.BranchFactor[this.Depth] = instantiatedVariables[this.Depth].Size();
+			this.Explored[this.Depth] = 0;
+
+			for (var i = this.Depth + 1; i < this.Explored.Count; ++i)
+			{
+				this.BranchFactor[i] = 0;
+				this.Explored[i] = 0;
+			}
+		}
+	}
+
+	private bool MakeDecision(IList<IVariable<int>> instantiatedVariables, out bool decisionConflict)
+	{
+		decisionConflict = false;
+		var variable = instantiatedVariables[this.Depth];
+		var selectedValue = this.ValueOrdering.SelectValue(variable);
+
+		if (this.ClauseLearningEnabled)
+		{
+			var domain = variable.Domain;
+			if (selectedValue != domain.LowerBound && selectedValue != domain.UpperBound)
+				throw new InvalidOperationException(
+					$"Clause learning requires boundary value selection. Value ordering selected {selectedValue} " +
+					$"for variable '{variable.Name}' with bounds [{domain.LowerBound}, {domain.UpperBound}]. " +
+					$"Use LowestValueOrdering or another boundary-selecting heuristic when clause learning is enabled.");
+		}
+
+		variable.Instantiate(selectedValue, this.Depth, out var instantiateResult);
+
+		if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
+			return false;
+
+		this.AssignmentDepthByVarId[variable.VariableId] = this.Depth;
+
+		if (this.ClauseLearningEnabled)
+		{
+			this.ConflictConstraintIndex = -1;
+			this.PropTrail.RecordDecision(variable.VariableId,
+				variable.Domain.LowerBound, variable.Domain.UpperBound, this.Depth);
+
+			decisionConflict = NotifyClauseStore(variable.VariableId, false);
+			if (!decisionConflict)
+				decisionConflict = NotifyClauseStore(variable.VariableId, true);
+		}
+
+		return true;
+	}
+
+	private void ReportProgress(Stopwatch stopwatch)
+	{
+		var currentRuntime = this.Runtime + stopwatch.Elapsed;
+		if (this.OnProgress == null || currentRuntime - this.LastProgressReport < this.ProgressInterval)
+			return;
+
+		this.OnProgress(ComputeProgress());
+		this.LastProgressReport = currentRuntime;
 	}
 
 	private bool Backtrack(IList<IVariable<int>> instantiatedVariables)
@@ -671,33 +705,10 @@ public class StateInteger : IState<int>
 		}
 	}
 
-	private static bool DomainHasHoles(IReadOnlyList<IVariable<int>> constraintVariables)
-	{
-		foreach (var variable in constraintVariables)
-		{
-			var domain = variable.Domain;
-			var lb = domain.LowerBound;
-			var ub = domain.UpperBound;
-			for (var v = lb + 1; v < ub; ++v)
-			{
-				if (!domain.Contains(v))
-					return true;
-			}
-		}
-
-		return false;
-	}
-
 	private bool RecordBoundChanges(IReadOnlyList<IVariable<int>>? constraintVariables, int conIndex)
 	{
 		if (constraintVariables == null)
 			return false;
-
-		var constraint = this.Constraints[conIndex];
-		var hasExplainer = constraint is IExplainableConstraint;
-		var snapshotHadHoles = false;
-		if (!hasExplainer)
-			snapshotHadHoles = DomainHasHoles(constraintVariables);
 
 		for (var j = 0; j < constraintVariables.Count; ++j)
 		{
@@ -713,7 +724,7 @@ public class StateInteger : IState<int>
 			{
 				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, true);
 				this.PropTrail.RecordPropagation(varId, true, newLB, this.Depth,
-					PropagationTrail.ReasonConstraint, conIndex, explanation, snapshotHadHoles);
+					PropagationTrail.ReasonConstraint, conIndex, explanation);
 
 				if (NotifyClauseStore(varId, false))
 					return true;
@@ -723,7 +734,7 @@ public class StateInteger : IState<int>
 			{
 				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, false);
 				this.PropTrail.RecordPropagation(varId, false, newUB, this.Depth,
-					PropagationTrail.ReasonConstraint, conIndex, explanation, snapshotHadHoles);
+					PropagationTrail.ReasonConstraint, conIndex, explanation);
 
 				if (NotifyClauseStore(varId, true))
 					return true;
@@ -803,8 +814,9 @@ public class StateInteger : IState<int>
 			}
 		}
 
+		var explanation = ComputeClauseExplanation(literal, clauseIndex);
 		this.PropTrail.RecordPropagation(literal.VariableIndex, literal.IsLowerBound, literal.BoundValue,
-			this.Depth, PropagationTrail.ReasonLearnedClause, clauseIndex);
+			this.Depth, PropagationTrail.ReasonLearnedClause, clauseIndex, explanation);
 
 		foreach (var conIndex in this.VariableConstraintIndices[literal.VariableIndex])
 		{
@@ -821,16 +833,30 @@ public class StateInteger : IState<int>
 		return NotifyClauseStore(literal.VariableIndex, true);
 	}
 
+	private IList<BoundReason> ComputeClauseExplanation(BoundReason forcedLiteral, int clauseIndex)
+	{
+		var clauseLiterals = this.LearnedClauses.GetClauseLiterals(clauseIndex);
+		var explanation = new List<BoundReason>();
+
+		foreach (var lit in clauseLiterals)
+		{
+			if (lit.VariableIndex == forcedLiteral.VariableIndex &&
+				lit.IsLowerBound == forcedLiteral.IsLowerBound &&
+				lit.BoundValue == forcedLiteral.BoundValue)
+				continue;
+
+			explanation.Add(lit.IsLowerBound
+				? new BoundReason(lit.VariableIndex, false, lit.BoundValue - 1)
+				: new BoundReason(lit.VariableIndex, true, lit.BoundValue + 1));
+		}
+
+		return explanation;
+	}
+
 	private void RecordBoundChangesTrailOnly(IReadOnlyList<IVariable<int>>? constraintVariables, int conIndex)
 	{
 		if (constraintVariables == null)
 			return;
-
-		var constraint = this.Constraints[conIndex];
-		var hasExplainer = constraint is IExplainableConstraint;
-		var snapshotHadHoles = false;
-		if (!hasExplainer)
-			snapshotHadHoles = DomainHasHoles(constraintVariables);
 
 		for (var j = 0; j < constraintVariables.Count; ++j)
 		{
@@ -846,14 +872,14 @@ public class StateInteger : IState<int>
 			{
 				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, true);
 				this.PropTrail.RecordPropagation(varId, true, newLB, this.Depth,
-					PropagationTrail.ReasonConstraint, conIndex, explanation, snapshotHadHoles);
+					PropagationTrail.ReasonConstraint, conIndex, explanation);
 			}
 
 			if (newUB < this.BoundSnapshotUB[j])
 			{
 				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, false);
 				this.PropTrail.RecordPropagation(varId, false, newUB, this.Depth,
-					PropagationTrail.ReasonConstraint, conIndex, explanation, snapshotHadHoles);
+					PropagationTrail.ReasonConstraint, conIndex, explanation);
 			}
 		}
 	}
