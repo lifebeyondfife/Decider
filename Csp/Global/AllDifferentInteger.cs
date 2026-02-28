@@ -1,6 +1,6 @@
 /*
   Copyright © Iain McDonald 2010-2026
-  
+
   This file is part of Decider.
 */
 using System;
@@ -24,6 +24,8 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 	private readonly Stack<(int Depth, int?[] Matching)> matchingTrail;
 	private int?[]? lastMatching;
 	private Dictionary<(int, bool), List<BoundReason>> PropagationExplanations { get; set; } = new();
+	private int[] SnapshotLB { get; set; } = Array.Empty<int>();
+	private int[] SnapshotUB { get; set; } = Array.Empty<int>();
 
 	private IState<int>? State { get; set; }
 	private int Depth
@@ -41,6 +43,8 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 	{
 		this.VariableList = variables.ToArray();
 		this.GenerationList = new int[this.VariableList.Length];
+		this.SnapshotLB = new int[this.VariableList.Length];
+		this.SnapshotUB = new int[this.VariableList.Length];
 		this.cycleDetection = new CycleDetection();
 		this.matchingTrail = new Stack<(int Depth, int?[] Matching)>();
 	}
@@ -61,7 +65,11 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 
 	public void Propagate(out ConstraintOperationResult result)
 	{
-		this.PropagationExplanations = new Dictionary<(int, bool), List<BoundReason>>();
+		for (var i = 0; i < this.VariableList.Length; ++i)
+		{
+			this.SnapshotLB[i] = this.VariableList[i].Domain.LowerBound;
+			this.SnapshotUB[i] = this.VariableList[i].Domain.UpperBound;
+		}
 
 		if (this.Graph == null)
 		{
@@ -101,15 +109,19 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 					this.Graph.Values[value].CycleIndex != node.CycleIndex &&
 					((NodeValue) this.Graph.Pair[node]).Value != value))
 				{
-					result = ConstraintOperationResult.Propagated;
-
 					var oldLb = variable.Domain.LowerBound;
 					var oldUb = variable.Domain.UpperBound;
+
+					variable.Remove(value, out DomainOperationResult domainResult);
+
+					if (domainResult == DomainOperationResult.ElementNotInDomain)
+						continue;
+
+					result = ConstraintOperationResult.Propagated;
+
 					var valueSccIndex = this.Graph.Values[value].CycleIndex;
-
-					variable.Remove(value, this.Depth, out DomainOperationResult domainResult);
-
-					if (sccBoundReasons.TryGetValue(valueSccIndex, out var hallReasons))
+					if (sccBoundReasons.TryGetValue(valueSccIndex, out var hallReasons) ||
+						sccBoundReasons.TryGetValue(node.CycleIndex, out hallReasons))
 					{
 						if (variable.Domain.LowerBound > oldLb)
 							MergeExplanation(variable.VariableId, true, hallReasons);
@@ -117,11 +129,11 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 							MergeExplanation(variable.VariableId, false, hallReasons);
 					}
 
-					if (domainResult != DomainOperationResult.EmptyDomain)
-						continue;
-
-					result = ConstraintOperationResult.Violated;
-					return;
+					if (domainResult == DomainOperationResult.EmptyDomain)
+					{
+						result = ConstraintOperationResult.Violated;
+						return;
+					}
 				}
 			}
 		}
@@ -136,10 +148,10 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 			return;
 		}
 
-		foreach (var v in this.VariableList)
+		for (var i = 0; i < this.VariableList.Length; ++i)
 		{
-			result.Add(new BoundReason(v.VariableId, true, v.Domain.LowerBound));
-			result.Add(new BoundReason(v.VariableId, false, v.Domain.UpperBound));
+			result.Add(new BoundReason(this.VariableList[i].VariableId, true, this.SnapshotLB[i]));
+			result.Add(new BoundReason(this.VariableList[i].VariableId, false, this.SnapshotUB[i]));
 		}
 	}
 
@@ -149,14 +161,15 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 		foreach (var kvp in this.Graph!.Variables)
 		{
 			var cycleIdx = kvp.Value.CycleIndex;
+			var varIndex = kvp.Key;
 			var hallVar = kvp.Value.Variable;
 			if (!sccBoundReasons.TryGetValue(cycleIdx, out var reasons))
 			{
 				reasons = new List<BoundReason>();
 				sccBoundReasons[cycleIdx] = reasons;
 			}
-			reasons.Add(new BoundReason(hallVar.VariableId, true, hallVar.Domain.LowerBound));
-			reasons.Add(new BoundReason(hallVar.VariableId, false, hallVar.Domain.UpperBound));
+			reasons.Add(new BoundReason(hallVar.VariableId, true, this.SnapshotLB[varIndex]));
+			reasons.Add(new BoundReason(hallVar.VariableId, false, this.SnapshotUB[varIndex]));
 		}
 		return sccBoundReasons;
 	}

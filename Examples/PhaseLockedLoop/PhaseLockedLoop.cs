@@ -1,5 +1,5 @@
 /*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
 */
@@ -60,7 +60,6 @@ public static class PhaseLockedLoop
 
 		//	Search
 		var state = new StateInteger([f1, f2, r1, r2, q1, q2], constraints);
-		state.ClauseLearningEnabled = false;
 
 		if (state.Search() == StateOperationResult.Solved)
 		{

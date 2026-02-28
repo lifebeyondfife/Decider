@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 using Decider.Csp.BaseTypes;
 
@@ -25,7 +26,6 @@ public class DomainBinaryInteger : IDomain<int>
 
 	private int lowerBound;
 	private int upperBound;
-	private int size;
 	private int offset;
 
 	public bool Contains(int index)
@@ -57,10 +57,9 @@ public class DomainBinaryInteger : IDomain<int>
 	{
 		if (domainSize < 0)
 			throw new ArgumentException("Invalid Domain Size");
-		
+
 		this.lowerBound = 0;
 		this.upperBound = domainSize;
-		this.size = upperBound - lowerBound + 1;
 		this.domain = new uint[((domainSize + 1) % BitsPerDatatype == 0) ?
 			(domainSize + 1) / BitsPerDatatype : (domainSize + 1) / BitsPerDatatype + 1];
 
@@ -81,7 +80,6 @@ public class DomainBinaryInteger : IDomain<int>
 			this.offset = -lowerBound;
 
 		this.lowerBound = Math.Max(lowerBound, 0);
-		this.size = upperBound - lowerBound + 1;
 		var count = 0;
 		while (count < lowerBound)
 			RemoveFromDomain(count++);
@@ -136,8 +134,8 @@ public class DomainBinaryInteger : IDomain<int>
 			return;
 		}
 
-		this.size = 1;
 		this.lowerBound = this.upperBound = value + offset;
+		ClearAndSetSingleBit(value + offset);
 		result = DomainOperationResult.InstantiateSuccessful;
 	}
 
@@ -149,9 +147,16 @@ public class DomainBinaryInteger : IDomain<int>
 			return;
 		}
 
-		this.size = 1;
+		ClearAndSetSingleBit(this.lowerBound);
 		this.upperBound = this.lowerBound;
 		result = DomainOperationResult.InstantiateSuccessful;
+	}
+
+	private void ClearAndSetSingleBit(int index)
+	{
+		Array.Clear(this.domain, 0, this.domain.Length);
+		this.domain[((index + 1) % BitsPerDatatype == 0) ? (index + 1) / BitsPerDatatype - 1 :
+			(index + 1) / BitsPerDatatype] = (uint)(0x1 << (index % BitsPerDatatype));
 	}
 
 	public void Remove(int element, out DomainOperationResult result)
@@ -165,9 +170,8 @@ public class DomainBinaryInteger : IDomain<int>
 
 		RemoveFromDomain(element);
 
-		if (this.size == 1)
+		if (Size() == 0)
 		{
-			this.size = 0;
 			this.lowerBound = this.upperBound + 1;
 			return;
 		}
@@ -175,21 +179,15 @@ public class DomainBinaryInteger : IDomain<int>
 		if (element + offset == this.lowerBound)
 		{
 			while (this.lowerBound <= this.upperBound && !IsInDomain(this.lowerBound - offset))
-			{
 				++this.lowerBound;
-				--this.size;
-			}
 		}
 		else if (element + offset == this.upperBound)
 		{
 			while (this.upperBound >= this.lowerBound && !IsInDomain(this.upperBound - offset))
-			{
 				--this.upperBound;
-				--this.size;
-			}
 		}
 
-		if (this.lowerBound > this.upperBound || this.size == 0)
+		if (this.lowerBound > this.upperBound)
 			return;
 
 		result = DomainOperationResult.RemoveSuccessful;
@@ -209,7 +207,22 @@ public class DomainBinaryInteger : IDomain<int>
 
 	public int Size()
 	{
-		return this.size;
+		var count = 0;
+		foreach (var word in this.domain)
+			count += PopCount(word);
+		return count;
+	}
+
+	private static int PopCount(uint value)
+	{
+#if NETSTANDARD2_0 || NETSTANDARD2_1
+		value -= (value >> 1) & 0x55555555u;
+		value = (value & 0x33333333u) + ((value >> 2) & 0x33333333u);
+		value = (value + (value >> 4)) & 0x0F0F0F0Fu;
+		return (int)((value * 0x01010101u) >> 24);
+#else
+		return BitOperations.PopCount(value);
+#endif
 	}
 
 	public int LowerBound
@@ -232,7 +245,6 @@ public class DomainBinaryInteger : IDomain<int>
 		Array.Copy(this.domain, clone.domain, this.domain.Length);
 		clone.lowerBound = this.lowerBound;
 		clone.upperBound = this.upperBound;
-		clone.size = this.size;
 		clone.offset = this.offset;
 
 		return clone;
@@ -279,11 +291,10 @@ public class DomainBinaryInteger : IDomain<int>
 		this.domain[arrayIndex] = bits;
 	}
 
-	internal void SetBounds(int lower, int upper, int size)
+	internal void SetBounds(int lower, int upper)
 	{
 		this.lowerBound = lower;
 		this.upperBound = upper;
-		this.size = size;
 	}
 
 	#endregion

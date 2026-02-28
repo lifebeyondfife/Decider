@@ -54,12 +54,10 @@ internal static class ConflictAnalyser
 			if (foundLevel != currentLevel)
 				continue;
 
-			if (trail.IsExplanationApproximate(i))
-				return false;
-
 			nogood.Remove(key);
 
 			var explanation = GetExplanationFromEntry(i, trail, constraints, variables);
+
 			foreach (var antecedent in explanation)
 			{
 				var antKey = (antecedent.VariableIndex, antecedent.IsLowerBound);

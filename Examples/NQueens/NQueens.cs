@@ -43,8 +43,7 @@ public class NQueens
 	public void SearchAllSolutions(bool progress = true)
 	{
 		//	Search
-		this.State = new StateInteger(this.Variables, this.Constraints, new MostConstrainedOrdering(), new MiddleValueOrdering());
-		((StateInteger)this.State).ClauseLearningEnabled = false;
+		this.State = new StateInteger(this.Variables, this.Constraints, new MostConstrainedOrdering(), new LowestValueOrdering());
 		if (progress)
 			this.State.OnProgress = progress =>
 			{

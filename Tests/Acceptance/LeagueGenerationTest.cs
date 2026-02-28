@@ -1,5 +1,5 @@
 /*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
 
   This file is part of Decider.
 */
@@ -23,13 +23,13 @@ public class LeagueGenerationTest
         Assert.Equal(12, leagueGeneration.FixtureWeeks[0][3]);
 
         Assert.Equal(10, leagueGeneration.FixtureWeeks[5][6]);
-        Assert.Equal(11, leagueGeneration.FixtureWeeks[5][7]);
-        Assert.Equal(12, leagueGeneration.FixtureWeeks[5][8]);
+        Assert.Equal(13, leagueGeneration.FixtureWeeks[5][7]);
+        Assert.Equal(11, leagueGeneration.FixtureWeeks[5][8]);
 
         Assert.Equal(0, leagueGeneration.State.Backtracks);
         Assert.Single(leagueGeneration.State.Solutions);
     }
-    
+
     [Fact]
     public void TestGenerating20()
     {
@@ -49,7 +49,7 @@ public class LeagueGenerationTest
         Assert.Equal(18, leagueGeneration.FixtureWeeks[17][1]);
         Assert.Equal(19, leagueGeneration.FixtureWeeks[17][2]);
 
-        Assert.Equal(1, leagueGeneration.State.Backtracks);
+        Assert.Equal(0, leagueGeneration.State.Backtracks);
         Assert.Single(leagueGeneration.State.Solutions);
     }
 }

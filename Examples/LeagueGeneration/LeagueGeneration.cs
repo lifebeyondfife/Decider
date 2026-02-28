@@ -1,5 +1,5 @@
 /*
-  Copyright © Iain McDonald 2010-2022
+  Copyright © Iain McDonald 2010-2026
   
   This file is part of Decider.
 */
@@ -71,7 +71,6 @@ public class LeagueGeneration
 	public void Search()
 	{
 		this.State = new StateInteger(this.Variables.SelectMany(s => s.Select(a => a)), this.Constraints);
-		((StateInteger)this.State).ClauseLearningEnabled = false;
 		this.State.Search();
 	}
 

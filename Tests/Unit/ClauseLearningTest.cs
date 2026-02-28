@@ -3,11 +3,13 @@
 
   This file is part of Decider.
 */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
 using Decider.Csp.BaseTypes;
+using Decider.Csp.Global;
 using Decider.Csp.Integer;
 
 namespace Decider.Tests.Csp;
@@ -278,6 +280,176 @@ public class ClauseLearningTest
 		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
 	}
 
+	[Theory]
+	[InlineData(3, 3)]
+	[InlineData(4, 4)]
+	[InlineData(5, 5)]
+	[InlineData(4, 6)]
+	public void TestAllDifferentSearchAllSolutionsWithClauseLearning(int variableCount, int domainMax)
+	{
+		var varsOff = Enumerable.Range(0, variableCount)
+			.Select(i => new VariableInteger($"v{i}", 1, domainMax)).ToArray();
+		var constraintsOff = new List<IConstraint>();
+		for (var i = 0; i < variableCount; ++i)
+			for (var j = i + 1; j < variableCount; ++j)
+				constraintsOff.Add(new ConstraintInteger(varsOff[i] != varsOff[j]));
+		var stateOff = new StateInteger(varsOff, constraintsOff);
+		stateOff.SearchAllSolutions();
+
+		var varsOn = Enumerable.Range(0, variableCount)
+			.Select(i => new VariableInteger($"v{i}", 1, domainMax)).ToArray();
+		var constraintsOn = new List<IConstraint>();
+		for (var i = 0; i < variableCount; ++i)
+			for (var j = i + 1; j < variableCount; ++j)
+				constraintsOn.Add(new ConstraintInteger(varsOn[i] != varsOn[j]));
+		var stateOn = new StateInteger(varsOn, constraintsOn) { ClauseLearningEnabled = true };
+		stateOn.SearchAllSolutions();
+
+		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+	}
+
+	[Fact]
+	public void TestMinusSingleConstraintSearchAllSolutions()
+	{
+		var aOff = new VariableInteger("a", 0, 2);
+		var bOff = new VariableInteger("b", 0, 2);
+		var stateOff = new StateInteger([aOff, bOff],
+			[new ConstraintInteger(aOff - bOff != 1)]);
+		stateOff.SearchAllSolutions();
+
+		var aOn = new VariableInteger("a", 0, 2);
+		var bOn = new VariableInteger("b", 0, 2);
+		var stateOn = new StateInteger([aOn, bOn],
+			[new ConstraintInteger(aOn - bOn != 1)]) { ClauseLearningEnabled = true };
+		stateOn.SearchAllSolutions();
+
+		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+	}
+
+	[Theory]
+	[InlineData(false, false, true)]
+	[InlineData(false, true, false)]
+	[InlineData(true, false, false)]
+	[InlineData(true, true, false)]
+	[InlineData(true, false, true)]
+	[InlineData(false, true, true)]
+	[InlineData(true, true, true)]
+	public void TestThreeVarDiagonalSubsets(bool pair01, bool pair02, bool pair12)
+	{
+		IList<IConstraint> MakeConstraints(VariableInteger q0, VariableInteger q1, VariableInteger q2)
+		{
+			var c = new List<IConstraint>();
+			if (pair01) { c.Add(new ConstraintInteger(q0 - q1 != 1)); c.Add(new ConstraintInteger(q1 - q0 != 1)); }
+			if (pair02) { c.Add(new ConstraintInteger(q0 - q2 != 2)); c.Add(new ConstraintInteger(q2 - q0 != 2)); }
+			if (pair12) { c.Add(new ConstraintInteger(q1 - q2 != 1)); c.Add(new ConstraintInteger(q2 - q1 != 1)); }
+			return c;
+		}
+
+		var aOff = new VariableInteger("q0", 0, 2);
+		var bOff = new VariableInteger("q1", 0, 2);
+		var cOff = new VariableInteger("q2", 0, 2);
+		var stateOff = new StateInteger([aOff, bOff, cOff], MakeConstraints(aOff, bOff, cOff));
+		stateOff.SearchAllSolutions();
+
+		var aOn = new VariableInteger("q0", 0, 2);
+		var bOn = new VariableInteger("q1", 0, 2);
+		var cOn = new VariableInteger("q2", 0, 2);
+		var stateOn = new StateInteger([aOn, bOn, cOn], MakeConstraints(aOn, bOn, cOn))
+			{ ClauseLearningEnabled = true };
+		stateOn.SearchAllSolutions();
+
+		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+	}
+
+	[Fact]
+	public void TestMinusTwoConstraintsSearchAllSolutions()
+	{
+		var aOff = new VariableInteger("a", 0, 2);
+		var bOff = new VariableInteger("b", 0, 2);
+		var stateOff = new StateInteger([aOff, bOff],
+			[new ConstraintInteger(aOff - bOff != 1),
+			 new ConstraintInteger(bOff - aOff != 1)]);
+		stateOff.SearchAllSolutions();
+
+		var aOn = new VariableInteger("a", 0, 2);
+		var bOn = new VariableInteger("b", 0, 2);
+		var stateOn = new StateInteger([aOn, bOn],
+			[new ConstraintInteger(aOn - bOn != 1),
+			 new ConstraintInteger(bOn - aOn != 1)]) { ClauseLearningEnabled = true };
+		stateOn.SearchAllSolutions();
+
+		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+	}
+
+	[Theory]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	public void TestDiagonalOnlySearchAllSolutionsWithClauseLearning(int n)
+	{
+		var varsOff = Enumerable.Range(0, n)
+			.Select(i => new VariableInteger($"q{i}", 0, n - 1)).ToArray();
+		var constraintsOff = new List<IConstraint>();
+		for (var i = 0; i < n; ++i)
+			for (var j = i + 1; j < n; ++j)
+			{
+				constraintsOff.Add(new ConstraintInteger(varsOff[i] - varsOff[j] != j - i));
+				constraintsOff.Add(new ConstraintInteger(varsOff[j] - varsOff[i] != j - i));
+			}
+		var stateOff = new StateInteger(varsOff, constraintsOff);
+		stateOff.SearchAllSolutions();
+
+		var varsOn = Enumerable.Range(0, n)
+			.Select(i => new VariableInteger($"q{i}", 0, n - 1)).ToArray();
+		var constraintsOn = new List<IConstraint>();
+		for (var i = 0; i < n; ++i)
+			for (var j = i + 1; j < n; ++j)
+			{
+				constraintsOn.Add(new ConstraintInteger(varsOn[i] - varsOn[j] != j - i));
+				constraintsOn.Add(new ConstraintInteger(varsOn[j] - varsOn[i] != j - i));
+			}
+		var stateOn = new StateInteger(varsOn, constraintsOn) { ClauseLearningEnabled = true };
+		stateOn.SearchAllSolutions();
+
+		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+	}
+
+	[Theory]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	[InlineData(7)]
+	public void TestNQueensSearchAllSolutionsWithClauseLearning(int n)
+	{
+		var queensOff = Enumerable.Range(0, n)
+			.Select(i => new VariableInteger($"q{i}", 0, n - 1)).ToArray();
+		var constraintsOff = new List<IConstraint>();
+		for (var i = 0; i < n; ++i)
+			for (var j = i + 1; j < n; ++j)
+			{
+				constraintsOff.Add(new ConstraintInteger(queensOff[i] != queensOff[j]));
+				constraintsOff.Add(new ConstraintInteger(queensOff[i] - queensOff[j] != j - i));
+				constraintsOff.Add(new ConstraintInteger(queensOff[j] - queensOff[i] != j - i));
+			}
+		var stateOff = new StateInteger(queensOff, constraintsOff);
+		stateOff.SearchAllSolutions();
+
+		var queensOn = Enumerable.Range(0, n)
+			.Select(i => new VariableInteger($"q{i}", 0, n - 1)).ToArray();
+		var constraintsOn = new List<IConstraint>();
+		for (var i = 0; i < n; ++i)
+			for (var j = i + 1; j < n; ++j)
+			{
+				constraintsOn.Add(new ConstraintInteger(queensOn[i] != queensOn[j]));
+				constraintsOn.Add(new ConstraintInteger(queensOn[i] - queensOn[j] != j - i));
+				constraintsOn.Add(new ConstraintInteger(queensOn[j] - queensOn[i] != j - i));
+			}
+		var stateOn = new StateInteger(queensOn, constraintsOn) { ClauseLearningEnabled = true };
+		stateOn.SearchAllSolutions();
+
+		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+	}
+
 	[Fact]
 	public void TestClauseLearningOffByDefault()
 	{
@@ -381,4 +553,84 @@ public class ClauseLearningTest
 		Assert.Contains(reasons, r => r.VariableIndex == a.VariableId && r.IsLowerBound && r.BoundValue == 3);
 		Assert.Contains(reasons, r => r.VariableIndex == a.VariableId && !r.IsLowerBound && r.BoundValue == 3);
 	}
+
+	[Fact]
+	public void TestClauseLearningRejectsMiddleValueOrdering()
+	{
+		var a = new VariableInteger("a", 0, 10);
+		var b = new VariableInteger("b", 0, 10);
+		var state = new StateInteger([a, b], [new ConstraintInteger(a + b < 15)],
+			valueOrdering: new MiddleValueOrdering()) { ClauseLearningEnabled = true };
+
+		Assert.Throws<InvalidOperationException>(() => state.Search());
+	}
+
+	[Fact]
+	public void TestClauseLearningRejectsMiddleValueOrderingSearchAllSolutions()
+	{
+		var a = new VariableInteger("a", 0, 10);
+		var b = new VariableInteger("b", 0, 10);
+		var state = new StateInteger([a, b], [new ConstraintInteger(a + b < 15)],
+			valueOrdering: new MiddleValueOrdering()) { ClauseLearningEnabled = true };
+
+		Assert.Throws<InvalidOperationException>(() => state.SearchAllSolutions());
+	}
+
+	[Theory]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	[InlineData(7)]
+	public void TestAllDifferentIntegerOnlyWithClauseLearning(int n)
+	{
+		var varsOff = Enumerable.Range(0, n)
+			.Select(i => new VariableInteger($"v{i}", 0, n - 1)).ToArray();
+		var stateOff = new StateInteger(varsOff,
+			[new AllDifferentInteger(varsOff)]);
+		stateOff.SearchAllSolutions();
+
+		var varsOn = Enumerable.Range(0, n)
+			.Select(i => new VariableInteger($"v{i}", 0, n - 1)).ToArray();
+		var stateOn = new StateInteger(varsOn,
+			[new AllDifferentInteger(varsOn)]) { ClauseLearningEnabled = true };
+		stateOn.SearchAllSolutions();
+
+		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+	}
+
+	[Theory]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	[InlineData(7)]
+	public void TestNQueensWithAllDifferentAndClauseLearning(int n)
+	{
+		var queensOff = Enumerable.Range(0, n)
+			.Select(i => new VariableInteger($"q{i}", 0, n - 1)).ToArray();
+		var constraintsOff = new List<IConstraint> { new AllDifferentInteger(queensOff) };
+		for (var i = 0; i < n; ++i)
+			for (var j = i + 1; j < n; ++j)
+			{
+				constraintsOff.Add(new ConstraintInteger(queensOff[i] - queensOff[j] != j - i));
+				constraintsOff.Add(new ConstraintInteger(queensOff[j] - queensOff[i] != j - i));
+			}
+		var stateOff = new StateInteger(queensOff, constraintsOff);
+		stateOff.SearchAllSolutions();
+
+		var queensOn = Enumerable.Range(0, n)
+			.Select(i => new VariableInteger($"q{i}", 0, n - 1)).ToArray();
+		var constraintsOn = new List<IConstraint> { new AllDifferentInteger(queensOn) };
+		for (var i = 0; i < n; ++i)
+			for (var j = i + 1; j < n; ++j)
+			{
+				constraintsOn.Add(new ConstraintInteger(queensOn[i] - queensOn[j] != j - i));
+				constraintsOn.Add(new ConstraintInteger(queensOn[j] - queensOn[i] != j - i));
+			}
+		var stateOn = new StateInteger(queensOn, constraintsOn) { ClauseLearningEnabled = true };
+		stateOn.SearchAllSolutions();
+
+		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+	}
+
 }

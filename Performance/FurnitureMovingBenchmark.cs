@@ -50,7 +50,6 @@ public class FurnitureMovingBenchmark
 
 		var variables = new List<IVariable<int>>(starts) { makespan };
 		var state = new StateInteger(variables, constraints, new DomWdegOrdering(variables, constraints), new LowestValueOrdering());
-		state.ClauseLearningEnabled = false;
 		state.Search(makespan);
 
 		return state;

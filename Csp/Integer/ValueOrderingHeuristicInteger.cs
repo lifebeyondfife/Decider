@@ -57,9 +57,13 @@ public class SolutionGuidedValueOrdering : IValueOrderingHeuristic<int>
 
 	public int SelectValue(IVariable<int> variable)
 	{
-		if (this.preferredValues.TryGetValue(variable.VariableId, out var preferred) &&
-			((VariableInteger) variable).Domain.Contains(preferred))
-			return preferred;
+		if (this.preferredValues.TryGetValue(variable.VariableId, out var preferred))
+		{
+			var vi = (VariableInteger) variable;
+			if (vi.Domain.Contains(preferred) &&
+				(!vi.BoundsOnlyRemove || preferred == vi.Domain.LowerBound || preferred == vi.Domain.UpperBound))
+				return preferred;
+		}
 
 		return this.baseOrdering.SelectValue(variable);
 	}

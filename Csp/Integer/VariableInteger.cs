@@ -44,6 +44,7 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 			};
 	}
 
+	internal bool BoundsOnlyRemove;
 	private static int nextGeneration;
 
 	private IDomain<int> baseDomain = DomainBinaryInteger.CreateDomain(0, 0);
@@ -154,7 +155,7 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 		var arrayIndex = domainBinary.GetArrayIndex(value);
 
 		((StateInteger)this.State!).Trail.RecordChange(this.VariableId, arrayIndex,
-			domainBinary.GetBits(arrayIndex), domainBinary.InternalLowerBound, domainBinary.InternalUpperBound, domainBinary.Size(), this.Generation, depth);
+			domainBinary.GetBits(arrayIndex), domainBinary.InternalLowerBound, domainBinary.InternalUpperBound, this.Generation, depth);
 
 		this.Generation = ++nextGeneration;
 	}
@@ -177,6 +178,12 @@ public sealed class VariableInteger : ExpressionInteger, IVariable<int>
 	{
 		if (Instantiated() || value > this.Domain.UpperBound ||
 			value < this.Domain.LowerBound || this.State == null)
+		{
+			result = DomainOperationResult.ElementNotInDomain;
+			return;
+		}
+
+		if (BoundsOnlyRemove && value != this.Domain.LowerBound && value != this.Domain.UpperBound)
 		{
 			result = DomainOperationResult.ElementNotInDomain;
 			return;

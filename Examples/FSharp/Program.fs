@@ -24,7 +24,7 @@ let solve rolls rollers =
         cityrollers
     ]
 
-    let state = StateInteger(variables, constraints, ClauseLearningEnabled = false)
+    let state = StateInteger(variables, constraints)
     match state.Search() with
     | StateOperationResult.Solved ->
         printfn "Runtime:\t\t\t%A" state.Runtime
