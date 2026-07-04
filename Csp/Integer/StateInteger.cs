@@ -56,6 +56,7 @@ public class StateInteger : IState<int>
 	private PropagationTrail PropTrail { get; set; }
 	private ClauseStore LearnedClauses { get; set; }
 	public bool ClauseLearningEnabled { get; set; }
+	public bool BackjumpingEnabled { get; set; } = true;
 	private int[] BoundSnapshotLB { get; set; } = Array.Empty<int>();
 	private int[] BoundSnapshotUB { get; set; } = Array.Empty<int>();
 	private int ConflictConstraintIndex { get; set; } = -1;
@@ -156,7 +157,7 @@ public class StateInteger : IState<int>
 		this.ValueOrdering = valueOrdering;
 	}
 
-	public StateOperationResult Search()
+	public StateOperationResult Search(CancellationToken cancellationToken = default)
 	{
 		foreach (var v in this.Variables)
 			((VariableInteger) v).BoundsOnlyRemove = this.ClauseLearningEnabled;
@@ -181,7 +182,7 @@ public class StateInteger : IState<int>
 			return searchResult;
 		}
 
-		if (Search(out searchResult, instantiatedVariables, ref stopwatch))
+		if (Search(out searchResult, instantiatedVariables, ref stopwatch, cancellationToken))
 			this.Solutions.Add(CloneLastSolution());
 
 		this.Runtime += stopwatch.Elapsed;
@@ -272,7 +273,7 @@ public class StateInteger : IState<int>
 		return searchResult;
 	}
 
-	public StateOperationResult SearchAllSolutions()
+	public StateOperationResult SearchAllSolutions(CancellationToken cancellationToken = default)
 	{
 		foreach (var v in this.Variables)
 			((VariableInteger) v).BoundsOnlyRemove = this.ClauseLearningEnabled;
@@ -303,8 +304,15 @@ public class StateInteger : IState<int>
 				break;
 			}
 
-			if (Search(out searchResult, instantiatedVariables, ref stopwatch))
+			if (Search(out searchResult, instantiatedVariables, ref stopwatch, cancellationToken))
 				this.Solutions.Add(CloneLastSolution());
+
+			if (searchResult == StateOperationResult.Cancelled)
+			{
+				this.Runtime += stopwatch.Elapsed;
+				stopwatch.Stop();
+				return searchResult;
+			}
 		}
 
 		this.Runtime += stopwatch.Elapsed;
@@ -529,7 +537,7 @@ public class StateInteger : IState<int>
 
 	private int ComputeConflictDepth(IReadOnlyList<IVariable<int>>? constraintVariables)
 	{
-		if (constraintVariables == null)
+		if (!this.BackjumpingEnabled || constraintVariables == null)
 			return -1;
 
 		var maxDepth = -1;

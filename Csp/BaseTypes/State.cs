@@ -33,7 +33,7 @@ public interface IState<T>
 	void SetVariableOrderingHeuristic(IVariableOrderingHeuristic<T> variableOrdering);
 	void SetValueOrderingHeuristic(IValueOrderingHeuristic<T> valueOrdering);
 
-	StateOperationResult Search();
+	StateOperationResult Search(CancellationToken cancellationToken = default);
 	StateOperationResult Search(IVariable<int> optimiseVariable, CancellationToken cancellationToken = default);
-	StateOperationResult SearchAllSolutions();
+	StateOperationResult SearchAllSolutions(CancellationToken cancellationToken = default);
 }

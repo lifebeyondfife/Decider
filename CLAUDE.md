@@ -1,8 +1,7 @@
 # Decider - Claude Code Notes
 
 ## Tools
-- Use MCP tools for GitHub operations (issues, PRs, etc.).
-- DO NOT run Performance tests yourself; instruct me when they are ready to be run
+- calibration/probe runs are allowed but must always carry a hard per-run timeout and a stated total budget for the sweep; full BenchmarkDotNet runs (multi-iteration, statistical) remain user-triggered, since they're the expensive final measurement, not the exploration tool
 
 ## Coding Conventions
 - Avoid nested code as much as possible; return early
