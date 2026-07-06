@@ -37,9 +37,6 @@ public class StateInteger : IState<int>
 	private TimeSpan LastProgressReport { get; set; }
 	private double ProgressHighWatermark { get; set; }
 
-	private int[] AssignmentDepthByVarId { get; set; } = Array.Empty<int>();
-	private int ConflictJumpDepth { get; set; } = -1;
-	private int[] DepthConflictAccumulator { get; set; } = Array.Empty<int>();
 	private IConstraint? OptimisationConstraint { get; set; }
 
 	private List<IVariable<int>> AssignmentCandidates { get; set; } = new List<IVariable<int>>();
@@ -57,6 +54,7 @@ public class StateInteger : IState<int>
 	private ClauseStore LearnedClauses { get; set; }
 	public bool ClauseLearningEnabled { get; set; }
 	public bool BackjumpingEnabled { get; set; } = true;
+	private bool EnumeratingAllSolutions { get; set; }
 	private int[] BoundSnapshotLB { get; set; } = Array.Empty<int>();
 	private int[] BoundSnapshotUB { get; set; } = Array.Empty<int>();
 	private int ConflictConstraintIndex { get; set; } = -1;
@@ -99,14 +97,6 @@ public class StateInteger : IState<int>
 		this.VariableLastSeenGenerations = new int[this.Variables.Count];
 		for (var i = 0; i < this.VariableLastSeenGenerations.Count; ++i)
 			this.VariableLastSeenGenerations[i] = -1;
-
-		this.AssignmentDepthByVarId = new int[this.Variables.Count];
-		for (var i = 0; i < this.AssignmentDepthByVarId.Length; ++i)
-			this.AssignmentDepthByVarId[i] = -1;
-
-		this.DepthConflictAccumulator = new int[this.Variables.Count];
-		for (var i = 0; i < this.DepthConflictAccumulator.Length; ++i)
-			this.DepthConflictAccumulator[i] = -1;
 	}
 
 	public void SetConstraints(IEnumerable<IConstraint> constraints)
@@ -161,6 +151,7 @@ public class StateInteger : IState<int>
 	{
 		foreach (var v in this.Variables)
 			((VariableInteger) v).BoundsOnlyRemove = this.ClauseLearningEnabled;
+		this.EnumeratingAllSolutions = false;
 		this.ProgressHighWatermark = 0;
 		this.AssignmentCandidates = this.LastSolution == null
 			? new List<IVariable<int>>(this.Variables)
@@ -194,6 +185,7 @@ public class StateInteger : IState<int>
 	{
 		foreach (var v in this.Variables)
 			((VariableInteger) v).BoundsOnlyRemove = this.ClauseLearningEnabled;
+		this.EnumeratingAllSolutions = false;
 		this.ProgressHighWatermark = 0;
 		var instantiatedVariables = new IVariable<int>[this.Variables.Count];
 		var stopwatch = Stopwatch.StartNew();
@@ -250,8 +242,6 @@ public class StateInteger : IState<int>
 				{
 					this.BranchFactor[i] = 0;
 					this.Explored[i] = 0;
-					this.AssignmentDepthByVarId[i] = -1;
-					this.DepthConflictAccumulator[i] = -1;
 				}
 
 				this.ProgressHighWatermark = 0;
@@ -277,6 +267,7 @@ public class StateInteger : IState<int>
 	{
 		foreach (var v in this.Variables)
 			((VariableInteger) v).BoundsOnlyRemove = this.ClauseLearningEnabled;
+		this.EnumeratingAllSolutions = true;
 		this.ProgressHighWatermark = 0;
 		this.AssignmentCandidates = this.LastSolution == null
 			? new List<IVariable<int>>(this.Variables)
@@ -425,8 +416,6 @@ public class StateInteger : IState<int>
 		if (instantiateResult != DomainOperationResult.InstantiateSuccessful)
 			return false;
 
-		this.AssignmentDepthByVarId[variable.VariableId] = this.Depth;
-
 		if (this.ClauseLearningEnabled)
 		{
 			this.ConflictConstraintIndex = -1;
@@ -456,10 +445,6 @@ public class StateInteger : IState<int>
 		if (this.ClauseLearningEnabled && this.ConflictConstraintIndex >= 0)
 			return PerformConflictAnalysis(instantiatedVariables);
 
-		if (this.ConflictJumpDepth >= 0 && this.ConflictJumpDepth > this.DepthConflictAccumulator[this.Depth])
-			this.DepthConflictAccumulator[this.Depth] = this.ConflictJumpDepth;
-		this.ConflictJumpDepth = -1;
-
 		return ChronologicalBacktrack(instantiatedVariables);
 	}
 
@@ -474,88 +459,14 @@ public class StateInteger : IState<int>
 			BackTrackVariable(instantiatedVariables[this.Depth], out DomainOperationResult removeResult);
 
 			if (removeResult != DomainOperationResult.EmptyDomain)
-			{
-				this.DepthConflictAccumulator[this.Depth + 1] = -1;
 				return true;
-			}
 
 			this.BranchFactor[this.Depth + 1] = 0;
-
-			var jumpTarget = this.DepthConflictAccumulator[this.Depth + 1];
-			this.DepthConflictAccumulator[this.Depth + 1] = -1;
-
-			if (this.Depth < 0)
-				return false;
-
-			if (jumpTarget >= 0 && jumpTarget > this.DepthConflictAccumulator[this.Depth])
-				this.DepthConflictAccumulator[this.Depth] = jumpTarget;
-
-			if (jumpTarget >= 0 && jumpTarget < this.Depth)
-				return BacktrackJumpFromCurrentDepth(instantiatedVariables, jumpTarget);
 		}
-	}
-
-	private bool BacktrackJumpFromCurrentDepth(IList<IVariable<int>> instantiatedVariables, int jumpTarget)
-	{
-		var currentDepth = this.Depth;
-
-		for (var d = currentDepth; d > jumpTarget; --d)
-		{
-			this.AssignmentCandidates.Add(instantiatedVariables[d]);
-			this.AssignmentDepthByVarId[instantiatedVariables[d].VariableId] = -1;
-			this.BranchFactor[d] = 0;
-			this.DepthConflictAccumulator[d] = -1;
-		}
-		this.AssignmentCandidates.Add(instantiatedVariables[jumpTarget]);
-		this.AssignmentDepthByVarId[instantiatedVariables[jumpTarget].VariableId] = -1;
-		this.DepthConflictAccumulator[jumpTarget] = -1;
-
-		var targetValue = instantiatedVariables[jumpTarget].InstantiatedValue;
-
-		foreach (var variable in this.Variables)
-			variable.Backtrack(jumpTarget);
-
-		++this.Explored[jumpTarget];
-		this.Depth = jumpTarget - 1;
-
-		this.Trail.Backtrack(this.Depth, this.Variables);
-
-		if (this.ClauseLearningEnabled)
-			this.PropTrail.Backtrack(this.Depth);
-
-		foreach (var constraint in this.BacktrackableConstraints)
-			constraint.OnBacktrack(this.Depth);
-
-		instantiatedVariables[jumpTarget].Remove(targetValue, this.Depth, out DomainOperationResult removeResult);
-
-		if (removeResult != DomainOperationResult.EmptyDomain)
-			return true;
-
-		this.BranchFactor[jumpTarget] = 0;
-		return ChronologicalBacktrack(instantiatedVariables);
-	}
-
-	private int ComputeConflictDepth(IReadOnlyList<IVariable<int>>? constraintVariables)
-	{
-		if (!this.BackjumpingEnabled || constraintVariables == null)
-			return -1;
-
-		var maxDepth = -1;
-		foreach (var variable in constraintVariables)
-		{
-			var variableId = variable.VariableId;
-			if (variableId < 0 || variableId >= this.AssignmentDepthByVarId.Length)
-				continue;
-			var assignmentDepth = this.AssignmentDepthByVarId[variableId];
-			if (assignmentDepth >= 0 && assignmentDepth < this.Depth && assignmentDepth > maxDepth)
-				maxDepth = assignmentDepth;
-		}
-		return maxDepth;
 	}
 
 	private bool ConstraintsViolated()
 	{
-		this.ConflictJumpDepth = -1;
 		this.ConflictConstraintIndex = -1;
 		BuildInitialDirtySet();
 
@@ -617,7 +528,6 @@ public class StateInteger : IState<int>
 		{
 			constraint.FailureWeight++;
 			this.ConflictConstraintIndex = conIndex;
-			this.ConflictJumpDepth = ComputeConflictDepth(constraintVariables);
 
 			if (this.ClauseLearningEnabled)
 				RecordBoundChangesTrailOnly(constraintVariables, conIndex);
@@ -638,7 +548,6 @@ public class StateInteger : IState<int>
 		{
 			constraint.FailureWeight++;
 			this.ConflictConstraintIndex = conIndex;
-			this.ConflictJumpDepth = ComputeConflictDepth(constraintVariables);
 			return true;
 		}
 
@@ -718,6 +627,8 @@ public class StateInteger : IState<int>
 		if (constraintVariables == null)
 			return false;
 
+		List<(int VarId, bool WatchKey)>? notifications = null;
+
 		for (var j = 0; j < constraintVariables.Count; ++j)
 		{
 			if (constraintVariables[j].Generation == this.PropagationSnapshotBuffer[j])
@@ -734,8 +645,7 @@ public class StateInteger : IState<int>
 				this.PropTrail.RecordPropagation(varId, true, newLB, this.Depth,
 					PropagationTrail.ReasonConstraint, conIndex, explanation);
 
-				if (NotifyClauseStore(varId, false))
-					return true;
+				(notifications ??= new List<(int, bool)>()).Add((varId, false));
 			}
 
 			if (newUB < this.BoundSnapshotUB[j])
@@ -744,9 +654,17 @@ public class StateInteger : IState<int>
 				this.PropTrail.RecordPropagation(varId, false, newUB, this.Depth,
 					PropagationTrail.ReasonConstraint, conIndex, explanation);
 
-				if (NotifyClauseStore(varId, true))
-					return true;
+				(notifications ??= new List<(int, bool)>()).Add((varId, true));
 			}
+		}
+
+		if (notifications == null)
+			return false;
+
+		foreach (var notification in notifications)
+		{
+			if (NotifyClauseStore(notification.VarId, notification.WatchKey))
+				return true;
 		}
 
 		return false;
@@ -923,17 +841,20 @@ public class StateInteger : IState<int>
 	private bool PerformConflictAnalysis(IList<IVariable<int>> instantiatedVariables)
 	{
 		var conflictExplanation = GetConflictExplanation();
-
-		if (ConflictAnalyser.Analyse(this.PropTrail, conflictExplanation, this.Depth,
-			this.Constraints, this.Variables, out var learnedLiterals, out _))
-		{
-			this.LearnedClauses.AddClause(learnedLiterals, this.Variables);
-			this.LearnedClauses.DecayAllActivities();
-			this.LearnedClauses.ReduceDatabase();
-		}
-
 		this.ConflictConstraintIndex = -1;
-		return ChronologicalBacktrack(instantiatedVariables);
+
+		if (!ConflictAnalyser.Analyse(this.PropTrail, conflictExplanation, this.Depth,
+			this.Constraints, this.Variables, out var learnedLiterals, out var assertionLevel, out var isAsserting))
+			return ChronologicalBacktrack(instantiatedVariables);
+
+		var clauseIndex = this.LearnedClauses.AddClause(learnedLiterals, this.Variables);
+		this.LearnedClauses.DecayAllActivities();
+		this.LearnedClauses.ReduceDatabase();
+
+		if (!this.BackjumpingEnabled || this.EnumeratingAllSolutions || !isAsserting || assertionLevel >= this.Depth)
+			return ChronologicalBacktrack(instantiatedVariables);
+
+		return BackjumpToLevel(instantiatedVariables, assertionLevel, learnedLiterals, clauseIndex);
 	}
 
 	private bool BackjumpToLevel(IList<IVariable<int>> instantiatedVariables, int assertionLevel,
@@ -945,9 +866,7 @@ public class StateInteger : IState<int>
 				continue;
 
 			this.AssignmentCandidates.Add(instantiatedVariables[d]);
-			this.AssignmentDepthByVarId[instantiatedVariables[d].VariableId] = -1;
 			this.BranchFactor[d] = 0;
-			this.DepthConflictAccumulator[d] = -1;
 		}
 
 		foreach (var variable in this.Variables)
@@ -962,62 +881,84 @@ public class StateInteger : IState<int>
 		this.Depth = assertionLevel;
 		++this.Backtracks;
 
-		var clauseAlreadySatisfied = false;
-		BoundReason? assertingLiteral = null;
-		foreach (var literal in learnedLiterals)
+		var assertingLiteralIndex = -1;
+		for (var i = 0; i < learnedLiterals.Length; ++i)
 		{
-			var litVar = this.Variables[literal.VariableIndex];
-			if (Clause.IsLiteralFalsified(literal, litVar))
+			var literal = learnedLiterals[i];
+			var literalVariable = this.Variables[literal.VariableIndex];
+
+			if (Clause.IsLiteralSatisfied(literal, literalVariable))
+				throw new DeciderException(
+					"Conflict analysis produced a clause already satisfied at its assertion level; " +
+					"the propagation trail is inconsistent. Set BackjumpingEnabled = false to work around.");
+
+			if (Clause.IsLiteralFalsified(literal, literalVariable))
 				continue;
 
-			if (Clause.IsLiteralSatisfied(literal, litVar))
-			{
-				clauseAlreadySatisfied = true;
-				continue;
-			}
+			if (assertingLiteralIndex >= 0)
+				throw new DeciderException(
+					"Conflict analysis produced a non-asserting clause at its assertion level; " +
+					"the propagation trail is inconsistent. Set BackjumpingEnabled = false to work around.");
 
-			if (assertingLiteral == null)
-				assertingLiteral = literal;
+			assertingLiteralIndex = i;
 		}
 
-		if (clauseAlreadySatisfied)
-			return true;
-
-		if (assertingLiteral == null)
+		if (assertingLiteralIndex < 0)
 			return ChronologicalBacktrack(instantiatedVariables);
 
-		var lit = assertingLiteral.Value;
-		var assertingVar = this.Variables[lit.VariableIndex];
+		var lit = learnedLiterals[assertingLiteralIndex];
+		var assertingVariable = this.Variables[lit.VariableIndex];
 
 		if (lit.IsLowerBound)
 		{
-			while (assertingVar.Domain.LowerBound < lit.BoundValue)
+			while (assertingVariable.Domain.LowerBound < lit.BoundValue)
 			{
-				assertingVar.Remove(assertingVar.Domain.LowerBound, this.Depth, out var result);
+				assertingVariable.Remove(assertingVariable.Domain.LowerBound, this.Depth, out var result);
 				if (result == DomainOperationResult.EmptyDomain)
 					return ChronologicalBacktrack(instantiatedVariables);
 			}
 		}
 		else
 		{
-			while (assertingVar.Domain.UpperBound > lit.BoundValue)
+			while (assertingVariable.Domain.UpperBound > lit.BoundValue)
 			{
-				assertingVar.Remove(assertingVar.Domain.UpperBound, this.Depth, out var result);
+				assertingVariable.Remove(assertingVariable.Domain.UpperBound, this.Depth, out var result);
 				if (result == DomainOperationResult.EmptyDomain)
 					return ChronologicalBacktrack(instantiatedVariables);
 			}
 		}
 
 		this.PropTrail.RecordPropagation(lit.VariableIndex, lit.IsLowerBound, lit.BoundValue,
-			this.Depth, PropagationTrail.ReasonLearnedClause, clauseIndex);
+			this.Depth, PropagationTrail.ReasonLearnedClause, clauseIndex,
+			ComputeAssertionExplanation(learnedLiterals, assertingLiteralIndex));
+
+		if (NotifyClauseStore(lit.VariableIndex, !lit.IsLowerBound))
+			return ChronologicalBacktrack(instantiatedVariables);
 
 		return true;
+	}
+
+	private static IList<BoundReason> ComputeAssertionExplanation(BoundReason[] learnedLiterals,
+		int assertingLiteralIndex)
+	{
+		var explanation = new List<BoundReason>();
+		for (var i = 0; i < learnedLiterals.Length; ++i)
+		{
+			if (i == assertingLiteralIndex)
+				continue;
+
+			var literal = learnedLiterals[i];
+			explanation.Add(literal.IsLowerBound
+				? new BoundReason(literal.VariableIndex, false, literal.BoundValue - 1)
+				: new BoundReason(literal.VariableIndex, true, literal.BoundValue + 1));
+		}
+
+		return explanation;
 	}
 
 	private void BackTrackVariable(IVariable<int> variablePrune, out DomainOperationResult result)
 	{
 		++this.Backtracks;
-		this.AssignmentDepthByVarId[variablePrune.VariableId] = -1;
 
 		if (!variablePrune.Instantiated())
 		{
@@ -1054,7 +995,21 @@ public class StateInteger : IState<int>
 		foreach (var backtrackableConstraint in this.BacktrackableConstraints)
 			backtrackableConstraint.OnBacktrack(this.Depth);
 
+		var oldLowerBound = variablePrune.Domain.LowerBound;
+		var oldUpperBound = variablePrune.Domain.UpperBound;
+
 		variablePrune.Remove(value, this.Depth, out result);
+
+		if (!this.ClauseLearningEnabled || result == DomainOperationResult.EmptyDomain || this.Depth < 0)
+			return;
+
+		if (variablePrune.Domain.LowerBound > oldLowerBound)
+			this.PropTrail.RecordPropagation(variablePrune.VariableId, true, variablePrune.Domain.LowerBound,
+				this.Depth, PropagationTrail.ReasonDecision, -1);
+
+		if (variablePrune.Domain.UpperBound < oldUpperBound)
+			this.PropTrail.RecordPropagation(variablePrune.VariableId, false, variablePrune.Domain.UpperBound,
+				this.Depth, PropagationTrail.ReasonDecision, -1);
 	}
 
 	private double ComputeProgress()
