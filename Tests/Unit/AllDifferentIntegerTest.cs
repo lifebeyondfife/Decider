@@ -25,7 +25,7 @@ public class AllDifferentIntegerTest
 	}
 
 	[Fact]
-	public void TestExplainLowerBoundReturnsPrePropagationBounds()
+	public void TestExplainLowerBoundEmitsOnlyHallWitnessBounds()
 	{
 		var x1 = new VariableInteger("x1", 1, 2);
 		var x2 = new VariableInteger("x2", 1, 2);
@@ -47,11 +47,12 @@ public class AllDifferentIntegerTest
 		Assert.Contains(reasons, r => r.VariableIndex == x2.VariableId && r.IsLowerBound && r.BoundValue == 1);
 		Assert.Contains(reasons, r => r.VariableIndex == x2.VariableId && !r.IsLowerBound && r.BoundValue == 2);
 		Assert.Contains(reasons, r => r.VariableIndex == x3.VariableId && r.IsLowerBound && r.BoundValue == 1);
-		Assert.Contains(reasons, r => r.VariableIndex == x3.VariableId && !r.IsLowerBound && r.BoundValue == 3);
+		Assert.DoesNotContain(reasons, r => r.VariableIndex == x3.VariableId && !r.IsLowerBound);
+		Assert.Equal(5, reasons.Count);
 	}
 
 	[Fact]
-	public void TestExplainUpperBoundReturnsPrePropagationBounds()
+	public void TestExplainUpperBoundEmitsOnlyHallWitnessBounds()
 	{
 		var x1 = new VariableInteger("x1", 2, 3);
 		var x2 = new VariableInteger("x2", 2, 3);
@@ -72,8 +73,49 @@ public class AllDifferentIntegerTest
 		Assert.Contains(reasons, r => r.VariableIndex == x1.VariableId && !r.IsLowerBound && r.BoundValue == 3);
 		Assert.Contains(reasons, r => r.VariableIndex == x2.VariableId && r.IsLowerBound && r.BoundValue == 2);
 		Assert.Contains(reasons, r => r.VariableIndex == x2.VariableId && !r.IsLowerBound && r.BoundValue == 3);
-		Assert.Contains(reasons, r => r.VariableIndex == x3.VariableId && r.IsLowerBound && r.BoundValue == 1);
 		Assert.Contains(reasons, r => r.VariableIndex == x3.VariableId && !r.IsLowerBound && r.BoundValue == 3);
+		Assert.DoesNotContain(reasons, r => r.VariableIndex == x3.VariableId && r.IsLowerBound);
+		Assert.Equal(5, reasons.Count);
+	}
+
+	[Fact]
+	public void TestExplainCitesHallSetSizeNotTotalVariableCount()
+	{
+		var x0 = new VariableInteger("x0", 1, 2);
+		var x1 = new VariableInteger("x1", 1, 2);
+		var x2 = new VariableInteger("x2", 1, 10);
+		var x3 = new VariableInteger("x3", 3, 10);
+		var x4 = new VariableInteger("x4", 3, 10);
+		var constraint = new AllDifferentInteger([x0, x1, x2, x3, x4]);
+		_ = new StateInteger([x0, x1, x2, x3, x4], [constraint]);
+
+		var snapshotLower = new[]
+		{
+			x0.Domain.LowerBound, x1.Domain.LowerBound, x2.Domain.LowerBound,
+			x3.Domain.LowerBound, x4.Domain.LowerBound
+		};
+		var snapshotUpper = new[]
+		{
+			x0.Domain.UpperBound, x1.Domain.UpperBound, x2.Domain.UpperBound,
+			x3.Domain.UpperBound, x4.Domain.UpperBound
+		};
+
+		constraint.Propagate(out _);
+
+		Assert.Equal(3, x2.Domain.LowerBound);
+
+		var reasons = new List<BoundReason>();
+		((IExplainableConstraint) constraint).Explain(x2.VariableId, true, x2.Domain.LowerBound,
+			snapshotLower, snapshotUpper, reasons);
+
+		Assert.Equal(5, reasons.Count);
+		Assert.Contains(reasons, r => r.VariableIndex == x0.VariableId && r.IsLowerBound && r.BoundValue == 1);
+		Assert.Contains(reasons, r => r.VariableIndex == x0.VariableId && !r.IsLowerBound && r.BoundValue == 2);
+		Assert.Contains(reasons, r => r.VariableIndex == x1.VariableId && r.IsLowerBound && r.BoundValue == 1);
+		Assert.Contains(reasons, r => r.VariableIndex == x1.VariableId && !r.IsLowerBound && r.BoundValue == 2);
+		Assert.Contains(reasons, r => r.VariableIndex == x2.VariableId && r.IsLowerBound && r.BoundValue == 1);
+		Assert.DoesNotContain(reasons, r => r.VariableIndex == x3.VariableId);
+		Assert.DoesNotContain(reasons, r => r.VariableIndex == x4.VariableId);
 	}
 
 	[Fact]

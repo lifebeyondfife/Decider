@@ -116,11 +116,102 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 	public void Explain(int variableId, bool isLowerBound, int boundValue,
 		IReadOnlyList<int> snapshotLowerBounds, IReadOnlyList<int> snapshotUpperBounds, IList<BoundReason> result)
 	{
+		if (TryExplainHall(variableId, isLowerBound, boundValue, snapshotLowerBounds, snapshotUpperBounds, result))
+			return;
+
 		for (var i = 0; i < this.VariableList.Length; ++i)
 		{
 			result.Add(new BoundReason(this.VariableList[i].VariableId, true, snapshotLowerBounds[i]));
 			result.Add(new BoundReason(this.VariableList[i].VariableId, false, snapshotUpperBounds[i]));
 		}
+	}
+
+	private bool TryExplainHall(int variableId, bool isLowerBound, int boundValue,
+		IReadOnlyList<int> snapshotLowerBounds, IReadOnlyList<int> snapshotUpperBounds, IList<BoundReason> result)
+	{
+		var target = -1;
+		for (var i = 0; i < this.VariableList.Length; ++i)
+		{
+			if (this.VariableList[i].VariableId != variableId)
+				continue;
+
+			target = i;
+			break;
+		}
+
+		if (target < 0)
+			return false;
+
+		var hall = isLowerBound
+			? FindHallForLowerBound(target, boundValue, snapshotLowerBounds, snapshotUpperBounds)
+			: FindHallForUpperBound(target, boundValue, snapshotLowerBounds, snapshotUpperBounds);
+
+		if (hall == null)
+			return false;
+
+		foreach (var i in hall)
+		{
+			result.Add(new BoundReason(this.VariableList[i].VariableId, true, snapshotLowerBounds[i]));
+			result.Add(new BoundReason(this.VariableList[i].VariableId, false, snapshotUpperBounds[i]));
+		}
+
+		result.Add(isLowerBound
+			? new BoundReason(variableId, true, snapshotLowerBounds[target])
+			: new BoundReason(variableId, false, snapshotUpperBounds[target]));
+
+		return true;
+	}
+
+	private IList<int>? FindHallForLowerBound(int target, int boundValue,
+		IReadOnlyList<int> snapshotLowerBounds, IReadOnlyList<int> snapshotUpperBounds)
+	{
+		var upper = boundValue - 1;
+		var floor = snapshotLowerBounds[0];
+		foreach (var lowerBound in snapshotLowerBounds)
+			floor = Math.Min(floor, lowerBound);
+
+		for (var lower = snapshotLowerBounds[target]; lower >= floor; --lower)
+		{
+			var members = CollectContained(target, lower, upper, snapshotLowerBounds, snapshotUpperBounds);
+			if (members.Count == upper - lower + 1)
+				return members;
+		}
+
+		return null;
+	}
+
+	private IList<int>? FindHallForUpperBound(int target, int boundValue,
+		IReadOnlyList<int> snapshotLowerBounds, IReadOnlyList<int> snapshotUpperBounds)
+	{
+		var lower = boundValue + 1;
+		var ceiling = snapshotUpperBounds[0];
+		foreach (var upperBound in snapshotUpperBounds)
+			ceiling = Math.Max(ceiling, upperBound);
+
+		for (var upper = snapshotUpperBounds[target]; upper <= ceiling; ++upper)
+		{
+			var members = CollectContained(target, lower, upper, snapshotLowerBounds, snapshotUpperBounds);
+			if (members.Count == upper - lower + 1)
+				return members;
+		}
+
+		return null;
+	}
+
+	private IList<int> CollectContained(int target, int lower, int upper,
+		IReadOnlyList<int> snapshotLowerBounds, IReadOnlyList<int> snapshotUpperBounds)
+	{
+		var members = new List<int>();
+		for (var i = 0; i < this.VariableList.Length; ++i)
+		{
+			if (i == target)
+				continue;
+
+			if (snapshotLowerBounds[i] >= lower && snapshotUpperBounds[i] <= upper)
+				members.Add(i);
+		}
+
+		return members;
 	}
 
 	private bool IncrementalUpdate()
