@@ -540,6 +540,51 @@ public class ClauseLearningTest
 		Assert.NotNull(state.OptimalSolution);
 	}
 
+	private static (int? Optimum, int LearnedClauses) SolveDisjunctiveMakespan(bool clauseLearning)
+	{
+		var machineOfOp = new[] { 0, 1, 0, 1, 0, 1 };
+		var durationOfOp = new[] { 3, 2, 2, 3, 1, 2 };
+		var jobChains = new[] { (0, 1), (2, 3), (4, 5) };
+		var horizon = 14;
+
+		var starts = Enumerable.Range(0, machineOfOp.Length)
+			.Select(op => new VariableInteger($"op{op}", 0, horizon - durationOfOp[op]))
+			.ToList();
+		var makespan = new VariableInteger("makespan", 0, horizon);
+
+		var constraints = new List<IConstraint>();
+		foreach (var (first, second) in jobChains)
+			constraints.Add(new ConstraintInteger(starts[second] - starts[first] >= durationOfOp[first]));
+
+		for (var op = 0; op < machineOfOp.Length; ++op)
+			constraints.Add(new ConstraintInteger(makespan - starts[op] >= durationOfOp[op]));
+
+		for (var machine = 0; machine < 2; ++machine)
+		{
+			var ops = Enumerable.Range(0, machineOfOp.Length).Where(op => machineOfOp[op] == machine).ToList();
+			var machineStarts = ops.Select(op => starts[op]).ToList();
+			var machineDurations = ops.Select(op => durationOfOp[op]).ToList();
+			constraints.Add(new DisjunctiveInteger(machineStarts, machineDurations));
+		}
+
+		var variables = starts.Append(makespan).ToArray();
+		var state = new StateInteger(variables, constraints) { ClauseLearningEnabled = clauseLearning };
+		state.Search(makespan);
+
+		return (state.OptimalSolution?["makespan"].InstantiatedValue, state.LearnedClauseCount);
+	}
+
+	[Fact]
+	public void TestOptimisationPersistsLearnedClausesAcrossIncumbents()
+	{
+		var off = SolveDisjunctiveMakespan(clauseLearning: false);
+		var on = SolveDisjunctiveMakespan(clauseLearning: true);
+
+		Assert.Equal(8, off.Optimum);
+		Assert.Equal(off.Optimum, on.Optimum);
+		Assert.True(on.LearnedClauses > 0);
+	}
+
 	[Fact]
 	public void TestConstraintIntegerImplementsIExplainableConstraint()
 	{

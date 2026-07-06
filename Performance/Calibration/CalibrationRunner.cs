@@ -35,7 +35,7 @@ public static class CalibrationRunner
 
 		if (args.Count == 0 || (args[0] != "validate" && args[0] != "probe" && args[0] != "decision"))
 		{
-			Console.WriteLine("Usage: calibrate <validate|probe|decision> [--cap <seconds>] [--family <rcpsp|jssp>] [--instance <name>] [--bound <value>]");
+			Console.WriteLine("Usage: calibrate <validate|probe|decision> [--cap <seconds>] [--family <rcpsp|jssp>] [--instance <name>] [--bound <value>] [--clause-learning]");
 			return;
 		}
 
@@ -97,7 +97,7 @@ public static class CalibrationRunner
 			return;
 		}
 
-		RunProbes(instances, dataDirectory, cap);
+		RunProbes(instances, dataDirectory, cap, args.Contains("--clause-learning"));
 	}
 
 	private static void RunBisection(IList<string> args)
@@ -210,7 +210,7 @@ public static class CalibrationRunner
 			: "VALIDATION FAILURES PRESENT — check transcriptions before trusting probe results.");
 	}
 
-	private static void RunProbes(IList<ProbeInstance> instances, string dataDirectory, int cap)
+	private static void RunProbes(IList<ProbeInstance> instances, string dataDirectory, int cap, bool clauseLearning)
 	{
 		Console.WriteLine("| Instance | Family | Evidence | Known | Status | Incumbent | Gap % | Backtracks | Time (s) | Sound |");
 		Console.WriteLine("|---|---|---|---|---|---|---|---|---|---|");
@@ -218,7 +218,7 @@ public static class CalibrationRunner
 		var allSound = true;
 		foreach (var instance in instances)
 		{
-			var result = DeciderProbe.Run(instance, dataDirectory, cap);
+			var result = DeciderProbe.Run(instance, dataDirectory, cap, clauseLearning);
 			allSound &= result.Sound;
 
 			var gap = result.GapPercent.HasValue ? result.GapPercent.Value.ToString("F1") : "-";

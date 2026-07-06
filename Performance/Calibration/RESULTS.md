@@ -309,3 +309,93 @@ dotnet run -c Release -- calibrate bisect --instance la19 --encoding global
 dotnet run -c Release -- calibrate probe --family jssp
 dotnet run -c Release -- calibrate probe --family rcpsp
 ```
+
+---
+
+# CDCL Phase 1 re-baseline — 6 July 2026
+
+Issue [#166](https://github.com/lifebeyondfife/Decider/issues/166) implemented (CDCL Phase 1,
+follow-on from #164). `StateInteger.Search(optimiseVar)` no longer clears `LearnedClauses` on
+incumbent improvement — only `PropTrail` is cleared. Learned clauses now persist across
+incumbents: each new incumbent only tightens the objective bound, so every stored clause
+remains implied for the rest of the run. Watched literals are sound after the full backtrack
+to root (all literals non-falsified at root, so the two-watch invariant holds and repair stays
+lazy); `ReduceDatabase`/`MaxClauses` (default 4000) is the sole bound on store growth.
+
+Both sweeps run with the new `--clause-learning` flag, per-run hard cap 60s, on `main`.
+
+## Acceptance criterion #2: zero UNSOUND rows with clause learning enabled
+
+Both families below report **no soundness violations** — no incumbent below a published
+optimum, every PROVEN matches its optimum. Clause retention across incumbents is sound.
+
+### JSSP probe sweep, clause learning enabled (16 instances × 60s cap)
+
+| Instance | Known | Status | Incumbent | Gap % | Backtracks | Time (s) | Sound |
+|---|---|---|---|---|---|---|---|
+| ft06 | 55 | PROVEN | 55 | 0.0 | 191 | 0.1 | OK |
+| la01 | 666 | PROVEN | 666 | 0.0 | 46,437 | 2.5 | OK |
+| la04 | 590 | INCUMBENT | 753 | 27.6 | 3,055,187 | 60.0 | OK |
+| la06 | 926 | INCUMBENT | 927 | 0.1 | 838,255 | 60.0 | OK |
+| la16 | 945 | INCUMBENT | 1014 | 7.3 | 397,166 | 60.0 | OK |
+| la19 | 842 | INCUMBENT | 923 | 9.6 | 226,294 | 60.0 | OK |
+| ft10 | 930 | INCUMBENT | 1060 | 14.0 | 215,845 | 60.0 | OK |
+| abz5 | 1234 | INCUMBENT | 1321 | 7.1 | 311,386 | 60.0 | OK |
+| orb01 | 1059 | INCUMBENT | 1215 | 14.7 | 167,011 | 60.0 | OK |
+| orb02 | 888 | INCUMBENT | 1079 | 21.5 | 225,767 | 60.0 | OK |
+| la21 | 1046 | INCUMBENT | 1211 | 15.8 | 122,971 | 60.0 | OK |
+| la24 | 935 | INCUMBENT | 1063 | 13.7 | 282,999 | 60.0 | OK |
+| la27 | 1235 | INCUMBENT | 1502 | 21.6 | 365,196 | 60.0 | OK |
+| la29 | 1152 | INCUMBENT | 1581 | 37.2 | 210,141 | 60.0 | OK |
+| la38 | 1196 | INCUMBENT | 1452 | 21.4 | 86,415 | 60.0 | OK |
+| ta01 | 1231 | INCUMBENT | 1394 | 13.2 | 62,561 | 60.0 | OK |
+
+### RCPSP probe sweep, clause learning enabled (19 instances × 60s cap)
+
+| Instance | Known | Status | Incumbent | Gap % | Backtracks | Time (s) | Sound |
+|---|---|---|---|---|---|---|---|
+| j3010_1 | 42 | PROVEN | 42 | 0.0 | 2 | 0.1 | OK |
+| j309_4 | 71 | INCUMBENT | 74 | 4.2 | 455,497 | 60.0 | OK |
+| j3014_4 | 50 | NOSOLUTION | - | - | 686,603 | 60.0 | OK |
+| j3025_3 | 76 | INCUMBENT | 86 | 13.2 | 252,800 | 60.0 | OK |
+| j3013_9 | 71 | INCUMBENT | 72 | 1.4 | 602,216 | 60.0 | OK |
+| j3029_8 | 80 | INCUMBENT | 86 | 7.5 | 389,454 | 60.0 | OK |
+| j309_1 | 83 | NOSOLUTION | - | - | 659,338 | 60.0 | OK |
+| j3013_5 | 67 | INCUMBENT | 74 | 10.4 | 279,744 | 60.0 | OK |
+| j3013_1 | 58 | INCUMBENT | 72 | 24.1 | 259,377 | 60.0 | OK |
+| j6010_1 | 85 | PROVEN | 85 | 0.0 | 0 | 0.0 | OK |
+| j601_1 | 77 | PROVEN | 77 | 0.0 | 0 | 0.0 | OK |
+| j602_1 | 65 | PROVEN | 65 | 0.0 | 0 | 0.0 | OK |
+| j601_4 | 91 | PROVEN | 91 | 0.0 | 11 | 0.0 | OK |
+| j6017_1 | 86 | PROVEN | 86 | 0.0 | 12,371 | 10.4 | OK |
+| j609_3 | 100 | INCUMBENT | 123 | 23.0 | 100,933 | 60.0 | OK |
+| j6025_2 | 98 | NOSOLUTION | - | - | 94,576 | 60.0 | OK |
+| j601_7 | 72 | NOSOLUTION | - | - | 88,358 | 60.0 | OK |
+| j6021_1 | 103 | INCUMBENT | 117 | 13.6 | 65,380 | 60.0 | OK |
+| j6026_2 | 66 | NOSOLUTION | - | - | 39,851 | 60.0 | OK |
+
+## Performance read: sound, not yet a net win
+
+Clause learning is **net-negative on time-to-proof** across both families at this stage — the
+per-node overhead (explanation recording, watch maintenance, unit propagation over the clause
+store) is not yet repaid by reduced search on this benchmark set. Backtracks-in-60s drop
+sharply versus the 5 July clause-learning-off baseline, and several fast proofs are lost:
+
+- **JSSP mixed**: la01 *gains* a proof (5 Jul INCUMBENT 667 → PROVEN 666 in 2.5s), but la06
+  *loses* one (5 Jul PROVEN 926 in 0.1s → INCUMBENT 927). Remaining instances show wider gaps
+  (e.g. la19 6.1% → 9.6%).
+- **RCPSP regressions**: j3014_4 (PROVEN 50 in 5.0s → NOSOLUTION) and j6026_2 (PROVEN 66 in
+  2.7s → NOSOLUTION) fall off the proof cliff; j6017_1 still proves 86 (9.1s → 10.4s). The
+  pure-propagation j60 T1 anchors (0 backtracks) are unchanged — clause learning is inert there.
+
+This is expected for Phase 1: the objective was to make cross-incumbent clause **retention
+sound**, which the zero-UNSOUND result confirms. Turning retained clauses into a search-time
+win is downstream — the #159 counters (clauses surviving incumbents and firing unit
+propagations in later iterations) are the next measurement, gating the #158 epic decision.
+
+## Reproduction commands
+
+```bash
+dotnet run -c Release -- calibrate probe --family jssp --clause-learning
+dotnet run -c Release -- calibrate probe --family rcpsp --clause-learning
+```
