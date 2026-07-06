@@ -25,6 +25,8 @@ public class DisjunctiveInteger : IConstraint<int>, IExplainableConstraint
 	private int[] LatestCompletionTimes { get; set; }
 	private int[] NewLowerBounds { get; set; }
 	private int[] NewUpperBounds { get; set; }
+	private int[] SnapshotLB { get; set; }
+	private int[] SnapshotUB { get; set; }
 	private int[] SortedByLct { get; set; }
 	private int[] SortedByEstDesc { get; set; }
 	private Comparison<int> LctComparison { get; set; }
@@ -47,6 +49,8 @@ public class DisjunctiveInteger : IConstraint<int>, IExplainableConstraint
 		this.LatestCompletionTimes = new int[n];
 		this.NewLowerBounds = new int[n];
 		this.NewUpperBounds = new int[n];
+		this.SnapshotLB = new int[n];
+		this.SnapshotUB = new int[n];
 		this.SortedByLct = new int[n];
 		this.SortedByEstDesc = new int[n];
 
@@ -99,6 +103,12 @@ public class DisjunctiveInteger : IConstraint<int>, IExplainableConstraint
 	public void Propagate(out ConstraintOperationResult result)
 	{
 		result = ConstraintOperationResult.Undecided;
+
+		for (var i = 0; i < this.Starts.Count; ++i)
+		{
+			this.SnapshotLB[i] = this.Starts[i].Domain.LowerBound;
+			this.SnapshotUB[i] = this.Starts[i].Domain.UpperBound;
+		}
 
 		var propagationOccurred = true;
 
@@ -502,8 +512,8 @@ if (ApplyNewUpperBound(i, this.NewUpperBounds[i], ref result))
 	{
 		for (var j = 0; j < this.Starts.Count; ++j)
 		{
-			result.Add(new BoundReason(this.Starts[j].VariableId, true, this.Starts[j].Domain.LowerBound));
-			result.Add(new BoundReason(this.Starts[j].VariableId, false, this.Starts[j].Domain.UpperBound));
+			result.Add(new BoundReason(this.Starts[j].VariableId, true, this.SnapshotLB[j]));
+			result.Add(new BoundReason(this.Starts[j].VariableId, false, this.SnapshotUB[j]));
 		}
 	}
 
