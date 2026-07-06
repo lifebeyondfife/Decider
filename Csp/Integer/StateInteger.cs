@@ -53,6 +53,12 @@ public class StateInteger : IState<int>
 	private PropagationTrail PropTrail { get; set; }
 	private ClauseStore LearnedClauses { get; set; }
 	public int LearnedClauseCount => this.LearnedClauses.Count;
+	public int ClausesLearned => this.LearnedClauses.ClausesLearned;
+	public double AverageClauseSize => this.LearnedClauses.AverageClauseSize;
+	public int MaxClauseSize => this.LearnedClauses.MaxClauseSize;
+	public int UnitPropagationsFromClauses => this.LearnedClauses.UnitPropagationsFromClauses;
+	public int ClauseCacheHits => this.LearnedClauses.ClauseCacheHits;
+	public int ClausesEvicted => this.LearnedClauses.ClausesEvicted;
 	public bool ClauseLearningEnabled { get; set; }
 	public bool BackjumpingEnabled { get; set; } = true;
 	private bool EnumeratingAllSolutions { get; set; }

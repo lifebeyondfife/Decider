@@ -34,6 +34,17 @@ internal class ClauseStore
 
 	internal int Count => this.Clauses.Count;
 
+	internal int ClausesLearned { get; private set; }
+	internal long TotalClauseLiterals { get; private set; }
+	internal int MaxClauseSize { get; private set; }
+	internal int UnitPropagationsFromClauses { get; private set; }
+	internal int ClauseCacheHits { get; private set; }
+	internal int ClausesEvicted { get; private set; }
+
+	internal double AverageClauseSize => this.ClausesLearned == 0
+		? 0.0
+		: (double) this.TotalClauseLiterals / this.ClausesLearned;
+
 	internal ClauseStore()
 	{
 		this.Clauses = new List<Clause>();
@@ -47,6 +58,11 @@ internal class ClauseStore
 		var clause = new Clause(literals);
 		var clauseIndex = this.Clauses.Count;
 		this.Clauses.Add(clause);
+
+		++this.ClausesLearned;
+		this.TotalClauseLiterals += literals.Length;
+		if (literals.Length > this.MaxClauseSize)
+			this.MaxClauseSize = literals.Length;
 
 		if (literals.Length < 2)
 			return clauseIndex;
@@ -121,11 +137,17 @@ internal class ClauseStore
 				continue;
 
 			if (Clause.IsLiteralFalsified(otherLiteral, otherVariable))
+			{
+				++this.ClauseCacheHits;
 				return true;
+			}
 
 			forcedLiteral = otherLiteral;
 			forcedClauseIndex = watch.ClauseIndex;
 		}
+
+		if (forcedClauseIndex >= 0)
+			++this.UnitPropagationsFromClauses;
 
 		return false;
 	}
@@ -177,6 +199,7 @@ internal class ClauseStore
 			else
 			{
 				indexMap[i] = -1;
+				++this.ClausesEvicted;
 			}
 		}
 

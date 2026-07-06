@@ -228,6 +228,159 @@ public class ClauseLearningTest
 	}
 
 	[Fact]
+	public void TestClauseStoreCountersTrackLearnedClauseSizes()
+	{
+		var x = new VariableInteger("x", 1, 10);
+		var y = new VariableInteger("y", 1, 10);
+		var z = new VariableInteger("z", 1, 10);
+		var variables = new List<IVariable<int>> { x, y, z };
+		_ = new StateInteger(variables, []);
+
+		var store = new ClauseStore();
+		store.AddClause([new BoundReason(0, true, 5), new BoundReason(1, false, 3)], variables);
+		store.AddClause([new BoundReason(0, true, 4), new BoundReason(1, false, 2),
+			new BoundReason(2, true, 6)], variables);
+
+		Assert.Equal(2, store.ClausesLearned);
+		Assert.Equal(3, store.MaxClauseSize);
+		Assert.Equal(2.5, store.AverageClauseSize);
+	}
+
+	[Fact]
+	public void TestClauseStoreUnitPropagationCounterIncrements()
+	{
+		var x = new VariableInteger("x", 1, 10);
+		var y = new VariableInteger("y", 1, 10);
+		var variables = new List<IVariable<int>> { x, y };
+		_ = new StateInteger(variables, []);
+
+		var store = new ClauseStore();
+		store.AddClause([new BoundReason(0, true, 5), new BoundReason(1, false, 3)], variables);
+
+		for (var value = 5; value <= 10; ++value)
+			x.Remove(value, 0, out _);
+
+		store.NotifyBoundChange(0, true, variables, out _, out _);
+
+		Assert.Equal(1, store.UnitPropagationsFromClauses);
+		Assert.Equal(0, store.ClauseCacheHits);
+	}
+
+	[Fact]
+	public void TestClauseStoreCacheHitCounterIncrements()
+	{
+		var x = new VariableInteger("x", 1, 10);
+		var y = new VariableInteger("y", 1, 10);
+		var variables = new List<IVariable<int>> { x, y };
+		_ = new StateInteger(variables, []);
+
+		var store = new ClauseStore();
+		store.AddClause([new BoundReason(0, true, 5), new BoundReason(1, true, 5)], variables);
+
+		for (var value = 5; value <= 10; ++value)
+		{
+			x.Remove(value, 0, out _);
+			y.Remove(value, 0, out _);
+		}
+
+		var conflict = store.NotifyBoundChange(0, true, variables, out _, out _);
+
+		Assert.True(conflict);
+		Assert.Equal(1, store.ClauseCacheHits);
+	}
+
+	[Fact]
+	public void TestClauseStoreEvictionCounterIncrements()
+	{
+		var x = new VariableInteger("x", 1, 10);
+		var y = new VariableInteger("y", 1, 10);
+		var z = new VariableInteger("z", 1, 10);
+		var variables = new List<IVariable<int>> { x, y, z };
+		_ = new StateInteger(variables, []);
+
+		var store = new ClauseStore { MaxClauses = 2 };
+
+		for (var i = 0; i < 5; ++i)
+		{
+			var idx = store.AddClause([new BoundReason(0, true, i + 1),
+				new BoundReason(1, false, i + 1), new BoundReason(2, true, i + 1)], variables);
+			if (i < 2)
+				store.BumpActivity(idx);
+		}
+
+		store.ReduceDatabase();
+
+		Assert.True(store.ClausesEvicted > 0);
+	}
+
+	[Fact]
+	public void TestClauseLearningDiagnosticCountersAreZeroWhenDisabled()
+	{
+		var queens = Enumerable.Range(0, 6)
+			.Select(i => new VariableInteger($"q{i}", 0, 5)).ToArray();
+		var constraints = new List<IConstraint>();
+		for (var i = 0; i < 6; ++i)
+			for (var j = i + 1; j < 6; ++j)
+			{
+				constraints.Add(new ConstraintInteger(queens[i] != queens[j]));
+				constraints.Add(new ConstraintInteger(queens[i] - queens[j] != j - i));
+				constraints.Add(new ConstraintInteger(queens[j] - queens[i] != j - i));
+			}
+
+		var state = new StateInteger(queens, constraints);
+		state.Search();
+
+		Assert.Equal(0, state.ClausesLearned);
+		Assert.Equal(0, state.MaxClauseSize);
+		Assert.Equal(0.0, state.AverageClauseSize);
+		Assert.Equal(0, state.UnitPropagationsFromClauses);
+		Assert.Equal(0, state.ClauseCacheHits);
+		Assert.Equal(0, state.ClausesEvicted);
+	}
+
+	[Fact]
+	public void TestClauseLearningDiagnosticCountersTrackSearch()
+	{
+		var off = SolveDisjunctiveMakespan(clauseLearning: false);
+		Assert.Equal(8, off.Optimum);
+
+		var machineOfOp = new[] { 0, 1, 0, 1, 0, 1 };
+		var durationOfOp = new[] { 3, 2, 2, 3, 1, 2 };
+		var jobChains = new[] { (0, 1), (2, 3), (4, 5) };
+		var horizon = 14;
+
+		var starts = Enumerable.Range(0, machineOfOp.Length)
+			.Select(op => new VariableInteger($"op{op}", 0, horizon - durationOfOp[op]))
+			.ToList();
+		var makespan = new VariableInteger("makespan", 0, horizon);
+
+		var constraints = new List<IConstraint>();
+		foreach (var (first, second) in jobChains)
+			constraints.Add(new ConstraintInteger(starts[second] - starts[first] >= durationOfOp[first]));
+
+		for (var op = 0; op < machineOfOp.Length; ++op)
+			constraints.Add(new ConstraintInteger(makespan - starts[op] >= durationOfOp[op]));
+
+		for (var machine = 0; machine < 2; ++machine)
+		{
+			var ops = Enumerable.Range(0, machineOfOp.Length).Where(op => machineOfOp[op] == machine).ToList();
+			var machineStarts = ops.Select(op => starts[op]).ToList();
+			var machineDurations = ops.Select(op => durationOfOp[op]).ToList();
+			constraints.Add(new DisjunctiveInteger(machineStarts, machineDurations));
+		}
+
+		var variables = starts.Append(makespan).ToArray();
+		var state = new StateInteger(variables, constraints) { ClauseLearningEnabled = true };
+		state.Search(makespan);
+
+		Assert.True(state.ClausesLearned > 0);
+		Assert.Equal(state.LearnedClauseCount + state.ClausesEvicted, state.ClausesLearned);
+		Assert.True(state.MaxClauseSize > 0);
+		Assert.True(state.AverageClauseSize > 0.0);
+		Assert.True(state.MaxClauseSize >= state.AverageClauseSize);
+	}
+
+	[Fact]
 	public void TestClauseStoreClear()
 	{
 		var x = new VariableInteger("x", 1, 10);
