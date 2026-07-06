@@ -561,12 +561,14 @@ public class CumulativeIntegerTest
 		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 4);
 		_ = new StateInteger(starts, [cumulative]);
 
+		var (snapshotLower, snapshotUpper) = CaptureSnapshot(cumulative);
+
 		cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
 
 		var explanation = new List<BoundReason>();
-		((IExplainableConstraint) cumulative).Explain(0, true, 0, explanation);
+		((IExplainableConstraint) cumulative).Explain(0, true, 0, snapshotLower, snapshotUpper, explanation);
 
 		Assert.NotEmpty(explanation);
 		var variableIds = explanation.Select(r => r.VariableIndex).Distinct().ToList();
@@ -588,12 +590,14 @@ public class CumulativeIntegerTest
 		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 3);
 		_ = new StateInteger(starts, [cumulative]);
 
+		var (snapshotLower, snapshotUpper) = CaptureSnapshot(cumulative);
+
 		cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
 
 		var explanation = new List<BoundReason>();
-		((IExplainableConstraint) cumulative).Explain(0, true, 0, explanation);
+		((IExplainableConstraint) cumulative).Explain(0, true, 0, snapshotLower, snapshotUpper, explanation);
 
 		Assert.NotEmpty(explanation);
 	}
@@ -612,12 +616,14 @@ public class CumulativeIntegerTest
 		var cumulative = new CumulativeInteger([.. starts], durations, demands, capacity: 4);
 		_ = new StateInteger(starts, [cumulative]);
 
+		var (snapshotLower, snapshotUpper) = CaptureSnapshot(cumulative);
+
 		cumulative.Propagate(out ConstraintOperationResult propagateResult);
 
 		Assert.Equal(ConstraintOperationResult.Violated, propagateResult);
 
 		var explanation = new List<BoundReason>();
-		((IExplainableConstraint) cumulative).Explain(0, true, 1, explanation);
+		((IExplainableConstraint) cumulative).Explain(0, true, 1, snapshotLower, snapshotUpper, explanation);
 
 		Assert.NotEmpty(explanation);
 
@@ -738,5 +744,20 @@ public class CumulativeIntegerTest
 		var s0 = solution["s0"].InstantiatedValue;
 		var s1 = solution["s1"].InstantiatedValue;
 		Assert.True(s0 + 3 <= s1 || s1 + 3 <= s0);
+	}
+
+	private static (int[] Lower, int[] Upper) CaptureSnapshot(IConstraint<int> constraint)
+	{
+		var variables = constraint.Variables;
+		var lower = new int[variables.Count];
+		var upper = new int[variables.Count];
+
+		for (var i = 0; i < variables.Count; ++i)
+		{
+			lower[i] = variables[i].Domain.LowerBound;
+			upper[i] = variables[i].Domain.UpperBound;
+		}
+
+		return (lower, upper);
 	}
 }

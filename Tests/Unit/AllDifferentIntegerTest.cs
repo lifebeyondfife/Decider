@@ -33,10 +33,14 @@ public class AllDifferentIntegerTest
 		var constraint = new AllDifferentInteger([x1, x2, x3]);
 		_ = new StateInteger([x1, x2, x3], [constraint]);
 
+		var snapshotLower = new[] { x1.Domain.LowerBound, x2.Domain.LowerBound, x3.Domain.LowerBound };
+		var snapshotUpper = new[] { x1.Domain.UpperBound, x2.Domain.UpperBound, x3.Domain.UpperBound };
+
 		constraint.Propagate(out _);
 
 		var reasons = new List<BoundReason>();
-		((IExplainableConstraint) constraint).Explain(x3.VariableId, true, x3.Domain.LowerBound, reasons);
+		((IExplainableConstraint) constraint).Explain(x3.VariableId, true, x3.Domain.LowerBound,
+			snapshotLower, snapshotUpper, reasons);
 
 		Assert.Contains(reasons, r => r.VariableIndex == x1.VariableId && r.IsLowerBound && r.BoundValue == 1);
 		Assert.Contains(reasons, r => r.VariableIndex == x1.VariableId && !r.IsLowerBound && r.BoundValue == 2);
@@ -55,10 +59,14 @@ public class AllDifferentIntegerTest
 		var constraint = new AllDifferentInteger([x1, x2, x3]);
 		_ = new StateInteger([x1, x2, x3], [constraint]);
 
+		var snapshotLower = new[] { x1.Domain.LowerBound, x2.Domain.LowerBound, x3.Domain.LowerBound };
+		var snapshotUpper = new[] { x1.Domain.UpperBound, x2.Domain.UpperBound, x3.Domain.UpperBound };
+
 		constraint.Propagate(out _);
 
 		var reasons = new List<BoundReason>();
-		((IExplainableConstraint) constraint).Explain(x3.VariableId, false, x3.Domain.UpperBound, reasons);
+		((IExplainableConstraint) constraint).Explain(x3.VariableId, false, x3.Domain.UpperBound,
+			snapshotLower, snapshotUpper, reasons);
 
 		Assert.Contains(reasons, r => r.VariableIndex == x1.VariableId && r.IsLowerBound && r.BoundValue == 2);
 		Assert.Contains(reasons, r => r.VariableIndex == x1.VariableId && !r.IsLowerBound && r.BoundValue == 3);

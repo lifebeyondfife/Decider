@@ -15,8 +15,6 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>, IExplainab
 {
 	private VariableInteger[] VariableList { get; set; } = Array.Empty<VariableInteger>();
 	private IList<int> GenerationList { get; set; }
-	private int[] SnapshotLB { get; set; } = Array.Empty<int>();
-	private int[] SnapshotUB { get; set; } = Array.Empty<int>();
 
 	public IReadOnlyList<IVariable<int>> Variables => this.VariableList;
 	public int FailureWeight { get; set; }
@@ -35,8 +33,6 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>, IExplainab
 		ConstructVariableList((ExpressionInteger) expression, variableSet);
 		this.VariableList = variableSet.ToArray();
 		this.GenerationList = new int[this.VariableList.Length];
-		this.SnapshotLB = new int[this.VariableList.Length];
-		this.SnapshotUB = new int[this.VariableList.Length];
 	}
 
 	private static void ConstructVariableList(ExpressionInteger expression, ISet<VariableInteger> variableSet)
@@ -95,12 +91,6 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>, IExplainab
 
 	public void Propagate(out ConstraintOperationResult result)
 	{
-		for (var i = 0; i < this.VariableList.Length; ++i)
-		{
-			this.SnapshotLB[i] = this.VariableList[i].Domain.LowerBound;
-			this.SnapshotUB[i] = this.VariableList[i].Domain.UpperBound;
-		}
-
 		var enforce = new Bounds<int>(1, 1);
 
 		do
@@ -109,7 +99,8 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>, IExplainab
 		} while ((result & ConstraintOperationResult.Propagated) == ConstraintOperationResult.Propagated);
 	}
 
-	public void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result)
+	public void Explain(int variableId, bool isLowerBound, int boundValue,
+		IReadOnlyList<int> snapshotLowerBounds, IReadOnlyList<int> snapshotUpperBounds, IList<BoundReason> result)
 	{
 		for (var i = 0; i < this.VariableList.Length; ++i)
 		{
@@ -117,13 +108,13 @@ public class ConstraintInteger : ExpressionInteger, IConstraint<int>, IExplainab
 			if (v.VariableId == variableId)
 			{
 				result.Add(isLowerBound
-					? new BoundReason(v.VariableId, true, this.SnapshotLB[i])
-					: new BoundReason(v.VariableId, false, this.SnapshotUB[i]));
+					? new BoundReason(v.VariableId, true, snapshotLowerBounds[i])
+					: new BoundReason(v.VariableId, false, snapshotUpperBounds[i]));
 			}
 			else
 			{
-				result.Add(new BoundReason(v.VariableId, true, this.SnapshotLB[i]));
-				result.Add(new BoundReason(v.VariableId, false, this.SnapshotUB[i]));
+				result.Add(new BoundReason(v.VariableId, true, snapshotLowerBounds[i]));
+				result.Add(new BoundReason(v.VariableId, false, snapshotUpperBounds[i]));
 			}
 		}
 	}

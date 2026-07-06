@@ -626,6 +626,7 @@ public class StateInteger : IState<int>
 			return false;
 
 		List<(int VarId, bool WatchKey)>? notifications = null;
+		var snapshotBatch = -1;
 
 		for (var j = 0; j < constraintVariables.Count; ++j)
 		{
@@ -639,18 +640,22 @@ public class StateInteger : IState<int>
 
 			if (newLB > this.BoundSnapshotLB[j])
 			{
-				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, true);
+				if (snapshotBatch < 0)
+					snapshotBatch = this.PropTrail.AddSnapshot(this.BoundSnapshotLB, this.BoundSnapshotUB, constraintVariables.Count);
+
 				this.PropTrail.RecordPropagation(varId, true, newLB, this.Depth,
-					PropagationTrail.ReasonConstraint, conIndex, explanation);
+					PropagationTrail.ReasonConstraint, conIndex, snapshotBatch: snapshotBatch);
 
 				(notifications ??= new List<(int, bool)>()).Add((varId, false));
 			}
 
 			if (newUB < this.BoundSnapshotUB[j])
 			{
-				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, false);
+				if (snapshotBatch < 0)
+					snapshotBatch = this.PropTrail.AddSnapshot(this.BoundSnapshotLB, this.BoundSnapshotUB, constraintVariables.Count);
+
 				this.PropTrail.RecordPropagation(varId, false, newUB, this.Depth,
-					PropagationTrail.ReasonConstraint, conIndex, explanation);
+					PropagationTrail.ReasonConstraint, conIndex, snapshotBatch: snapshotBatch);
 
 				(notifications ??= new List<(int, bool)>()).Add((varId, true));
 			}
@@ -668,35 +673,45 @@ public class StateInteger : IState<int>
 		return false;
 	}
 
-	private IList<BoundReason> ComputeEagerExplanation(IReadOnlyList<IVariable<int>> constraintVariables,
-		int conIndex, int propagatedVariableId, bool propagatedIsLowerBound)
+	private IList<BoundReason> MaterialiseExplanation(int entryIndex)
 	{
-		var constraint = this.Constraints[conIndex];
+		var stored = this.PropTrail.GetExplanation(entryIndex);
+		if (stored != null)
+			return stored;
+
+		ref var entry = ref this.PropTrail.GetEntry(entryIndex);
+		if (entry.ReasonKind != PropagationTrail.ReasonConstraint ||
+			entry.ReasonIndex < 0 || entry.ReasonIndex >= this.Constraints.Count)
+			return new List<BoundReason>();
+
+		var snapshotLower = this.PropTrail.GetSnapshotLower(entry.SnapshotBatch);
+		var snapshotUpper = this.PropTrail.GetSnapshotUpper(entry.SnapshotBatch);
+		var constraint = this.Constraints[entry.ReasonIndex];
+		var result = new List<BoundReason>();
+
 		if (constraint is IExplainableConstraint explainable)
 		{
-			var result = new List<BoundReason>();
-			var variable = this.Variables[propagatedVariableId];
-			explainable.Explain(propagatedVariableId, propagatedIsLowerBound,
-				propagatedIsLowerBound ? variable.Domain.LowerBound : variable.Domain.UpperBound, result);
+			explainable.Explain(entry.VariableId, entry.IsLowerBound, entry.NewBound,
+				snapshotLower, snapshotUpper, result);
 			return result;
 		}
 
-		var explanation = new List<BoundReason>();
+		var constraintVariables = ((IConstraint<int>) constraint).Variables;
 		for (var k = 0; k < constraintVariables.Count; ++k)
 		{
 			var v = constraintVariables[k];
-			if (v.VariableId == propagatedVariableId && propagatedIsLowerBound)
-				explanation.Add(new BoundReason(v.VariableId, false, this.BoundSnapshotUB[k]));
-			else if (v.VariableId == propagatedVariableId && !propagatedIsLowerBound)
-				explanation.Add(new BoundReason(v.VariableId, true, this.BoundSnapshotLB[k]));
+			if (v.VariableId == entry.VariableId && entry.IsLowerBound)
+				result.Add(new BoundReason(v.VariableId, false, snapshotUpper[k]));
+			else if (v.VariableId == entry.VariableId && !entry.IsLowerBound)
+				result.Add(new BoundReason(v.VariableId, true, snapshotLower[k]));
 			else
 			{
-				explanation.Add(new BoundReason(v.VariableId, true, this.BoundSnapshotLB[k]));
-				explanation.Add(new BoundReason(v.VariableId, false, this.BoundSnapshotUB[k]));
+				result.Add(new BoundReason(v.VariableId, true, snapshotLower[k]));
+				result.Add(new BoundReason(v.VariableId, false, snapshotUpper[k]));
 			}
 		}
 
-		return explanation;
+		return result;
 	}
 
 	private bool NotifyClauseStore(int varId, bool isLowerBound)
@@ -782,6 +797,8 @@ public class StateInteger : IState<int>
 		if (constraintVariables == null)
 			return;
 
+		var snapshotBatch = -1;
+
 		for (var j = 0; j < constraintVariables.Count; ++j)
 		{
 			var variable = constraintVariables[j];
@@ -794,16 +811,20 @@ public class StateInteger : IState<int>
 
 			if (newLB > this.BoundSnapshotLB[j])
 			{
-				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, true);
+				if (snapshotBatch < 0)
+					snapshotBatch = this.PropTrail.AddSnapshot(this.BoundSnapshotLB, this.BoundSnapshotUB, constraintVariables.Count);
+
 				this.PropTrail.RecordPropagation(varId, true, newLB, this.Depth,
-					PropagationTrail.ReasonConstraint, conIndex, explanation);
+					PropagationTrail.ReasonConstraint, conIndex, snapshotBatch: snapshotBatch);
 			}
 
 			if (newUB < this.BoundSnapshotUB[j])
 			{
-				var explanation = ComputeEagerExplanation(constraintVariables, conIndex, varId, false);
+				if (snapshotBatch < 0)
+					snapshotBatch = this.PropTrail.AddSnapshot(this.BoundSnapshotLB, this.BoundSnapshotUB, constraintVariables.Count);
+
 				this.PropTrail.RecordPropagation(varId, false, newUB, this.Depth,
-					PropagationTrail.ReasonConstraint, conIndex, explanation);
+					PropagationTrail.ReasonConstraint, conIndex, snapshotBatch: snapshotBatch);
 			}
 		}
 	}
@@ -842,7 +863,7 @@ public class StateInteger : IState<int>
 		this.ConflictConstraintIndex = -1;
 
 		if (!ConflictAnalyser.Analyse(this.PropTrail, conflictExplanation, this.Depth,
-			this.Constraints, this.Variables, out var learnedLiterals, out var assertionLevel, out var isAsserting))
+			MaterialiseExplanation, out var learnedLiterals, out var assertionLevel, out var isAsserting))
 			return ChronologicalBacktrack(instantiatedVariables);
 
 		var clauseIndex = this.LearnedClauses.AddClause(learnedLiterals, this.Variables);

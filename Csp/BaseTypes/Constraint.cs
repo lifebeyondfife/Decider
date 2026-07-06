@@ -39,5 +39,6 @@ public record struct BoundReason(int VariableIndex, bool IsLowerBound, int Bound
 
 public interface IExplainableConstraint : IConstraint
 {
-	void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result);
+	void Explain(int variableId, bool isLowerBound, int boundValue,
+		IReadOnlyList<int> snapshotLowerBounds, IReadOnlyList<int> snapshotUpperBounds, IList<BoundReason> result);
 }

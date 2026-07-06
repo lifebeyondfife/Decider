@@ -23,8 +23,6 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 	private readonly CycleDetection cycleDetection;
 	private readonly Stack<(int Depth, int?[] Matching)> matchingTrail;
 	private int?[]? lastMatching;
-	private int[] SnapshotLB { get; set; } = Array.Empty<int>();
-	private int[] SnapshotUB { get; set; } = Array.Empty<int>();
 
 	private IState<int>? State { get; set; }
 	private int Depth
@@ -42,8 +40,6 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 	{
 		this.VariableList = variables.ToArray();
 		this.GenerationList = new int[this.VariableList.Length];
-		this.SnapshotLB = new int[this.VariableList.Length];
-		this.SnapshotUB = new int[this.VariableList.Length];
 		this.cycleDetection = new CycleDetection();
 		this.matchingTrail = new Stack<(int Depth, int?[] Matching)>();
 	}
@@ -64,12 +60,6 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 
 	public void Propagate(out ConstraintOperationResult result)
 	{
-		for (var i = 0; i < this.VariableList.Length; ++i)
-		{
-			this.SnapshotLB[i] = this.VariableList[i].Domain.LowerBound;
-			this.SnapshotUB[i] = this.VariableList[i].Domain.UpperBound;
-		}
-
 		if (this.Graph == null)
 		{
 			this.Graph = new BipartiteGraph(this.VariableList);
@@ -123,12 +113,13 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 		}
 	}
 
-	public void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result)
+	public void Explain(int variableId, bool isLowerBound, int boundValue,
+		IReadOnlyList<int> snapshotLowerBounds, IReadOnlyList<int> snapshotUpperBounds, IList<BoundReason> result)
 	{
 		for (var i = 0; i < this.VariableList.Length; ++i)
 		{
-			result.Add(new BoundReason(this.VariableList[i].VariableId, true, this.SnapshotLB[i]));
-			result.Add(new BoundReason(this.VariableList[i].VariableId, false, this.SnapshotUB[i]));
+			result.Add(new BoundReason(this.VariableList[i].VariableId, true, snapshotLowerBounds[i]));
+			result.Add(new BoundReason(this.VariableList[i].VariableId, false, snapshotUpperBounds[i]));
 		}
 	}
 

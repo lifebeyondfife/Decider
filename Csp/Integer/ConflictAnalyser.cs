@@ -3,6 +3,7 @@
 
   This file is part of Decider.
 */
+using System;
 using System.Collections.Generic;
 
 using Decider.Csp.BaseTypes;
@@ -12,7 +13,7 @@ namespace Decider.Csp.Integer;
 internal static class ConflictAnalyser
 {
 	internal static bool Analyse(PropagationTrail trail, IList<BoundReason> conflictExplanation,
-		int currentLevel, IList<IConstraint> constraints, IList<IVariable<int>> variables,
+		int currentLevel, Func<int, IList<BoundReason>> explanationProvider,
 		out BoundReason[] learnedClause, out int assertionLevel, out bool isAsserting)
 	{
 		learnedClause = null!;
@@ -51,7 +52,7 @@ internal static class ConflictAnalyser
 			nogood.Remove(key);
 			--currentLevelCount;
 
-			var explanation = GetExplanationFromEntry(i, trail, constraints, variables);
+			var explanation = explanationProvider(i);
 
 			foreach (var antecedent in explanation)
 				AddLiteral(nogood, trail, currentLevel, ref currentLevelCount, antecedent);
@@ -110,30 +111,6 @@ internal static class ConflictAnalyser
 			++currentLevelCount;
 
 		nogood[key] = literal;
-	}
-
-	private static IList<BoundReason> GetExplanationFromEntry(int entryIndex, PropagationTrail trail,
-		IList<IConstraint> constraints, IList<IVariable<int>> variables)
-	{
-		ref var entry = ref trail.GetEntry(entryIndex);
-
-		var storedExplanation = trail.GetExplanation(entryIndex);
-		if (storedExplanation != null)
-			return storedExplanation;
-
-		if (entry.ReasonKind == PropagationTrail.ReasonConstraint &&
-			entry.ReasonIndex >= 0 && entry.ReasonIndex < constraints.Count)
-		{
-			var constraint = constraints[entry.ReasonIndex];
-			if (constraint is IExplainableConstraint explainable)
-			{
-				var result = new List<BoundReason>();
-				explainable.Explain(entry.VariableId, entry.IsLowerBound, entry.NewBound, result);
-				return result;
-			}
-		}
-
-		return new List<BoundReason>();
 	}
 
 	private static BoundReason NegateLiteral(BoundReason literal)

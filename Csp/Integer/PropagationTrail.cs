@@ -24,8 +24,10 @@ internal class PropagationTrail
 		internal int DecisionLevel;
 		internal int ReasonKind;
 		internal int ReasonIndex;
+		internal int SnapshotBatch;
 
-		internal Entry(int variableId, bool isLowerBound, int newBound, int decisionLevel, int reasonKind, int reasonIndex)
+		internal Entry(int variableId, bool isLowerBound, int newBound, int decisionLevel,
+			int reasonKind, int reasonIndex, int snapshotBatch)
 		{
 			this.VariableId = variableId;
 			this.IsLowerBound = isLowerBound;
@@ -33,6 +35,7 @@ internal class PropagationTrail
 			this.DecisionLevel = decisionLevel;
 			this.ReasonKind = reasonKind;
 			this.ReasonIndex = reasonIndex;
+			this.SnapshotBatch = snapshotBatch;
 		}
 	}
 
@@ -42,6 +45,9 @@ internal class PropagationTrail
 	private int[] levelStarts;
 	private List<(int Bound, int Level)>[] lowerHistory;
 	private List<(int Bound, int Level)>[] upperHistory;
+	private readonly List<int[]> snapshotLowerBatches;
+	private readonly List<int[]> snapshotUpperBatches;
+	private readonly List<int> snapshotBatchStartEntry;
 
 	internal int Count => this.entryCount;
 
@@ -56,20 +62,23 @@ internal class PropagationTrail
 
 		this.lowerHistory = new List<(int, int)>[maxLevels];
 		this.upperHistory = new List<(int, int)>[maxLevels];
+		this.snapshotLowerBatches = new List<int[]>();
+		this.snapshotUpperBatches = new List<int[]>();
+		this.snapshotBatchStartEntry = new List<int>();
 	}
 
 	internal void RecordDecision(int variableId, int lowerBound, int upperBound, int decisionLevel)
 	{
 		EnsureLevelStart(decisionLevel);
-		AppendEntry(new Entry(variableId, true, lowerBound, decisionLevel, ReasonDecision, -1));
-		AppendEntry(new Entry(variableId, false, upperBound, decisionLevel, ReasonDecision, -1));
+		AppendEntry(new Entry(variableId, true, lowerBound, decisionLevel, ReasonDecision, -1, -1));
+		AppendEntry(new Entry(variableId, false, upperBound, decisionLevel, ReasonDecision, -1, -1));
 	}
 
 	internal void RecordPropagation(int variableId, bool isLowerBound, int newBound,
-		int decisionLevel, int reasonKind, int reasonIndex, IList<BoundReason> explanation = null!)
+		int decisionLevel, int reasonKind, int reasonIndex, IList<BoundReason> explanation = null!, int snapshotBatch = -1)
 	{
 		EnsureLevelStart(decisionLevel);
-		AppendEntry(new Entry(variableId, isLowerBound, newBound, decisionLevel, reasonKind, reasonIndex),
+		AppendEntry(new Entry(variableId, isLowerBound, newBound, decisionLevel, reasonKind, reasonIndex, snapshotBatch),
 			explanation);
 	}
 
@@ -79,6 +88,30 @@ internal class PropagationTrail
 			return null!;
 
 		return this.explanations[index];
+	}
+
+	internal int AddSnapshot(int[] lowerBounds, int[] upperBounds, int length)
+	{
+		var lower = new int[length];
+		var upper = new int[length];
+		Array.Copy(lowerBounds, lower, length);
+		Array.Copy(upperBounds, upper, length);
+
+		this.snapshotLowerBatches.Add(lower);
+		this.snapshotUpperBatches.Add(upper);
+		this.snapshotBatchStartEntry.Add(this.entryCount);
+
+		return this.snapshotLowerBatches.Count - 1;
+	}
+
+	internal IReadOnlyList<int> GetSnapshotLower(int batchId)
+	{
+		return batchId < 0 ? Array.Empty<int>() : this.snapshotLowerBatches[batchId];
+	}
+
+	internal IReadOnlyList<int> GetSnapshotUpper(int batchId)
+	{
+		return batchId < 0 ? Array.Empty<int>() : this.snapshotUpperBatches[batchId];
 	}
 
 	internal void Backtrack(int toLevel)
@@ -154,6 +187,19 @@ internal class PropagationTrail
 		}
 
 		this.entryCount = newCount;
+		TruncateSnapshots(newCount);
+	}
+
+	private void TruncateSnapshots(int newCount)
+	{
+		var last = this.snapshotBatchStartEntry.Count - 1;
+		while (last >= 0 && this.snapshotBatchStartEntry[last] >= newCount)
+		{
+			this.snapshotBatchStartEntry.RemoveAt(last);
+			this.snapshotLowerBatches.RemoveAt(last);
+			this.snapshotUpperBatches.RemoveAt(last);
+			--last;
+		}
 	}
 
 	internal ref Entry GetEntry(int index)
@@ -172,6 +218,9 @@ internal class PropagationTrail
 	internal void Clear()
 	{
 		this.entryCount = 0;
+		this.snapshotLowerBatches.Clear();
+		this.snapshotUpperBatches.Clear();
+		this.snapshotBatchStartEntry.Clear();
 		for (var i = 0; i < this.levelStarts.Length; ++i)
 			this.levelStarts[i] = -1;
 

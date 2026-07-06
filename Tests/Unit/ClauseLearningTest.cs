@@ -686,6 +686,8 @@ public class ClauseLearningTest
 		var constraint = new ConstraintInteger(a + b == 10);
 		_ = new StateInteger([a, b], [constraint]);
 
+		var (snapshotLower, snapshotUpper) = CaptureSnapshot(constraint);
+
 		constraint.Propagate(out _);
 
 		Assert.Equal(5, a.Domain.LowerBound);
@@ -694,12 +696,12 @@ public class ClauseLearningTest
 		var explainable = (IExplainableConstraint) constraint;
 
 		var aLbReasons = new List<BoundReason>();
-		explainable.Explain(a.VariableId, true, 5, aLbReasons);
+		explainable.Explain(a.VariableId, true, 5, snapshotLower, snapshotUpper, aLbReasons);
 		Assert.NotEmpty(aLbReasons);
 		Assert.Contains(aLbReasons, r => r.VariableIndex == b.VariableId && !r.IsLowerBound && r.BoundValue == 5);
 
 		var bLbReasons = new List<BoundReason>();
-		explainable.Explain(b.VariableId, true, 5, bLbReasons);
+		explainable.Explain(b.VariableId, true, 5, snapshotLower, snapshotUpper, bLbReasons);
 		Assert.NotEmpty(bLbReasons);
 		Assert.Contains(bLbReasons, r => r.VariableIndex == a.VariableId && !r.IsLowerBound && r.BoundValue == 5);
 	}
@@ -712,13 +714,15 @@ public class ClauseLearningTest
 		var constraint = new ConstraintInteger(a - b == 3);
 		_ = new StateInteger([a, b], [constraint]);
 
+		var (snapshotLower, snapshotUpper) = CaptureSnapshot(constraint);
+
 		constraint.Propagate(out _);
 
 		Assert.Equal(4, a.Domain.LowerBound);
 
 		var explainable = (IExplainableConstraint) constraint;
 		var reasons = new List<BoundReason>();
-		explainable.Explain(a.VariableId, true, 4, reasons);
+		explainable.Explain(a.VariableId, true, 4, snapshotLower, snapshotUpper, reasons);
 
 		Assert.NotEmpty(reasons);
 		Assert.Contains(reasons, r => r.VariableIndex == b.VariableId);
@@ -732,13 +736,15 @@ public class ClauseLearningTest
 		var constraint = new ConstraintInteger(a != b);
 		_ = new StateInteger([a, b], [constraint]);
 
+		var (snapshotLower, snapshotUpper) = CaptureSnapshot(constraint);
+
 		constraint.Propagate(out _);
 
 		Assert.Equal(2, b.Domain.UpperBound);
 
 		var explainable = (IExplainableConstraint) constraint;
 		var reasons = new List<BoundReason>();
-		explainable.Explain(b.VariableId, false, 2, reasons);
+		explainable.Explain(b.VariableId, false, 2, snapshotLower, snapshotUpper, reasons);
 
 		Assert.NotEmpty(reasons);
 		Assert.Contains(reasons, r => r.VariableIndex == a.VariableId && r.IsLowerBound && r.BoundValue == 3);
@@ -822,6 +828,21 @@ public class ClauseLearningTest
 		stateOn.SearchAllSolutions();
 
 		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+	}
+
+	private static (int[] Lower, int[] Upper) CaptureSnapshot(IConstraint<int> constraint)
+	{
+		var variables = constraint.Variables;
+		var lower = new int[variables.Count];
+		var upper = new int[variables.Count];
+
+		for (var i = 0; i < variables.Count; ++i)
+		{
+			lower[i] = variables[i].Domain.LowerBound;
+			upper[i] = variables[i].Domain.UpperBound;
+		}
+
+		return (lower, upper);
 	}
 
 }
