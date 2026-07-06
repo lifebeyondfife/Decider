@@ -450,6 +450,69 @@ public class ClauseLearningTest
 		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
 	}
 
+	private static int CountJobShopSolutions(bool clauseLearning, bool cumulativeEncoding)
+	{
+		var horizon = 8;
+		var machineOfOp = new[] { 0, 1, 1, 0, 0, 1 };
+		var durationOfOp = new[] { 2, 1, 2, 2, 1, 2 };
+		var jobChains = new[] { (0, 1), (2, 3), (4, 5) };
+
+		var starts = Enumerable.Range(0, machineOfOp.Length)
+			.Select(op => new VariableInteger($"op{op}", 0, horizon - durationOfOp[op]))
+			.ToArray();
+
+		var constraints = new List<IConstraint>();
+
+		foreach (var (first, second) in jobChains)
+			constraints.Add(new ConstraintInteger(starts[second] - starts[first] >= durationOfOp[first]));
+
+		for (var machine = 0; machine < 2; ++machine)
+		{
+			var ops = Enumerable.Range(0, machineOfOp.Length).Where(op => machineOfOp[op] == machine).ToList();
+			var machineStarts = ops.Select(op => starts[op]).ToList();
+			var machineDurations = ops.Select(op => durationOfOp[op]).ToList();
+
+			if (cumulativeEncoding)
+				constraints.Add(new CumulativeInteger([.. machineStarts], machineDurations,
+					machineStarts.Select(_ => 1).ToList(), capacity: 1));
+			else
+				constraints.Add(new DisjunctiveInteger(machineStarts, machineDurations));
+		}
+
+		var state = new StateInteger(starts, constraints) { ClauseLearningEnabled = clauseLearning };
+		state.SearchAllSolutions();
+
+		return state.Solutions.Count;
+	}
+
+	[Fact]
+	public void TestDisjunctiveJobShopWitnessWithClauseLearning()
+	{
+		var off = CountJobShopSolutions(clauseLearning: false, cumulativeEncoding: false);
+		var on = CountJobShopSolutions(clauseLearning: true, cumulativeEncoding: false);
+
+		Assert.True(off > 0);
+		Assert.Equal(off, on);
+	}
+
+	[Fact]
+	public void TestCumulativeCapacityOneJobShopWitnessWithClauseLearning()
+	{
+		var off = CountJobShopSolutions(clauseLearning: false, cumulativeEncoding: true);
+		var on = CountJobShopSolutions(clauseLearning: true, cumulativeEncoding: true);
+
+		Assert.True(off > 0);
+		Assert.Equal(off, on);
+	}
+
+	[Fact]
+	public void TestDisjunctiveAndCumulativeCapacityOneAgreeOnJobShop()
+	{
+		Assert.Equal(
+			CountJobShopSolutions(clauseLearning: false, cumulativeEncoding: false),
+			CountJobShopSolutions(clauseLearning: false, cumulativeEncoding: true));
+	}
+
 	[Fact]
 	public void TestClauseLearningOffByDefault()
 	{
