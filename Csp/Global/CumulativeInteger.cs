@@ -38,9 +38,6 @@ public class CumulativeInteger : IConstraint<int>, IExplainableConstraint
 	private Comparison<int> NotFirstComparison { get; set; }
 	private Comparison<int> NotLastComparison { get; set; }
 
-	private int[] SnapshotLB { get; set; }
-	private int[] SnapshotUB { get; set; }
-
 	private IList<DisjunctiveInteger> DisjunctiveSubproblems { get; set; }
 	private bool AllDisjunctive { get; set; }
 
@@ -73,9 +70,6 @@ public class CumulativeInteger : IConstraint<int>, IExplainableConstraint
 		this.NotFirstLastSortedTasks = new int[n];
 		for (var i = 0; i < n; ++i)
 			this.NotFirstLastSortedTasks[i] = i;
-
-		this.SnapshotLB = new int[n];
-		this.SnapshotUB = new int[n];
 
 		this.NotFirstComparison = (a, b) => (this.Starts[a].Domain.UpperBound + this.Durations[a]).CompareTo(this.Starts[b].Domain.UpperBound + this.Durations[b]);
 		this.NotLastComparison = (a, b) => this.Starts[b].Domain.LowerBound.CompareTo(this.Starts[a].Domain.LowerBound);
@@ -227,12 +221,6 @@ public class CumulativeInteger : IConstraint<int>, IExplainableConstraint
 	public void Propagate(out ConstraintOperationResult result)
 	{
 		result = ConstraintOperationResult.Undecided;
-
-		for (var i = 0; i < this.Starts.Count; ++i)
-		{
-			this.SnapshotLB[i] = this.Starts[i].Domain.LowerBound;
-			this.SnapshotUB[i] = this.Starts[i].Domain.UpperBound;
-		}
 
 		var propagationOccurred = true;
 
@@ -857,12 +845,13 @@ public class CumulativeInteger : IConstraint<int>, IExplainableConstraint
 		return result;
 	}
 
-	public void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result)
+	public void Explain(int variableId, bool isLowerBound, int boundValue,
+		IReadOnlyList<int> snapshotLowerBounds, IReadOnlyList<int> snapshotUpperBounds, IList<BoundReason> result)
 	{
 		for (var j = 0; j < this.Starts.Count; ++j)
 		{
-			result.Add(new BoundReason(this.Starts[j].VariableId, true, this.SnapshotLB[j]));
-			result.Add(new BoundReason(this.Starts[j].VariableId, false, this.SnapshotUB[j]));
+			result.Add(new BoundReason(this.Starts[j].VariableId, true, snapshotLowerBounds[j]));
+			result.Add(new BoundReason(this.Starts[j].VariableId, false, snapshotUpperBounds[j]));
 		}
 	}
 
