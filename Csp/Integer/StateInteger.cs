@@ -1029,12 +1029,25 @@ public class StateInteger : IState<int>
 			return;
 
 		if (variablePrune.Domain.LowerBound > oldLowerBound)
+		{
 			this.PropTrail.RecordPropagation(variablePrune.VariableId, true, variablePrune.Domain.LowerBound,
 				this.Depth, PropagationTrail.ReasonDecision, -1);
 
+			if (NotifyClauseStore(variablePrune.VariableId, false))
+			{
+				result = DomainOperationResult.EmptyDomain;
+				return;
+			}
+		}
+
 		if (variablePrune.Domain.UpperBound < oldUpperBound)
+		{
 			this.PropTrail.RecordPropagation(variablePrune.VariableId, false, variablePrune.Domain.UpperBound,
 				this.Depth, PropagationTrail.ReasonDecision, -1);
+
+			if (NotifyClauseStore(variablePrune.VariableId, true))
+				result = DomainOperationResult.EmptyDomain;
+		}
 	}
 
 	private double ComputeProgress()

@@ -381,6 +381,32 @@ public class ClauseLearningTest
 	}
 
 	[Fact]
+	public void TestBacktrackingBoundRemovalsCountTowardsUnitPropagations()
+	{
+		var varsOff = Enumerable.Range(0, 3)
+			.Select(i => new VariableInteger($"v{i}", 0, 3)).ToArray();
+		var constraintsOff = new List<IConstraint>();
+		for (var i = 0; i < 3; ++i)
+			for (var j = i + 1; j < 3; ++j)
+				constraintsOff.Add(new ConstraintInteger(varsOff[i] != varsOff[j]));
+		var stateOff = new StateInteger(varsOff, constraintsOff);
+		stateOff.SearchAllSolutions();
+
+		var varsOn = Enumerable.Range(0, 3)
+			.Select(i => new VariableInteger($"v{i}", 0, 3)).ToArray();
+		var constraintsOn = new List<IConstraint>();
+		for (var i = 0; i < 3; ++i)
+			for (var j = i + 1; j < 3; ++j)
+				constraintsOn.Add(new ConstraintInteger(varsOn[i] != varsOn[j]));
+		var stateOn = new StateInteger(varsOn, constraintsOn) { ClauseLearningEnabled = true };
+		stateOn.SearchAllSolutions();
+
+		Assert.Equal(stateOff.Solutions.Count, stateOn.Solutions.Count);
+		Assert.True(stateOn.ClausesLearned > 0);
+		Assert.Equal(3, stateOn.UnitPropagationsFromClauses);
+	}
+
+	[Fact]
 	public void TestClauseStoreClear()
 	{
 		var x = new VariableInteger("x", 1, 10);
