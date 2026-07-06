@@ -70,7 +70,8 @@ public enum DisjunctionEncoding
 
 public static class DeciderProbe
 {
-	public static ProbeResult Run(ProbeInstance instance, string dataDirectory, int capSeconds)
+	public static ProbeResult Run(ProbeInstance instance, string dataDirectory, int capSeconds,
+		bool clauseLearning = false)
 	{
 		using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(capSeconds));
 		var stopwatch = Stopwatch.StartNew();
@@ -78,6 +79,8 @@ public static class DeciderProbe
 		var (state, objectiveName) = instance.Family == ProbeFamily.Rcpsp
 			? BuildRcpspModel(System.IO.Path.Combine(dataDirectory, instance.FileName))
 			: BuildJsspModel(System.IO.Path.Combine(dataDirectory, "Jssp", instance.FileName));
+
+		state.ClauseLearningEnabled = clauseLearning;
 
 		var objective = state.Variables.First(v => v.Name == objectiveName);
 		var result = state.Search(objective, cts.Token);

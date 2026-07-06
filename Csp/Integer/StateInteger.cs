@@ -52,6 +52,7 @@ public class StateInteger : IState<int>
 
 	private PropagationTrail PropTrail { get; set; }
 	private ClauseStore LearnedClauses { get; set; }
+	public int LearnedClauseCount => this.LearnedClauses.Count;
 	public bool ClauseLearningEnabled { get; set; }
 	public bool BackjumpingEnabled { get; set; } = true;
 	private bool EnumeratingAllSolutions { get; set; }
@@ -223,10 +224,7 @@ public class StateInteger : IState<int>
 				this.Trail.Backtrack(this.Depth, this.Variables);
 
 				if (this.ClauseLearningEnabled)
-				{
-					this.LearnedClauses.Clear();
 					this.PropTrail.Clear();
-				}
 
 				foreach (var constraint in this.BacktrackableConstraints)
 					constraint.OnBacktrack(this.Depth);
