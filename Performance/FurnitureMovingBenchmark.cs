@@ -11,6 +11,7 @@ using BenchmarkDotNet.Running;
 using Decider.Csp.BaseTypes;
 using Decider.Csp.Global;
 using Decider.Csp.Integer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -32,7 +33,11 @@ public class FurnitureMovingBenchmark
 	private const int Capacity = 4;
 	private const int UpperLimit = 160;
 
-	private static IState<int> SolveModel()
+	private static StateInteger diagnosticState;
+
+	private static IState<int> SolveModel() => SolveModel(false);
+
+	private static StateInteger SolveModel(bool clauseLearning)
 	{
 		var starts = new List<IVariable<int>>();
 		foreach (var i in Enumerable.Range(0, N))
@@ -49,11 +54,16 @@ public class FurnitureMovingBenchmark
 			constraints.Add(new ConstraintInteger(makespan >= (VariableInteger) starts[i] + Durations[i]));
 
 		var variables = new List<IVariable<int>>(starts) { makespan };
-		var state = new StateInteger(variables, constraints, new DomWdegOrdering(variables, constraints), new LowestValueOrdering());
+		var state = new StateInteger(variables, constraints, new DomWdegOrdering(variables, constraints), new LowestValueOrdering())
+		{
+			ClauseLearningEnabled = clauseLearning
+		};
 		state.Search(makespan);
 
 		return state;
 	}
+
+	private static StateInteger DiagnosticState() => diagnosticState ??= SolveModel(true);
 
 	[Benchmark]
 	public void SolveFurnitureMoving()
@@ -66,7 +76,39 @@ public class FurnitureMovingBenchmark
 		public BacktracksConfig()
 		{
 			AddColumn(new BacktracksColumn());
+			AddColumn(new CounterColumn("ClausesLearned", s => s.ClausesLearned.ToString("N0")));
+			AddColumn(new CounterColumn("AvgClauseSize", s => s.AverageClauseSize.ToString("N1")));
+			AddColumn(new CounterColumn("MaxClauseSize", s => s.MaxClauseSize.ToString("N0")));
+			AddColumn(new CounterColumn("UnitPropsFromClauses", s => s.UnitPropagationsFromClauses.ToString("N0")));
+			AddColumn(new CounterColumn("ClauseCacheHits", s => s.ClauseCacheHits.ToString("N0")));
+			AddColumn(new CounterColumn("ClausesEvicted", s => s.ClausesEvicted.ToString("N0")));
 		}
+	}
+
+	private class CounterColumn : IColumn
+	{
+		private readonly string name;
+		private readonly Func<StateInteger, string> selector;
+
+		public CounterColumn(string name, Func<StateInteger, string> selector)
+		{
+			this.name = name;
+			this.selector = selector;
+		}
+
+		public string Id => nameof(CounterColumn) + "." + this.name;
+		public string ColumnName => this.name;
+		public bool AlwaysShow => true;
+		public ColumnCategory Category => ColumnCategory.Custom;
+		public int PriorityInCategory => 1;
+		public bool IsNumeric => true;
+		public UnitType UnitType => UnitType.Dimensionless;
+		public string Legend => "Clause learning diagnostic counter (clause learning enabled)";
+
+		public string GetValue(Summary summary, BenchmarkCase benchmarkCase) => this.selector(DiagnosticState());
+		public string GetValue(Summary summary, BenchmarkCase benchmarkCase, SummaryStyle style) => GetValue(summary, benchmarkCase);
+		public bool IsDefault(Summary summary, BenchmarkCase benchmarkCase) => false;
+		public bool IsAvailable(Summary summary) => true;
 	}
 
 	private class BacktracksColumn : IColumn
