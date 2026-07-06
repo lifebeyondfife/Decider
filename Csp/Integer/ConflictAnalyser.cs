@@ -13,10 +13,11 @@ internal static class ConflictAnalyser
 {
 	internal static bool Analyse(PropagationTrail trail, IList<BoundReason> conflictExplanation,
 		int currentLevel, IList<IConstraint> constraints, IList<IVariable<int>> variables,
-		out BoundReason[] learnedClause, out int assertionLevel)
+		out BoundReason[] learnedClause, out int assertionLevel, out bool isAsserting)
 	{
 		learnedClause = null!;
 		assertionLevel = 0;
+		isAsserting = false;
 
 		if (conflictExplanation.Count == 0 || currentLevel <= 0)
 			return false;
@@ -91,6 +92,7 @@ internal static class ConflictAnalyser
 			return false;
 
 		learnedClause = literals.ToArray();
+		isAsserting = currentLevelCount == 1;
 		return true;
 	}
 

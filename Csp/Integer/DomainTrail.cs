@@ -66,7 +66,10 @@ internal class DomainTrail
 		if (markerIndex < 0 || markerIndex >= this.depthStarts.Length)
 			return;
 
-		var restoreFrom = this.depthStarts[markerIndex];
+		var restoreFrom = -1;
+		for (var i = markerIndex; i < this.depthStarts.Length && restoreFrom == -1; ++i)
+			restoreFrom = this.depthStarts[i];
+
 		if (restoreFrom == -1)
 			return;
 

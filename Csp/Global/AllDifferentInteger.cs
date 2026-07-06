@@ -23,7 +23,6 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 	private readonly CycleDetection cycleDetection;
 	private readonly Stack<(int Depth, int?[] Matching)> matchingTrail;
 	private int?[]? lastMatching;
-	private Dictionary<(int, bool), List<BoundReason>> PropagationExplanations { get; set; } = new();
 	private int[] SnapshotLB { get; set; } = Array.Empty<int>();
 	private int[] SnapshotUB { get; set; } = Array.Empty<int>();
 
@@ -94,8 +93,6 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 		this.cycleDetection.Graph = this.Graph;
 		this.cycleDetection.DetectCycle();
 
-		var sccBoundReasons = BuildSccBoundReasons();
-
 		result = ConstraintOperationResult.Undecided;
 		foreach (var cycle in this.cycleDetection.StronglyConnectedComponents)
 		{
@@ -109,25 +106,12 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 					this.Graph.Values[value].CycleIndex != node.CycleIndex &&
 					((NodeValue) this.Graph.Pair[node]).Value != value))
 				{
-					var oldLb = variable.Domain.LowerBound;
-					var oldUb = variable.Domain.UpperBound;
-
 					variable.Remove(value, out DomainOperationResult domainResult);
 
 					if (domainResult == DomainOperationResult.ElementNotInDomain)
 						continue;
 
 					result = ConstraintOperationResult.Propagated;
-
-					var valueSccIndex = this.Graph.Values[value].CycleIndex;
-					if (sccBoundReasons.TryGetValue(valueSccIndex, out var hallReasons) ||
-						sccBoundReasons.TryGetValue(node.CycleIndex, out hallReasons))
-					{
-						if (variable.Domain.LowerBound > oldLb)
-							MergeExplanation(variable.VariableId, true, hallReasons);
-						if (variable.Domain.UpperBound < oldUb)
-							MergeExplanation(variable.VariableId, false, hallReasons);
-					}
 
 					if (domainResult == DomainOperationResult.EmptyDomain)
 					{
@@ -141,51 +125,10 @@ public class AllDifferentInteger : IBacktrackableConstraint, IConstraint<int>, I
 
 	public void Explain(int variableId, bool isLowerBound, int boundValue, IList<BoundReason> result)
 	{
-		if (this.PropagationExplanations.TryGetValue((variableId, isLowerBound), out var reasons))
-		{
-			foreach (var reason in reasons)
-				result.Add(reason);
-			return;
-		}
-
 		for (var i = 0; i < this.VariableList.Length; ++i)
 		{
 			result.Add(new BoundReason(this.VariableList[i].VariableId, true, this.SnapshotLB[i]));
 			result.Add(new BoundReason(this.VariableList[i].VariableId, false, this.SnapshotUB[i]));
-		}
-	}
-
-	private Dictionary<int, List<BoundReason>> BuildSccBoundReasons()
-	{
-		var sccBoundReasons = new Dictionary<int, List<BoundReason>>();
-		foreach (var kvp in this.Graph!.Variables)
-		{
-			var cycleIdx = kvp.Value.CycleIndex;
-			var varIndex = kvp.Key;
-			var hallVar = kvp.Value.Variable;
-			if (!sccBoundReasons.TryGetValue(cycleIdx, out var reasons))
-			{
-				reasons = new List<BoundReason>();
-				sccBoundReasons[cycleIdx] = reasons;
-			}
-			reasons.Add(new BoundReason(hallVar.VariableId, true, this.SnapshotLB[varIndex]));
-			reasons.Add(new BoundReason(hallVar.VariableId, false, this.SnapshotUB[varIndex]));
-		}
-		return sccBoundReasons;
-	}
-
-	private void MergeExplanation(int variableId, bool isLowerBound, List<BoundReason> reasons)
-	{
-		var key = (variableId, isLowerBound);
-		if (!this.PropagationExplanations.TryGetValue(key, out var existing))
-		{
-			this.PropagationExplanations[key] = new List<BoundReason>(reasons);
-			return;
-		}
-		foreach (var reason in reasons)
-		{
-			if (!existing.Contains(reason))
-				existing.Add(reason);
 		}
 	}
 
