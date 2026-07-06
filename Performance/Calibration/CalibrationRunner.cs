@@ -212,8 +212,13 @@ public static class CalibrationRunner
 
 	private static void RunProbes(IList<ProbeInstance> instances, string dataDirectory, int cap, bool clauseLearning)
 	{
-		Console.WriteLine("| Instance | Family | Evidence | Known | Status | Incumbent | Gap % | Backtracks | Time (s) | Sound |");
-		Console.WriteLine("|---|---|---|---|---|---|---|---|---|---|");
+		var clauseHeader = clauseLearning
+			? " ClausesLearned | AvgClauseSize | MaxClauseSize | UnitPropsFromClauses | ClauseCacheHits | ClausesEvicted |"
+			: string.Empty;
+		var clauseSeparator = clauseLearning ? "---|---|---|---|---|---|" : string.Empty;
+
+		Console.WriteLine("| Instance | Family | Evidence | Known | Status | Incumbent | Gap % | Backtracks | Time (s) | Sound |" + clauseHeader);
+		Console.WriteLine("|---|---|---|---|---|---|---|---|---|---|" + clauseSeparator);
 
 		var allSound = true;
 		foreach (var instance in instances)
@@ -224,9 +229,14 @@ public static class CalibrationRunner
 			var gap = result.GapPercent.HasValue ? result.GapPercent.Value.ToString("F1") : "-";
 			var incumbent = result.Incumbent.HasValue ? result.Incumbent.Value.ToString() : "-";
 
+			var clauseColumns = clauseLearning
+				? $" {result.ClausesLearned:N0} | {result.AverageClauseSize:N1} | {result.MaxClauseSize:N0} | " +
+					$"{result.UnitPropagationsFromClauses:N0} | {result.ClauseCacheHits:N0} | {result.ClausesEvicted:N0} |"
+				: string.Empty;
+
 			Console.WriteLine($"| {instance.Name} | {instance.Family} | {instance.DifficultyEvidence} | " +
 				$"{instance.KnownOptimum} | {result.Status} | {incumbent} | {gap} | " +
-				$"{result.Backtracks:N0} | {result.ElapsedSeconds:F1} | {(result.Sound ? "OK" : "UNSOUND")} |");
+				$"{result.Backtracks:N0} | {result.ElapsedSeconds:F1} | {(result.Sound ? "OK" : "UNSOUND")} |" + clauseColumns);
 			Console.Out.Flush();
 		}
 

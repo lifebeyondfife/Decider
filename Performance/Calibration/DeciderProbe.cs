@@ -24,14 +24,28 @@ public class ProbeResult
 	public int? Incumbent { get; private set; }
 	public int Backtracks { get; private set; }
 	public double ElapsedSeconds { get; private set; }
+	public int ClausesLearned { get; private set; }
+	public double AverageClauseSize { get; private set; }
+	public int MaxClauseSize { get; private set; }
+	public int UnitPropagationsFromClauses { get; private set; }
+	public int ClauseCacheHits { get; private set; }
+	public int ClausesEvicted { get; private set; }
 
-	public ProbeResult(ProbeInstance instance, string status, int? incumbent, int backtracks, double elapsedSeconds)
+	public ProbeResult(ProbeInstance instance, string status, int? incumbent, int backtracks, double elapsedSeconds,
+		int clausesLearned, double averageClauseSize, int maxClauseSize, int unitPropagationsFromClauses,
+		int clauseCacheHits, int clausesEvicted)
 	{
 		this.Instance = instance;
 		this.Status = status;
 		this.Incumbent = incumbent;
 		this.Backtracks = backtracks;
 		this.ElapsedSeconds = elapsedSeconds;
+		this.ClausesLearned = clausesLearned;
+		this.AverageClauseSize = averageClauseSize;
+		this.MaxClauseSize = maxClauseSize;
+		this.UnitPropagationsFromClauses = unitPropagationsFromClauses;
+		this.ClauseCacheHits = clauseCacheHits;
+		this.ClausesEvicted = clausesEvicted;
 	}
 
 	public double? GapPercent
@@ -97,7 +111,9 @@ public static class DeciderProbe
 			_ => "UNSAT"
 		};
 
-		return new ProbeResult(instance, status, incumbent, state.Backtracks, stopwatch.Elapsed.TotalSeconds);
+		return new ProbeResult(instance, status, incumbent, state.Backtracks, stopwatch.Elapsed.TotalSeconds,
+			state.ClausesLearned, state.AverageClauseSize, state.MaxClauseSize, state.UnitPropagationsFromClauses,
+			state.ClauseCacheHits, state.ClausesEvicted);
 	}
 
 	public static string RunDecision(ProbeInstance instance, string dataDirectory, int capSeconds, int bound,
