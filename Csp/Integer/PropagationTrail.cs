@@ -40,6 +40,8 @@ internal class PropagationTrail
 	private IList<BoundReason>[] explanations;
 	private int entryCount;
 	private int[] levelStarts;
+	private List<(int Bound, int Level)>[] lowerHistory;
+	private List<(int Bound, int Level)>[] upperHistory;
 
 	internal int Count => this.entryCount;
 
@@ -51,6 +53,9 @@ internal class PropagationTrail
 		this.levelStarts = new int[maxLevels + 1];
 		for (var i = 0; i < this.levelStarts.Length; ++i)
 			this.levelStarts[i] = -1;
+
+		this.lowerHistory = new List<(int, int)>[maxLevels];
+		this.upperHistory = new List<(int, int)>[maxLevels];
 	}
 
 	internal void RecordDecision(int variableId, int lowerBound, int upperBound, int decisionLevel)
@@ -89,17 +94,66 @@ internal class PropagationTrail
 			{
 				if (this.entries[i].DecisionLevel <= toLevel)
 				{
-					this.entryCount = i + 1;
+					TruncateHistory(i + 1);
 					break;
 				}
 			}
+
 			return;
 		}
 
-		this.entryCount = restoreFrom;
+		TruncateHistory(restoreFrom);
 
 		for (var i = markerIndex; i < this.levelStarts.Length; ++i)
 			this.levelStarts[i] = -1;
+	}
+
+	internal int FindDecisionLevel(int variableId, bool isLowerBound, int boundValue)
+	{
+		var history = isLowerBound ? this.lowerHistory : this.upperHistory;
+		if (variableId < 0 || variableId >= history.Length || history[variableId] == null)
+			return 0;
+
+		var changes = history[variableId];
+		var low = 0;
+		var high = changes.Count - 1;
+		var found = -1;
+
+		while (low <= high)
+		{
+			var mid = (low + high) / 2;
+			var satisfies = isLowerBound
+				? changes[mid].Bound >= boundValue
+				: changes[mid].Bound <= boundValue;
+
+			if (satisfies)
+			{
+				found = mid;
+				high = mid - 1;
+			}
+			else
+			{
+				low = mid + 1;
+			}
+		}
+
+		return found == -1 ? 0 : changes[found].Level;
+	}
+
+	private void TruncateHistory(int newCount)
+	{
+		for (var i = this.entryCount - 1; i >= newCount; --i)
+		{
+			ref var entry = ref this.entries[i];
+			var history = entry.IsLowerBound ? this.lowerHistory : this.upperHistory;
+			if (entry.VariableId >= 0 && entry.VariableId < history.Length && history[entry.VariableId] != null)
+			{
+				var changes = history[entry.VariableId];
+				changes.RemoveAt(changes.Count - 1);
+			}
+		}
+
+		this.entryCount = newCount;
 	}
 
 	internal ref Entry GetEntry(int index)
@@ -120,6 +174,12 @@ internal class PropagationTrail
 		this.entryCount = 0;
 		for (var i = 0; i < this.levelStarts.Length; ++i)
 			this.levelStarts[i] = -1;
+
+		for (var i = 0; i < this.lowerHistory.Length; ++i)
+		{
+			this.lowerHistory[i]?.Clear();
+			this.upperHistory[i]?.Clear();
+		}
 	}
 
 	private void EnsureLevelStart(int level)
@@ -139,7 +199,25 @@ internal class PropagationTrail
 			Array.Resize(ref this.explanations, this.explanations.Length * 2);
 		}
 
+		RecordHistory(entry);
 		this.explanations[this.entryCount] = explanation;
 		this.entries[this.entryCount++] = entry;
+	}
+
+	private void RecordHistory(Entry entry)
+	{
+		if (entry.VariableId < 0)
+			return;
+
+		if (entry.VariableId >= this.lowerHistory.Length)
+		{
+			var newSize = entry.VariableId + 1;
+			Array.Resize(ref this.lowerHistory, newSize);
+			Array.Resize(ref this.upperHistory, newSize);
+		}
+
+		var history = entry.IsLowerBound ? this.lowerHistory : this.upperHistory;
+		history[entry.VariableId] ??= new List<(int, int)>();
+		history[entry.VariableId].Add((entry.NewBound, entry.DecisionLevel));
 	}
 }
