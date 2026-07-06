@@ -23,17 +23,10 @@ internal static class ConflictAnalyser
 			return false;
 
 		var nogood = new Dictionary<(int, bool), BoundReason>();
+		var currentLevelCount = 0;
 
 		foreach (var reason in conflictExplanation)
-		{
-			var key = (reason.VariableIndex, reason.IsLowerBound);
-			if (!nogood.ContainsKey(key))
-				nogood[key] = reason;
-			else
-				StrengthenLiteral(nogood, key, reason);
-		}
-
-		var currentLevelCount = CountAtLevel(nogood, trail, currentLevel);
+			AddLiteral(nogood, trail, currentLevel, ref currentLevelCount, reason);
 
 		if (currentLevelCount <= 0)
 			return false;
@@ -48,27 +41,20 @@ internal static class ConflictAnalyser
 				continue;
 
 			var key = (entry.VariableId, entry.IsLowerBound);
-			if (!nogood.ContainsKey(key))
+			if (!nogood.TryGetValue(key, out var resolved))
 				continue;
 
-			var foundLevel = FindDecisionLevel(trail, nogood[key]);
+			var foundLevel = trail.FindDecisionLevel(resolved.VariableIndex, resolved.IsLowerBound, resolved.BoundValue);
 			if (foundLevel != currentLevel)
 				continue;
 
 			nogood.Remove(key);
+			--currentLevelCount;
 
 			var explanation = GetExplanationFromEntry(i, trail, constraints, variables);
 
 			foreach (var antecedent in explanation)
-			{
-				var antKey = (antecedent.VariableIndex, antecedent.IsLowerBound);
-				if (!nogood.ContainsKey(antKey))
-					nogood[antKey] = antecedent;
-				else
-					StrengthenLiteral(nogood, antKey, antecedent);
-			}
-
-			currentLevelCount = CountAtLevel(nogood, trail, currentLevel);
+				AddLiteral(nogood, trail, currentLevel, ref currentLevelCount, antecedent);
 		}
 
 		var literals = new List<BoundReason>();
@@ -80,7 +66,7 @@ internal static class ConflictAnalyser
 			var negated = NegateLiteral(original);
 			literals.Add(negated);
 
-			var level = FindDecisionLevel(trail, original);
+			var level = trail.FindDecisionLevel(original.VariableIndex, original.IsLowerBound, original.BoundValue);
 			if (level == currentLevel)
 				continue;
 
@@ -96,34 +82,34 @@ internal static class ConflictAnalyser
 		return true;
 	}
 
-	private static int CountAtLevel(Dictionary<(int, bool), BoundReason> nogood,
-		PropagationTrail trail, int level)
+	private static void AddLiteral(Dictionary<(int, bool), BoundReason> nogood,
+		PropagationTrail trail, int currentLevel, ref int currentLevelCount, BoundReason literal)
 	{
-		var count = 0;
-		foreach (var kvp in nogood)
+		var key = (literal.VariableIndex, literal.IsLowerBound);
+		if (!nogood.TryGetValue(key, out var existing))
 		{
-			if (FindDecisionLevel(trail, kvp.Value) == level)
-				++count;
-		}
-		return count;
-	}
-
-	private static int FindDecisionLevel(PropagationTrail trail, BoundReason literal)
-	{
-		for (var i = 0; i < trail.Count; ++i)
-		{
-			ref var entry = ref trail.GetEntry(i);
-			if (entry.VariableId != literal.VariableIndex || entry.IsLowerBound != literal.IsLowerBound)
-				continue;
-
-			if (literal.IsLowerBound && entry.NewBound >= literal.BoundValue)
-				return entry.DecisionLevel;
-
-			if (!literal.IsLowerBound && entry.NewBound <= literal.BoundValue)
-				return entry.DecisionLevel;
+			nogood[key] = literal;
+			if (trail.FindDecisionLevel(literal.VariableIndex, literal.IsLowerBound, literal.BoundValue) == currentLevel)
+				++currentLevelCount;
+			return;
 		}
 
-		return 0;
+		var isStronger = literal.IsLowerBound
+			? literal.BoundValue > existing.BoundValue
+			: literal.BoundValue < existing.BoundValue;
+
+		if (!isStronger)
+			return;
+
+		var oldAtLevel = trail.FindDecisionLevel(existing.VariableIndex, existing.IsLowerBound, existing.BoundValue) == currentLevel;
+		var newAtLevel = trail.FindDecisionLevel(literal.VariableIndex, literal.IsLowerBound, literal.BoundValue) == currentLevel;
+
+		if (oldAtLevel && !newAtLevel)
+			--currentLevelCount;
+		else if (!oldAtLevel && newAtLevel)
+			++currentLevelCount;
+
+		nogood[key] = literal;
 	}
 
 	private static IList<BoundReason> GetExplanationFromEntry(int entryIndex, PropagationTrail trail,
@@ -156,20 +142,5 @@ internal static class ConflictAnalyser
 			return new BoundReason(literal.VariableIndex, false, literal.BoundValue - 1);
 
 		return new BoundReason(literal.VariableIndex, true, literal.BoundValue + 1);
-	}
-
-	private static void StrengthenLiteral(Dictionary<(int, bool), BoundReason> nogood, (int, bool) key, BoundReason newLiteral)
-	{
-		var existing = nogood[key];
-		if (newLiteral.IsLowerBound)
-		{
-			if (newLiteral.BoundValue > existing.BoundValue)
-				nogood[key] = newLiteral;
-		}
-		else
-		{
-			if (newLiteral.BoundValue < existing.BoundValue)
-				nogood[key] = newLiteral;
-		}
 	}
 }

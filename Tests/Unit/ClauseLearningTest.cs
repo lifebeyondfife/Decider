@@ -66,6 +66,89 @@ public class ClauseLearningTest
 	}
 
 	[Fact]
+	public void TestPropagationTrailFindDecisionLevel()
+	{
+		var trail = new PropagationTrail(10, 100);
+
+		trail.RecordDecision(0, 1, 9, 0);
+		trail.RecordPropagation(0, true, 3, 1, PropagationTrail.ReasonConstraint, 0);
+		trail.RecordPropagation(0, false, 6, 1, PropagationTrail.ReasonConstraint, 0);
+		trail.RecordPropagation(0, true, 5, 2, PropagationTrail.ReasonConstraint, 0);
+
+		Assert.Equal(0, trail.FindDecisionLevel(0, true, 1));
+		Assert.Equal(1, trail.FindDecisionLevel(0, true, 2));
+		Assert.Equal(1, trail.FindDecisionLevel(0, true, 3));
+		Assert.Equal(2, trail.FindDecisionLevel(0, true, 4));
+		Assert.Equal(2, trail.FindDecisionLevel(0, true, 5));
+
+		Assert.Equal(0, trail.FindDecisionLevel(0, false, 9));
+		Assert.Equal(1, trail.FindDecisionLevel(0, false, 7));
+		Assert.Equal(1, trail.FindDecisionLevel(0, false, 6));
+		Assert.Equal(0, trail.FindDecisionLevel(0, false, 5));
+
+		Assert.Equal(0, trail.FindDecisionLevel(0, true, 100));
+	}
+
+	[Fact]
+	public void TestPropagationTrailFindDecisionLevelMatchesScanAcrossBacktrack()
+	{
+		var trail = new PropagationTrail(20, 100);
+
+		trail.RecordDecision(0, 0, 20, 0);
+		trail.RecordDecision(1, 0, 20, 0);
+		trail.RecordPropagation(0, true, 4, 1, PropagationTrail.ReasonConstraint, 0);
+		trail.RecordPropagation(1, false, 15, 1, PropagationTrail.ReasonConstraint, 0);
+		trail.RecordPropagation(0, true, 7, 2, PropagationTrail.ReasonConstraint, 0);
+		trail.RecordPropagation(1, false, 12, 2, PropagationTrail.ReasonConstraint, 0);
+		trail.RecordPropagation(0, true, 9, 3, PropagationTrail.ReasonConstraint, 0);
+
+		AssertFindMatchesScan(trail);
+
+		trail.Backtrack(1);
+		AssertFindMatchesScan(trail);
+
+		trail.RecordPropagation(0, true, 6, 2, PropagationTrail.ReasonConstraint, 0);
+		AssertFindMatchesScan(trail);
+
+		trail.Backtrack(0);
+		AssertFindMatchesScan(trail);
+	}
+
+	private static void AssertFindMatchesScan(PropagationTrail trail)
+	{
+		for (var variableId = 0; variableId < 2; ++variableId)
+		{
+			foreach (var isLowerBound in new[] { true, false })
+			{
+				for (var bound = -1; bound <= 21; ++bound)
+				{
+					var expected = ScanForLevel(trail, variableId, isLowerBound, bound);
+					var actual = trail.FindDecisionLevel(variableId, isLowerBound, bound);
+					Assert.Equal(expected, actual);
+				}
+			}
+		}
+	}
+
+	private static int ScanForLevel(PropagationTrail trail, int variableId, bool isLowerBound, int bound)
+	{
+		for (var i = 0; i < trail.Count; ++i)
+		{
+			ref var entry = ref trail.GetEntry(i);
+			if (entry.VariableId != variableId || entry.IsLowerBound != isLowerBound)
+				continue;
+
+			if (isLowerBound && entry.NewBound >= bound)
+				return entry.DecisionLevel;
+
+			if (!isLowerBound && entry.NewBound <= bound)
+				return entry.DecisionLevel;
+		}
+
+		return 0;
+	}
+
+	[Fact]
 	public void TestClauseLiteralFalsified()
 	{
 		var x = new VariableInteger("x", 1, 5);
