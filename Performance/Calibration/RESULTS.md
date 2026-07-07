@@ -399,3 +399,122 @@ propagations in later iterations) are the next measurement, gating the #158 epic
 dotnet run -c Release -- calibrate probe --family jssp --clause-learning
 dotnet run -c Release -- calibrate probe --family rcpsp --clause-learning
 ```
+
+---
+
+# Clause-quality diagnostics baseline — 7 July 2026
+
+First sweep in which the six #159 counters are **trustworthy**: #174 wired them into the
+probe (`DeciderProbe`/`ProbeResult`) and #176 fixed the `UnitPropagationsFromClauses`
+undercount (backtracking bound removals now notify the clause store). Earlier sweeps recorded
+only `Backtracks`, so this is the first counter-bearing baseline that can feed the #175
+evaluation and the #158 go/no-go.
+
+Per-run hard cap 60s, on `main`, families run sequentially (not in parallel) so wall-clock
+timings stay comparable. Search trajectories differ from the 6 July tables because #176's
+backtracking notifications change the search path.
+
+## JSSP probe sweep, clause learning enabled (16 instances × 60s cap)
+
+| Instance | Family | Evidence | Known | Status | Incumbent | Gap % | Backtracks | Time (s) | Sound | ClausesLearned | AvgClauseSize | MaxClauseSize | UnitPropsFromClauses | ClauseCacheHits | ClausesEvicted |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ft06 | Jssp | 6x6 trivial | 55 | PROVEN | 55 | 0.0 | 191 | 0.1 | OK | 3 | 16.0 | 18 | 5 | 0 | 0 |
+| la01 | Jssp | 10x5 easy | 666 | PROVEN | 666 | 0.0 | 46,437 | 1.9 | OK | 45,998 | 20.4 | 82 | 497 | 0 | 44,011 |
+| la04 | Jssp | 10x5 easy | 590 | INCUMBENT | 753 | 27.6 | 7,203,311 | 60.0 | OK | 7,110,563 | 20.0 | 28 | 0 | 0 | 7,109,777 |
+| la06 | Jssp | 15x5 easy | 926 | INCUMBENT | 927 | 0.1 | 1,920,274 | 60.0 | OK | 1,913,892 | 30.9 | 150 | 4,798 | 0 | 1,912,478 |
+| la16 | Jssp | 10x10 moderate | 945 | INCUMBENT | 1014 | 7.3 | 594,601 | 60.0 | OK | 579,908 | 29.5 | 200 | 147,631 | 3,246 | 576,144 |
+| la19 | Jssp | 10x10 moderate | 842 | INCUMBENT | 908 | 7.8 | 410,539 | 60.0 | OK | 287,494 | 59.9 | 200 | 356,135 | 96,003 | 284,071 |
+| ft10 | Jssp | 10x10 classic hard | 930 | INCUMBENT | 1039 | 11.7 | 1,216,892 | 60.0 | OK | 398,184 | 36.2 | 200 | 7,355 | 805,834 | 396,099 |
+| abz5 | Jssp | 10x10 moderate | 1234 | INCUMBENT | 1321 | 7.1 | 552,126 | 60.0 | OK | 534,206 | 28.3 | 200 | 178,061 | 918 | 532,133 |
+| orb01 | Jssp | 10x10 moderate-hard | 1059 | INCUMBENT | 1215 | 14.7 | 448,121 | 60.0 | OK | 446,322 | 31.8 | 186 | 80,254 | 1,069 | 444,111 |
+| orb02 | Jssp | 10x10 moderate | 888 | INCUMBENT | 1079 | 21.5 | 712,430 | 60.0 | OK | 696,264 | 38.0 | 200 | 930 | 9,696 | 696,174 |
+| la21 | Jssp | 15x10 hard | 1046 | INCUMBENT | 1211 | 15.8 | 243,141 | 60.0 | OK | 237,051 | 59.6 | 220 | 1,040 | 811 | 236,059 |
+| la24 | Jssp | 15x10 hard | 935 | INCUMBENT | 1063 | 13.7 | 1,172,903 | 60.0 | OK | 1,137,892 | 30.0 | 202 | 14,629 | 1,460 | 1,136,284 |
+| la27 | Jssp | 20x10 hard | 1235 | INCUMBENT | 1502 | 21.6 | 1,872,734 | 60.0 | OK | 1,850,405 | 40.0 | 208 | 0 | 0 | 1,848,462 |
+| la29 | Jssp | 20x10 very hard | 1152 | INCUMBENT | 1581 | 37.2 | 336,535 | 60.0 | OK | 336,188 | 41.9 | 400 | 6 | 0 | 336,084 |
+| la38 | Jssp | 15x15 very hard | 1196 | INCUMBENT | 1452 | 21.4 | 258,750 | 60.0 | OK | 256,274 | 37.9 | 356 | 9,023 | 490 | 256,064 |
+| ta01 | Jssp | 15x15 very hard | 1231 | INCUMBENT | 1394 | 13.2 | 286,771 | 60.0 | OK | 205,987 | 62.9 | 344 | 106,762 | 71,287 | 204,051 |
+
+## RCPSP probe sweep, clause learning enabled (19 instances × 60s cap)
+
+| Instance | Family | Evidence | Known | Status | Incumbent | Gap % | Backtracks | Time (s) | Sound | ClausesLearned | AvgClauseSize | MaxClauseSize | UnitPropsFromClauses | ClauseCacheHits | ClausesEvicted |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| j3010_1 | Rcpsp | 1995 B&B: 2.5s (anchor) | 42 | PROVEN | 42 | 0.0 | 2 | 0.1 | OK | 2 | 64.0 | 64 | 1 | 0 | 0 |
+| j309_4 | Rcpsp | 1995 B&B: 92s | 71 | INCUMBENT | 74 | 4.2 | 1,272,962 | 60.0 | OK | 1,005,743 | 64.0 | 64 | 1,921 | 148 | 1,004,251 |
+| j3014_4 | Rcpsp | 1995 B&B: 106s | 50 | NOSOLUTION | - | - | 1,230,333 | 60.0 | OK | 963,541 | 64.0 | 64 | 1,638 | 68 | 960,240 |
+| j3025_3 | Rcpsp | 1995 B&B: 115s | 76 | INCUMBENT | 86 | 13.2 | 557,747 | 60.0 | OK | 469,084 | 64.0 | 64 | 37,192 | 2 | 468,117 |
+| j3013_9 | Rcpsp | 1995 B&B: 239s | 71 | INCUMBENT | 72 | 1.4 | 1,356,184 | 60.0 | OK | 1,089,650 | 64.0 | 64 | 14 | 18 | 1,088,272 |
+| j3029_8 | Rcpsp | 1995 B&B: 354s | 80 | INCUMBENT | 86 | 7.5 | 1,489,488 | 60.0 | OK | 1,270,968 | 64.0 | 64 | 0 | 0 | 1,268,317 |
+| j309_1 | Rcpsp | 1995 B&B: 423s | 83 | NOSOLUTION | - | - | 1,843,506 | 60.0 | OK | 1,460,742 | 64.0 | 64 | 22 | 0 | 1,460,365 |
+| j3013_5 | Rcpsp | 1995 B&B: 3330s | 67 | INCUMBENT | 74 | 10.4 | 530,495 | 60.0 | OK | 452,652 | 64.0 | 64 | 27 | 22 | 452,113 |
+| j3013_1 | Rcpsp | 1995 B&B: 7209s | 58 | INCUMBENT | 72 | 24.1 | 598,087 | 60.0 | OK | 504,968 | 64.0 | 64 | 2,415 | 4 | 504,126 |
+| j6010_1 | Rcpsp | j60 T1 (anchor) | 85 | PROVEN | 85 | 0.0 | 0 | 0.0 | OK | 0 | 0.0 | 0 | 0 | 0 | 0 |
+| j601_1 | Rcpsp | j60 T1 | 77 | PROVEN | 77 | 0.0 | 0 | 0.0 | OK | 0 | 0.0 | 0 | 0 | 0 | 0 |
+| j602_1 | Rcpsp | j60 T1 | 65 | PROVEN | 65 | 0.0 | 0 | 0.0 | OK | 0 | 0.0 | 0 | 0 | 0 | 0 |
+| j601_4 | Rcpsp | j60 T2 | 91 | PROVEN | 91 | 0.0 | 11 | 0.0 | OK | 11 | 124.0 | 124 | 0 | 0 | 0 |
+| j6017_1 | Rcpsp | j60 T2 | 86 | PROVEN | 86 | 0.0 | 12,371 | 5.6 | OK | 8,788 | 124.0 | 124 | 201 | 62 | 8,002 |
+| j609_3 | Rcpsp | j60 T3 (Laborie) | 100 | INCUMBENT | 123 | 23.0 | 207,996 | 60.0 | OK | 174,786 | 124.0 | 124 | 7 | 0 | 172,043 |
+| j6025_2 | Rcpsp | j60 T3 (Laborie) | 98 | NOSOLUTION | - | - | 296,593 | 60.0 | OK | 226,940 | 124.0 | 124 | 135 | 0 | 224,056 |
+| j601_7 | Rcpsp | j60 T4 (LCG-closed) | 72 | NOSOLUTION | - | - | 173,199 | 60.0 | OK | 130,031 | 124.0 | 124 | 8,011 | 0 | 128,032 |
+| j6021_1 | Rcpsp | j60 T4 (LCG-closed) | 103 | INCUMBENT | 117 | 13.6 | 128,066 | 60.0 | OK | 101,327 | 124.0 | 124 | 3,290 | 1 | 100,025 |
+| j6026_2 | Rcpsp | j60 T4 (LCG-closed) | 66 | NOSOLUTION | - | - | 59,691 | 60.0 | OK | 38,882 | 124.0 | 124 | 25 | 0 | 36,009 |
+
+## Clause-quality read
+
+Four findings, now that the counters are sound:
+
+1. **Clauses are large, and on RCPSP pathologically so.** JSSP average sizes run 16–63 literals;
+   RCPSP is worse and *invariant* — every j30 clause is exactly 64 literals, every j60 clause
+   exactly 124 (`AvgClauseSize == MaxClauseSize`, zero variance). A clause that is always maximal
+   is an explanation that cites every variable on the trail: there is **no learned-clause
+   minimization**, and the bounds-only explanations do not localise. This is an algorithm/encoding
+   artefact, not a property of the instances.
+
+2. **Clauses do fire — but firing is bimodal and decoupled from payoff.** The #176 fix reveals
+   substantial unit propagation on the 10×10 JSSP instances (la19 356k props / 96k cache hits,
+   abz5 178k, la16 148k, ta01 107k / 71k), disproving the earlier "clauses never go unit" read.
+   Yet other instances log millions of clauses with ~zero firing (la04 0, la27 0, j3029_8 0), and
+   **no** instance converts firing into a faster proof — every heavy-firing instance is still
+   INCUMBENT at the same or wider gap.
+
+3. **The clause store is a revolving door.** `MaxClauses = 4000` against millions learned per run
+   means `ClausesEvicted` tracks `ClausesLearned` almost exactly (la04: 7.11M learned, 7.11M
+   evicted). Activity-based eviction with a tiny cap discards clauses long before reuse; there is
+   no LBD/"glue" retention.
+
+4. **Head-to-head against LCG on its own turf.** j601_7 and j6026_2 are tagged T4 "LCG-closed"
+   (instances lazy-clause-generation solvers close); Decider with bounds-only CL returns
+   NOSOLUTION on both in 60s. Where the world's CL solvers win, this CL cannot yet find a feasible
+   incumbent.
+
+## Go/no-go read (feeds #175, gates #158)
+
+The evidence retires one no-go rationale and leaves the decision strategic, not empirical:
+
+- **Retired:** "CL does not help these problems." Clauses demonstrably fire (finding 2), and these
+  are problem classes LCG provably wins (finding 4). A null here is a verdict on *bounds-only,
+  unminimised, crudely-evicted* CL — not on clause learning for JSSP/RCPSP.
+- **Not yet demonstrated:** a Decider instance where CL reduces time-to-proof. Still net-negative
+  across both families (no proofs beyond the pure-propagation anchors; several NOSOLUTION
+  regressions). #175's hard-exit benchmark does not yet exist.
+- **Confounds to remove before a fair verdict:** (a) interior/equality literals so explanations can
+  name culprit values instead of citing whole bound intervals — #158's implementation scope;
+  (b) the surrounding clause-management package the reference solvers depend on — explanation
+  minimisation, LBD-based retention, a bounded-but-non-thrashing database. Findings 1 and 3 say the
+  gap today is at least as much (b) as (a).
+
+Recommendation: **do not greenlight the #158 SAT layer on these numbers alone.** They confirm the
+technique is being tested in a damaged configuration, not that domain-gap support is the proven
+bottleneck. The next cheap, high-information step is to attack clause *quality* in the current
+representation — explanation minimisation + LBD retention — and re-measure; if firing still yields
+no backtrack/time reduction once clauses are small and retained, only *then* is interior-literal
+support (#158) the isolated variable worth the build. The standing decision remains whether Decider
+should become a lazy-clause-generation solver at all, which is a product-identity choice against its
+ease-of-use and cheap-bounds-pruning values, independent of this benchmark.
+
+## Reproduction commands
+
+```bash
+dotnet run -c Release --no-build --project Performance/Performance.csproj -- calibrate probe --family jssp --clause-learning
+dotnet run -c Release --no-build --project Performance/Performance.csproj -- calibrate probe --family rcpsp --clause-learning
+```
